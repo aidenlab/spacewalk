@@ -3,7 +3,7 @@ description: Documentation for the Spacewalk 3D visualization application for su
 remote_theme: just-the-docs/just-the-docs
 show_downloads: true
 github:
-  repository_url: https://github.com/igvteam/spacewalk
+  repository_url: https://github.com/aidenlab/spacewalk
   is_project_page: true
 
 # Enable plugins
