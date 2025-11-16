@@ -1,8 +1,10 @@
 # Spacewalk
 
-Spacewalk is an interactive 3D visualization application for super-resolution microscopy data. Spacewalk supports integrated genomic analysis via a fully featured IGV genomics browser [igv.js](https://github.com/igvteam/igv.js) and Juicebox Hi-C map viewer [juicebox.js](https://github.com/igvteam/juicebox.js)
+Spacewalk is an interactive 3D visualization application for super-resolution microscopy data. 
+Spacewalk supports integrated genomic analysis via a fully featured IGV genomics browser [igv.js](https://github.com/igvteam/igv.js) 
+and Juicebox Hi-C map viewer [juicebox.js](https://github.com/aidenlab/juicebox.js)
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/de85ff21-f4d0-47fe-8ca4-e1fc421b3dc4/deploy-status)](https://app.netlify.com/projects/spacewalk-site/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/501c7787-a366-4d4c-a5aa-e768be19ccfc/deploy-status)](https://app.netlify.com/projects/spacewalk-site/deploys)
 
 ## Try It Now
 
@@ -19,7 +21,7 @@ The point cloud is rendered as a collection of 3D point clusters, each point clu
 
 ## Documentation
 
-Visit our [Documentation Site](https://igvteam.github.io/spacewalk/) for:
+Visit our [Documentation Site](https://aidenlab.github.io/spacewalk/) for:
 - User Guide
 - Developer Guide
 - File Format Specifications
@@ -43,7 +45,7 @@ Visit our [Documentation Site](https://igvteam.github.io/spacewalk/) for:
 
 ### Setup
 ```bash
-git clone https://github.com/igvteam/spacewalk.git
+git clone https://github.com/aidenlab/spacewalk.git
 cd spacewalk
 npm install
 npm start

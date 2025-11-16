@@ -19,7 +19,7 @@ This guide is for developers who want to run their own instance of Spacewalk or 
 
 ```bash
 # Clone the repository
-git clone https://github.com/igvteam/spacewalk.git
+git clone https://github.com/aidenlab/spacewalk.git
 
 # Navigate to project directory
 cd spacewalk
