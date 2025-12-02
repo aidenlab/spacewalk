@@ -104,6 +104,9 @@ class EnsembleManager {
     }
 
     async getTraceCount() {
+        if (!this.datasource) {
+            return 0
+        }
         return await this.datasource.getVertexListCount()
     }
 
