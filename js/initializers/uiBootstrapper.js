@@ -71,9 +71,19 @@ class UIBootstrapper {
     }
 
     async initializeReleaseInfo() {
-        const { tag_name } = await showRelease();
-        document.getElementById('spacewalk-help-menu-release').innerHTML = `Spacewalk release ${tag_name}`;
-        console.log(`Spacewalk release ${tag_name}`);
+        try {
+            const releaseData = await showRelease();
+            if (releaseData && releaseData.tag_name) {
+                const tag_name = releaseData.tag_name;
+                const releaseElement = document.getElementById('spacewalk-help-menu-release');
+                if (releaseElement) {
+                    releaseElement.innerHTML = `Spacewalk release ${tag_name}`;
+                }
+                console.log(`Spacewalk release ${tag_name}`);
+            }
+        } catch (error) {
+            console.error('Error initializing release info:', error);
+        }
     }
 
     initializePopovers() {

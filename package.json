@@ -36,7 +36,7 @@
     "hdf5-indexed-reader": "github:jrobinso/hdf5-indexed-reader#v0.5.4",
     "igv": "github:igvteam/igv.js#spacewalk",
     "igv-utils": "github:igvteam/igv-utils#v1.5.8",
-    "juicebox.js": "github:igvteam/juicebox.js#refactor-browser-god-object",
+    "juicebox.js": "github:igvteam/juicebox.js#v3.1.0-browser-refactor",
     "quickhull3d": "^3.1.1",
     "three": "^0.180.0",
     "vanilla-picker": "^2.12.3"
