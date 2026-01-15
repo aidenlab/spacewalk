@@ -219,6 +219,12 @@ class SWBDatasource extends DataSourceBase {
     }
 
     getLiveMapTraceVertices(trace) {
+        // Safety check: vertex lists may not be initialized yet
+        if (!this.liveContactFrequencyMapVertexLists || 
+            this.currentTraceIndex === undefined ||
+            !this.liveContactFrequencyMapVertexLists[this.currentTraceIndex]) {
+            return null
+        }
         return this.liveContactFrequencyMapVertexLists[ this.currentTraceIndex ]
     }
 }
