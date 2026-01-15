@@ -5,7 +5,7 @@ import { ballAndStick, liveContactMapService, liveDistanceMapService, ensembleMa
 import { renderLiveMapWithDistanceData } from './liveDistanceMapService.js'
 import {appleCrayonColorRGB255, rgb255String, compositeColors} from "../utils/colorUtils"
 import {transferRGBAMatrixToLiveMapCanvas} from "../utils/utils.js"
-import {spacewalkConfig} from "../../spacewalk-config"
+import {spacewalkConfig} from "../../spacewalk-config.js"
 
 // Store reference to the singleton JuiceboxPanel instance for event handlers
 let juiceboxPanelInstance = null;
