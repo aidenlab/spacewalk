@@ -6,6 +6,7 @@ import { renderLiveMapWithDistanceData } from './liveDistanceMapService.js'
 import {appleCrayonColorRGB255, rgb255String, compositeColors} from "../utils/colorUtils"
 import {transferRGBAMatrixToLiveMapCanvas} from "../utils/utils.js"
 import {spacewalkConfig} from "../../spacewalk-config.js"
+import {normalizeToPercentileRange} from '../utils/statisticsUtils.js'
 
 // Store reference to the singleton JuiceboxPanel instance for event handlers
 let juiceboxPanelInstance = null;
@@ -569,9 +570,54 @@ class JuiceboxPanel extends Panel {
     }
 
     paintContactMapRGBAMatrix(frequencies, rgbaMatrix, colorScale, backgroundRGB) {
+        // Get statistics for percentile-based normalization
+        const stats = liveContactMapService.contactFrequencyStats
+        
+        // Default percentiles (can be made configurable later)
+        const minPercentile = 5
+        const maxPercentile = 95
+        
+        // Compute percentile range values for mapping
+        let percentileMin = 0
+        let percentileMax = 1
+        let usePercentileScaling = false
+        
+        if (stats && stats.count > 0) {
+            percentileMin = stats.percentiles[`p${minPercentile}`] || stats.min
+            percentileMax = stats.percentiles[`p${maxPercentile}`] || stats.max
+            usePercentileScaling = (percentileMax > percentileMin)
+        }
+        
         let i = 0
         for (const frequency of frequencies) {
-            const { red, green, blue, alpha } = colorScale.getColor(frequency)
+            // Handle undefined/missing data
+            if (frequency === undefined || frequency === -1 || frequency <= 0) {
+                // Missing data - use background color
+                rgbaMatrix[i++] = backgroundRGB.r
+                rgbaMatrix[i++] = backgroundRGB.g
+                rgbaMatrix[i++] = backgroundRGB.b
+                rgbaMatrix[i++] = 255
+                continue
+            }
+            
+            // Map frequency to percentile-based range for color scaling
+            let mappedFrequency = frequency
+            
+            if (usePercentileScaling) {
+                // Clamp frequency to percentile range
+                const clampedFreq = Math.max(percentileMin, Math.min(frequency, percentileMax))
+                // Normalize to 0-1 within percentile range
+                const normalized = (clampedFreq - percentileMin) / (percentileMax - percentileMin)
+                // Map normalized value (0-1) to full data range for colorScale
+                // This ensures colorScale uses the full color range for the percentile window
+                const dataMin = stats.min
+                const dataMax = stats.max
+                mappedFrequency = dataMin + normalized * (dataMax - dataMin)
+            }
+            // If stats not available or percentile range invalid, use original frequency
+            
+            // Get color from colorScale (expects value in data range)
+            const { red, green, blue, alpha } = colorScale.getColor(mappedFrequency)
             const foregroundRGBA = { r:red, g:green, b:blue, a:alpha }
             const { r, g, b } = compositeColors(foregroundRGBA, backgroundRGB)
 
