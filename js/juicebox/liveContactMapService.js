@@ -15,7 +15,9 @@ const DEFAULT_K = 3  // Number of nearest neighbors to analyze
 const DEFAULT_SAMPLE_SIZE = 200  // Number of vertices to sample for k-NN analysis
 const DEFAULT_NN_MULTIPLIER = 2.0  // Multiplier for median nearest neighbor distance
 const DEFAULT_MIN_THRESHOLD_MULTIPLIER = 1.2  // Minimum threshold multiplier
-const DEFAULT_CONSECUTIVE_DISTANCE_MULTIPLIER = 2.5  // Multiplier for average consecutive vertex distance
+const DEFAULT_CONSECUTIVE_DISTANCE_MULTIPLIER = 3.5  // Multiplier for consecutive vertex distance threshold
+const DEFAULT_CONSECUTIVE_DISTANCE_PERCENTILE = 75  // Percentile to use for consecutive distance baseline (p75 for more inclusive threshold)
+const DEFAULT_TRACE_SAMPLE_SIZE = 30  // Number of traces to sample for multi-trace consecutive distance analysis
 const KDBUSH_NODE_SIZE = 64  // KDBush node size for spatial indexing
 
 /**
@@ -336,6 +338,77 @@ function computeConsecutiveVertexDistances(vertices) {
 }
 
 /**
+ * Sample traces randomly for efficient multi-trace analysis
+ * @param {number} totalTraces - Total number of traces available
+ * @param {number} sampleSize - Number of traces to sample
+ * @returns {Array<number>} Array of trace indices to sample
+ */
+function sampleTraceIndices(totalTraces, sampleSize) {
+    if (totalTraces <= sampleSize) {
+        // Return all trace indices if we have fewer traces than sample size
+        return Array.from({ length: totalTraces }, (_, i) => i)
+    }
+    
+    const sampled = []
+    const indices = new Set()
+    
+    while (sampled.length < sampleSize) {
+        const idx = Math.floor(Math.random() * totalTraces)
+        if (!indices.has(idx)) {
+            indices.add(idx)
+            sampled.push(idx)
+        }
+    }
+    
+    return sampled
+}
+
+/**
+ * Compute consecutive vertex distances across multiple traces
+ * Samples a subset of traces and aggregates consecutive distances from all sampled traces
+ * 
+ * @param {Array<Array>} vertexLists - Array of vertex arrays, one per trace
+ * @param {number} sampleSize - Number of traces to sample
+ * @returns {Object} Object with:
+ *   - distances: Array of all consecutive distances across sampled traces
+ *   - traceCount: Number of traces sampled
+ *   - totalDistances: Total number of consecutive distances collected
+ */
+function computeMultiTraceConsecutiveDistances(vertexLists, sampleSize) {
+    if (!vertexLists || vertexLists.length === 0) {
+        return { distances: [], traceCount: 0, totalDistances: 0 }
+    }
+    
+    // Determine how many traces to sample
+    const actualSampleSize = Math.min(sampleSize, vertexLists.length)
+    const traceIndices = sampleTraceIndices(vertexLists.length, actualSampleSize)
+    
+    const allDistances = []
+    let validTraceCount = 0
+    
+    // Compute consecutive distances for each sampled trace
+    for (const traceIndex of traceIndices) {
+        const vertices = vertexLists[traceIndex]
+        if (!vertices || vertices.length === 0) {
+            continue
+        }
+        
+        const consecutiveDistances = computeConsecutiveVertexDistances(vertices)
+        
+        if (consecutiveDistances.length > 0) {
+            allDistances.push(...consecutiveDistances)
+            validTraceCount++
+        }
+    }
+    
+    return {
+        distances: allDistances,
+        traceCount: validTraceCount,
+        totalDistances: allDistances.length
+    }
+}
+
+/**
  * Automatically determine optimal distance threshold using hybrid approach
  * Combines radius-based heuristic, consecutive vertex distance analysis, and k-nearest neighbor analysis
  * 
@@ -364,25 +437,99 @@ function autoDetermineThreshold(trace, vertices, traceLength) {
     
     // Only use consecutive distance analysis for ball-and-stick datasets
     if (!ensembleManager.isPointCloud) {
-        const consecutiveDistances = computeConsecutiveVertexDistances(vertices)
+        // Try multi-trace sampling first (more robust)
+        const vertexLists = ensembleManager.getLiveMapVertexLists()
         
-        if (consecutiveDistances.length > 0) {
-            const avgConsecutiveDistance = consecutiveDistances.reduce((a, b) => a + b, 0) / consecutiveDistances.length
-            const medianConsecutiveDistance = median(consecutiveDistances)
+        if (vertexLists && vertexLists.length > 1) {
+            // Use multi-trace sampling for better ensemble representation
+            const multiTraceResult = computeMultiTraceConsecutiveDistances(vertexLists, DEFAULT_TRACE_SAMPLE_SIZE)
             
-            // Use median as it's more robust to outliers
-            // Multiply by factor to account for contacts that may span multiple consecutive segments
-            consecutiveThreshold = medianConsecutiveDistance * DEFAULT_CONSECUTIVE_DISTANCE_MULTIPLIER
+            if (multiTraceResult.totalDistances > 0) {
+                const allDistances = multiTraceResult.distances
+                const avgConsecutiveDistance = allDistances.reduce((a, b) => a + b, 0) / allDistances.length
+                const medianConsecutiveDistance = median(allDistances)
+                
+                // Calculate percentiles for better understanding of distribution
+                const sorted = [...allDistances].sort((a, b) => a - b)
+                const p25 = sorted[Math.floor(sorted.length * 0.25)]
+                const p75 = sorted[Math.floor(sorted.length * 0.75)]
+                const p90 = sorted[Math.floor(sorted.length * 0.90)]
+                
+                // Use p75 (or p90) instead of median for more inclusive threshold
+                // This captures medium-range contacts that appear in more traces, creating better frequency variation
+                // p75 provides a good balance: more inclusive than median, but not as extreme as max
+                const baselineDistance = p75 || medianConsecutiveDistance
+                
+                // Multiply by factor to account for contacts that may span multiple consecutive segments
+                // Higher multiplier creates more variation in contact frequencies across the ensemble
+                consecutiveThreshold = baselineDistance * DEFAULT_CONSECUTIVE_DISTANCE_MULTIPLIER
+                
+                // Log multi-trace consecutive distance statistics
+                console.log(`Multi-trace consecutive vertex distances (ball-and-stick):`, {
+                    tracesSampled: multiTraceResult.traceCount,
+                    totalTraces: vertexLists.length,
+                    totalDistances: multiTraceResult.totalDistances,
+                    mean: avgConsecutiveDistance.toFixed(2),
+                    median: medianConsecutiveDistance.toFixed(2),
+                    p25: p25.toFixed(2),
+                    p75: p75.toFixed(2),
+                    p90: p90.toFixed(2),
+                    min: Math.min(...allDistances).toFixed(2),
+                    max: Math.max(...allDistances).toFixed(2),
+                    baselineUsed: 'p75',
+                    multiplier: DEFAULT_CONSECUTIVE_DISTANCE_MULTIPLIER,
+                    threshold: Math.floor(consecutiveThreshold)
+                })
+            } else {
+                // Fallback to single-trace if multi-trace sampling produced no results
+                console.log(`Multi-trace sampling produced no distances, falling back to single-trace analysis`)
+                const consecutiveDistances = computeConsecutiveVertexDistances(vertices)
+                
+                if (consecutiveDistances.length > 0) {
+                    const avgConsecutiveDistance = consecutiveDistances.reduce((a, b) => a + b, 0) / consecutiveDistances.length
+                    const medianConsecutiveDistance = median(consecutiveDistances)
+                    
+                    // For single-trace fallback, use p75 if possible, otherwise median
+                    const sorted = [...consecutiveDistances].sort((a, b) => a - b)
+                    const p75 = sorted[Math.floor(sorted.length * 0.75)]
+                    const baselineDistance = p75 || medianConsecutiveDistance
+                    
+                    consecutiveThreshold = baselineDistance * DEFAULT_CONSECUTIVE_DISTANCE_MULTIPLIER
+                    
+                    console.log(`Consecutive vertex distances (single-trace fallback):`, {
+                        count: consecutiveDistances.length,
+                        mean: avgConsecutiveDistance.toFixed(2),
+                        median: medianConsecutiveDistance.toFixed(2),
+                        min: Math.min(...consecutiveDistances).toFixed(2),
+                        max: Math.max(...consecutiveDistances).toFixed(2),
+                        threshold: Math.floor(consecutiveThreshold)
+                    })
+                }
+            }
+        } else {
+            // Fallback to single-trace if vertex lists not available or only one trace
+            const consecutiveDistances = computeConsecutiveVertexDistances(vertices)
             
-            // Log consecutive distance statistics
-            console.log(`Consecutive vertex distances (ball-and-stick):`, {
-                count: consecutiveDistances.length,
-                mean: avgConsecutiveDistance.toFixed(2),
-                median: medianConsecutiveDistance.toFixed(2),
-                min: Math.min(...consecutiveDistances).toFixed(2),
-                max: Math.max(...consecutiveDistances).toFixed(2),
-                threshold: Math.floor(consecutiveThreshold)
-            })
+            if (consecutiveDistances.length > 0) {
+                const avgConsecutiveDistance = consecutiveDistances.reduce((a, b) => a + b, 0) / consecutiveDistances.length
+                const medianConsecutiveDistance = median(consecutiveDistances)
+                
+                // Use p75 if possible for more inclusive threshold
+                const sorted = [...consecutiveDistances].sort((a, b) => a - b)
+                const p75 = sorted[Math.floor(sorted.length * 0.75)]
+                const baselineDistance = p75 || medianConsecutiveDistance
+                
+                consecutiveThreshold = baselineDistance * DEFAULT_CONSECUTIVE_DISTANCE_MULTIPLIER
+                
+                console.log(`Consecutive vertex distances (single-trace):`, {
+                    count: consecutiveDistances.length,
+                    mean: avgConsecutiveDistance.toFixed(2),
+                    median: medianConsecutiveDistance.toFixed(2),
+                    min: Math.min(...consecutiveDistances).toFixed(2),
+                    max: Math.max(...consecutiveDistances).toFixed(2),
+                    threshold: Math.floor(consecutiveThreshold)
+                })
+            }
         }
     } else {
         console.log(`Skipping consecutive distance analysis (point cloud dataset)`)
