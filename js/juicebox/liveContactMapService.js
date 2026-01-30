@@ -6,7 +6,6 @@ import {clamp, distanceTo} from "../utils/mathUtils.js"
 import {enableLiveMaps} from "../utils/liveMapUtils.js"
 import {postMessageToWorker} from "../utils/webWorkerUtils.js"
 import KDBush from '../kd3d/kd3d.js'
-import {computeStatistics, normalizeToPercentileRange} from '../utils/statisticsUtils.js'
 
 const maxDistanceThreshold = 1e4
 const defaultDistanceThreshold = 256
@@ -18,10 +17,6 @@ const DEFAULT_NN_MULTIPLIER = 2.0  // Multiplier for median nearest neighbor dis
 const DEFAULT_MIN_THRESHOLD_MULTIPLIER = 1.2  // Minimum threshold multiplier
 const DEFAULT_CONSECUTIVE_DISTANCE_MULTIPLIER = 2.5  // Multiplier for average consecutive vertex distance
 const KDBUSH_NODE_SIZE = 64  // KDBush node size for spatial indexing
-
-// Constants for percentile-based color scaling
-const DEFAULT_MIN_PERCENTILE = 5  // 5th percentile
-const DEFAULT_MAX_PERCENTILE = 95  // 95th percentile
 
 /**
  * Convert Float32Array contact frequencies to contact record format
@@ -141,22 +136,6 @@ class LiveContactMapService {
             }
 
             this.contactFrequencies = result.workerValuesBuffer
-            
-            // Compute statistics for percentile-based color scaling
-            this.contactFrequencyStats = computeStatistics(this.contactFrequencies, {
-                includePositiveOnly: true  // Filter out -1 (undefined) and values <= 0
-            })
-            
-            // Log statistics for debugging
-            console.log('Contact frequency statistics:', {
-                count: this.contactFrequencyStats.count,
-                min: this.contactFrequencyStats.min,
-                max: this.contactFrequencyStats.max,
-                median: this.contactFrequencyStats.median.toFixed(2),
-                p5: this.contactFrequencyStats.percentiles.p5.toFixed(2),
-                p95: this.contactFrequencyStats.percentiles.p95.toFixed(2),
-                sparsity: (this.contactFrequencyStats.sparsity * 100).toFixed(1) + '%'
-            })
             
             // Update LiveMapDataset with new contact records
             if (juiceboxPanel.browser.activeDataset && 
