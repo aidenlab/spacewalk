@@ -6,7 +6,7 @@ import {createTrackURLModalElement} from './trackURLModal.js'
 import FileLoadManager from "./fileLoadManager.js"
 import FileLoadWidget from "./fileLoadWidget.js"
 import MultipleTrackFileLoad from "./multipleTrackFileLoad.js"
-import * as Utils from './utils.js'
+import * as Utils from './utils/modal-utils.js'
 
 let fileLoadWidget
 let multipleTrackFileLoad

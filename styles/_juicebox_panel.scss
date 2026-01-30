@@ -22,6 +22,15 @@
     .list-group {
       width: 100%;
       background-color: white;
+      
+      // Allow text selection in all input fields
+      input[type="text"],
+      input[type="number"] {
+        user-select: text;
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+      }
 
       #hic-contact-map-dropdown.dropdown-toggle {
         color: unset;
@@ -41,6 +50,14 @@
       #hic-live-contact-frequency-map-threshold-widget.list-group-item {
         div.input-group {
           width: 200px;
+          
+          // Allow text selection in input fields
+          input[type="text"] {
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+          }
         }
       }
     }

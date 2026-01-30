@@ -5,7 +5,7 @@ import AlertSingleton from "./alertSingleton.js"
 import {createURLModalElement} from "./urlModal.js"
 import FileLoadManager from "./fileLoadManager.js"
 import FileLoadWidget from "./fileLoadWidget.js"
-import * as Utils from './utils.js'
+import * as Utils from './utils/modal-utils.js'
 import {genarkDatasourceConfigurator} from "./genarkDatasourceConfigurator.js"
 
 const MAX_CUSTOM_GENOMES = 5

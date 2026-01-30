@@ -1,5 +1,5 @@
 import { FileUtils } from 'igv-utils'
-import * as Utils from './utils.js'
+import * as Utils from './utils/modal-utils.js'
 import FileLoadManager from './fileLoadManager.js'
 import FileLoadWidget from './fileLoadWidget.js'
 import SessionFileLoad from "./sessionFileLoad.js"

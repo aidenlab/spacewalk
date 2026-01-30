@@ -5,7 +5,7 @@ import { ballAndStick, liveContactMapService, liveDistanceMapService, ensembleMa
 import { renderLiveMapWithDistanceData } from './liveDistanceMapService.js'
 import {appleCrayonColorRGB255, rgb255String, compositeColors} from "../utils/colorUtils"
 import {transferRGBAMatrixToLiveMapCanvas} from "../utils/utils.js"
-import {spacewalkConfig} from "../../spacewalk-config"
+import {spacewalkConfig} from "../../spacewalk-config.js"
 
 // Store reference to the singleton JuiceboxPanel instance for event handlers
 let juiceboxPanelInstance = null;
@@ -571,6 +571,17 @@ class JuiceboxPanel extends Panel {
     paintContactMapRGBAMatrix(frequencies, rgbaMatrix, colorScale, backgroundRGB) {
         let i = 0
         for (const frequency of frequencies) {
+            // Handle undefined/missing data
+            if (frequency === undefined || frequency === -1 || frequency <= 0) {
+                // Missing data - use background color
+                rgbaMatrix[i++] = backgroundRGB.r
+                rgbaMatrix[i++] = backgroundRGB.g
+                rgbaMatrix[i++] = backgroundRGB.b
+                rgbaMatrix[i++] = 255
+                continue
+            }
+            
+            // Use raw frequency value directly for color scaling
             const { red, green, blue, alpha } = colorScale.getColor(frequency)
             const foregroundRGBA = { r:red, g:green, b:blue, a:alpha }
             const { r, g, b } = compositeColors(foregroundRGBA, backgroundRGB)

@@ -1,0 +1,18 @@
+{
+  "folders": [
+    {
+      "path": "/Users/turner/SpacewalkDevelopment/spacewalk",
+      "name": "Spacewalk"
+    },
+    {
+      "path": "/Users/turner/JuiceboxDevelopment/juicebox.js",
+      "name": "Juicebox.js"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": true,
+      "**/node_modules": true
+    }
+  }
+}

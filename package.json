@@ -25,25 +25,25 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "dev": "node -r dotenv/config node_modules/.bin/vite",
-    "build": "node -r dotenv/config node_modules/.bin/vite build",
-    "preview": "node -r dotenv/config node_modules/.bin/vite preview"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "btoa": "^1.2.1",
-    "chroma-js": "^2.4.2",
+    "chroma-js": "^3.2.0",
     "data-modal": "github:igvteam/data-modal#v1.6.0",
     "hdf5-indexed-reader": "github:jrobinso/hdf5-indexed-reader#v0.5.4",
     "igv": "github:igvteam/igv.js#spacewalk",
     "igv-utils": "github:igvteam/igv-utils#v1.5.8",
     "juicebox.js": "github:igvteam/juicebox.js#v3.1.1",
-    "quickhull3d": "^3.1.1",
-    "three": "^0.180.0",
+    "quickhull3d": "^3.1.2",
+    "three": "^0.182.0",
     "vanilla-picker": "^2.12.3"
   },
   "devDependencies": {
     "dotenv": "^17.2.3",
-    "sass": "^1.92.1",
-    "vite": "^7.1.5"
+    "sass": "^1.97.2",
+    "vite": "^7.3.1"
   }
 }

@@ -1,4 +1,4 @@
-import {ensembleManager, juiceboxPanel} from "../app.js";
+import {ensembleManager, juiceboxPanel, liveDistanceMapService} from "../app.js";
 import { clamp } from "../utils/mathUtils.js";
 import {appleCrayonColorRGB255, rgb255String} from "../utils/colorUtils.js";
 import { hideGlobalSpinner, showGlobalSpinner } from "../utils/utils.js"
@@ -6,6 +6,7 @@ import {compositeColors} from "../utils/colorUtils.js"
 import SpacewalkEventBus from "../spacewalkEventBus.js"
 import {enableLiveMaps} from "../utils/liveMapUtils.js"
 import {postMessageToWorker} from "../utils/webWorkerUtils.js"
+import {computeStatistics, normalizeToPercentileRange} from '../utils/statisticsUtils.js'
 
 const kDistanceUndefined = -1
 
@@ -179,6 +180,34 @@ async function processWebWorkerResult(result) {
 
     this.distances = result.workerDistanceBuffer
     this.maxDistance = result.maxDistance
+    
+    // Compute statistics on nearness values for percentile-based color scaling
+    // Nearness = maxDistance - distance, higher nearness = closer vertices
+    const nearnessValues = new Float32Array(this.distances.length)
+    for (let i = 0; i < this.distances.length; i++) {
+        if (this.distances[i] !== kDistanceUndefined) {
+            const distance = clamp(this.distances[i], 0, this.maxDistance)
+            nearnessValues[i] = this.maxDistance - distance
+        } else {
+            nearnessValues[i] = -1  // Mark as invalid
+        }
+    }
+    
+    this.nearnessStats = computeStatistics(nearnessValues, {
+        includePositiveOnly: true  // Filter out -1 (undefined) and values <= 0
+    })
+    
+    // Log statistics for debugging
+    console.log('Distance map nearness statistics:', {
+        count: this.nearnessStats.count,
+        min: this.nearnessStats.min.toFixed(2),
+        max: this.nearnessStats.max.toFixed(2),
+        median: this.nearnessStats.median.toFixed(2),
+        p5: this.nearnessStats.percentiles.p5.toFixed(2),
+        p95: this.nearnessStats.percentiles.p95.toFixed(2),
+        sparsity: (this.nearnessStats.sparsity * 100).toFixed(1) + '%'
+    })
+    
     await juiceboxPanel.renderLiveMapWithDistanceData(this.distances, this.maxDistance, this.rgbaMatrix, ensembleManager.getLiveMapTraceLength())
 
 }
@@ -204,7 +233,9 @@ async function renderLiveMapWithDistanceData(browser, distances, maxDistance, rg
     const {offscreenCanvas, ctx2d} = setupOffScreenCanvas(distanceMapCanvas.width, distanceMapCanvas.height, appleCrayonColorRGB255('tin'))
 
     // Paint foreground color - with alpha - into rgbaMatrix
-    paintDistanceMapRGBAMatrix(distances, maxDistance, rgbaMatrix, browser.contactMatrixView.colorScale, browser.contactMatrixView.backgroundColor)
+    // Pass nearnessStats for percentile-based scaling (if available)
+    const nearnessStats = liveDistanceMapService?.nearnessStats
+    paintDistanceMapRGBAMatrix(distances, maxDistance, rgbaMatrix, browser.contactMatrixView.colorScale, browser.contactMatrixView.backgroundColor, nearnessStats)
 
     // Composite foreground over background
     const imageBitmap = await createImageBitmap(new ImageData(rgbaMatrix, liveMapTraceLength, liveMapTraceLength))
@@ -220,7 +251,24 @@ async function renderLiveMapWithDistanceData(browser, distances, maxDistance, rg
 
 }
 
-function paintDistanceMapRGBAMatrix(distances, maxDistance, rgbaMatrix, colorScale, backgroundRGB) {
+function paintDistanceMapRGBAMatrix(distances, maxDistance, rgbaMatrix, colorScale, backgroundRGB, nearnessStats) {
+    // Get statistics for percentile-based normalization
+    const stats = nearnessStats
+    
+    // Default percentiles (can be made configurable later)
+    const minPercentile = 5
+    const maxPercentile = 95
+    
+    // Compute percentile range values for mapping
+    let percentileMin = 0
+    let percentileMax = maxDistance
+    let usePercentileScaling = false
+    
+    if (stats && stats.count > 0) {
+        percentileMin = stats.percentiles[`p${minPercentile}`] || stats.min
+        percentileMax = stats.percentiles[`p${maxPercentile}`] || stats.max
+        usePercentileScaling = (percentileMax > percentileMin)
+    }
 
     let i = 0;
     const { r, g, b } = colorScale.getColorComponents()
@@ -232,12 +280,23 @@ function paintDistanceMapRGBAMatrix(distances, maxDistance, rgbaMatrix, colorSca
             distance = clamp(distance, 0, maxDistance)
             const nearness = maxDistance - distance
 
-            const rawInterpolant = nearness/maxDistance
+            // Compute interpolant using percentile-based scaling
+            let rawInterpolant
+            if (usePercentileScaling) {
+                // Clamp nearness to percentile range
+                const clampedNearness = Math.max(percentileMin, Math.min(nearness, percentileMax))
+                // Normalize to 0-1 within percentile range
+                rawInterpolant = (clampedNearness - percentileMin) / (percentileMax - percentileMin)
+            } else {
+                // Fallback to linear scaling
+                rawInterpolant = nearness / maxDistance
+            }
+            
             if (rawInterpolant < 0 || 1 < rawInterpolant) {
                 console.warn(`${ Date.now() } populateCanvasArray - interpolant out of range ${ rawInterpolant }`)
             }
 
-            const alpha = Math.floor(255 * clamp(nearness, 0, maxDistance) / maxDistance)
+            const alpha = Math.floor(255 * clamp(rawInterpolant, 0, 1))
             const foregroundRGBA = { r, g, b, a:alpha }
 
             const { r:comp_r, g:comp_g, b:comp_b } = compositeColors(foregroundRGBA, backgroundRGB)
