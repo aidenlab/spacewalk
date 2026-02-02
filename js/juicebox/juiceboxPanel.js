@@ -283,6 +283,13 @@ class JuiceboxPanel extends Panel {
         // Note: Locus is now passed in config during loadHicFile() to avoid duplicate setState() calls
         // This callback handles post-load tasks like tab assessment and repainting
         this.browser.coordinator.addCallback('onMapLoaded', async ({ dataset, state, datasetType }) => {
+            // Store Hi-C dataset/state references so we can restore them when switching back to Hi-C Map tab
+            // This prevents the Hi-C map from disappearing when switching between tabs
+            if (datasetType !== 'livemap') {
+                this.hicDataset = dataset
+                this.hicState = state
+            }
+            
             // For live map datasets, ensure Spacewalk's locus is applied after load
             // Live maps don't support config.locus, so we must set it explicitly here
             if (datasetType === 'livemap' && ensembleManager && ensembleManager.locus) {
