@@ -50,8 +50,8 @@ async function loadSession(json) {
         }
         
         // Apply to Juicebox (overrides any locus from juicebox session state)
-        // Only apply if genome is loaded (i.e., a Hi-C map has been loaded)
-        if (juiceboxPanel.browser.genome) {
+        // Only apply if browser exists and genome is loaded (i.e., a Hi-C map has been loaded)
+        if (juiceboxPanel.browser && juiceboxPanel.browser.genome) {
             try {
                 await juiceboxPanel.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
             } catch (error) {

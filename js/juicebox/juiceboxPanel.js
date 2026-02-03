@@ -80,13 +80,21 @@ class JuiceboxPanel extends Panel {
                 session = { browsers: [ { width, height, queryParametersSupported: false } ] }
             }
             await hic.restoreSession(document.querySelector('#spacewalk_juicebox_root_container'), session)
+            this.browser = hic.getCurrentBrowser()
+            
+            // Verify browser was created successfully
+            if (!this.browser) {
+                throw new Error('Failed to create browser instance after session restore')
+            }
         } catch (e) {
             const error = new Error(`Error loading Juicebox Session ${ e.message }`)
             console.error(error.message)
             alert(error.message)
+            // Set browser to null to indicate failure - prevents downstream code from crashing
+            this.browser = null
+            // Don't continue with initialization if session restore failed
+            return
         }
-
-        this.browser = hic.getCurrentBrowser()
 
         // Check if session has a url property (indicating a Hi-C file)
         const hasHicFile = session.url || (session.browsers && session.browsers[0]?.url)
@@ -415,6 +423,14 @@ class JuiceboxPanel extends Panel {
                     ctx_live_distance.transferFromImageBitmap(null)
                 }
             }
+
+            // Clear cached dataset/state references
+            // Live maps are derived from the current ensemble locus, so previous references are stale
+            // Clearing them forces a lazy reload with the new ensemble when switching to Live Map tab
+            this.liveMapDataset = null
+            this.liveMapState = null
+            // Note: Hi-C maps are not derived from ensemble locus, so we keep hicDataset/hicState
+            // If the user wants to clear Hi-C references too, they can reload the Hi-C file
 
             // Apply Spacewalk's locus to browser state
             // This ensures the locus field shows Spacewalk's locus (single source of truth)
@@ -774,24 +790,32 @@ function tabAssessment(browser, activeTabButton, panel) {
                 // Load live map dataset lazily if not already loaded
                 // This ensures we don't load it unnecessarily when ensemble loads
                 if (!panel.liveMapDataset || !panel.liveMapState) {
-                    panel.loadLiveMapDataset().then(() => {
+                    panel.loadLiveMapDataset().then(async () => {
                         if (panel.browser.activeDataset && panel.browser.activeDataset.datasetType === 'livemap') {
+                            // Store dataset reference (dataset doesn't change)
                             panel.liveMapDataset = panel.browser.activeDataset
-                            panel.liveMapState = panel.browser.activeState
-                            // Apply Spacewalk's locus after loading
+                            
+                            // Apply Spacewalk's locus - this updates the state
                             if (ensembleManager && ensembleManager.locus) {
                                 const { chr, genomicStart, genomicEnd } = ensembleManager.locus
-                                panel.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`).catch(err => 
+                                try {
+                                    await panel.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
+                                } catch (err) {
                                     console.warn('Error applying Spacewalk locus after lazy live map load:', err)
-                                )
+                                }
                             }
-                            // Switch to live map dataset after loading
-                            browser.setActiveDataset(panel.liveMapDataset, panel.liveMapState)
+                            
+                            // Update stored state reference AFTER locus is applied
+                            // This captures the state with the correct locus
+                            panel.liveMapState = panel.browser.activeState
                         }
                     })
                 } else {
                     // Switch to live map dataset if already loaded
-                    browser.setActiveDataset(panel.liveMapDataset, panel.liveMapState)
+                    // Only switch if not already active to avoid unnecessary state changes
+                    if (browser.activeDataset !== panel.liveMapDataset) {
+                        browser.setActiveDataset(panel.liveMapDataset, panel.liveMapState)
+                    }
                 }
             }
             document.getElementById('hic-live-distance-map-toggle-widget').style.display = 'none'
