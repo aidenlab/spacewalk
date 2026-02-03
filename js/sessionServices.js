@@ -31,6 +31,41 @@ async function loadSession(json) {
     }
 
     await loadIGVSession(json.spacewalk, json.igv)
+
+    // CRITICAL: After all sessions are loaded, apply the session's ensemble locus as the single source of truth
+    // This ensures that regardless of what locus each component (Juicebox, IGV) derived from
+    // its session state, they all use the ensemble locus from json.spacewalk.locus.
+    // This keeps everything in lockstep - the ensemble locus is the authoritative value.
+    // Note: We use json.spacewalk.locus directly (the session's saved locus) rather than
+    // ensembleManager.locus (which may have been derived from the ensemble file) to ensure
+    // we restore the exact locus that was saved in the session.
+    if (json.spacewalk && json.spacewalk.locus) {
+        const { chr, genomicStart, genomicEnd } = json.spacewalk.locus
+        const sessionLocus = { chr, genomicStart, genomicEnd }
+        
+        // Update ensembleManager's datasource locus to match session (if datasource supports it)
+        // This ensures ensembleManager.locus getter returns the session locus
+        if (ensembleManager && ensembleManager.datasource && ensembleManager.datasource.locus) {
+            ensembleManager.datasource.locus = sessionLocus
+        }
+        
+        // Apply to Juicebox (overrides any locus from juicebox session state)
+        // Only apply if genome is loaded (i.e., a Hi-C map has been loaded)
+        if (juiceboxPanel.browser.genome) {
+            try {
+                await juiceboxPanel.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
+            } catch (error) {
+                console.warn('Error applying session ensemble locus to Juicebox after session load:', error.message)
+            }
+        }
+        
+        // Apply to IGV (overrides any locus from IGV session state)
+        try {
+            await igvPanel.locusDidChange(sessionLocus)
+        } catch (error) {
+            console.warn('Error applying session ensemble locus to IGV after session load:', error.message)
+        }
+    }
 }
 
 async function loadIGVSession(spacewalk, igv) {

@@ -117,7 +117,8 @@ class JuiceboxPanel extends Panel {
             
             // Apply Spacewalk locus after switching to Hi-C dataset
             // This ensures the map displays the correct region from Spacewalk
-            if (ensembleManager && ensembleManager.locus) {
+            // Genome should be available since we have a Hi-C dataset, but check for safety
+            if (ensembleManager && ensembleManager.locus && this.browser.genome) {
                 const { chr, genomicStart, genomicEnd } = ensembleManager.locus
                 try {
                     await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
@@ -142,7 +143,9 @@ class JuiceboxPanel extends Panel {
             this.hicMapTab.show()
             
             // Apply Spacewalk's locus so the locus field shows correctly
-            if (ensembleManager && ensembleManager.locus) {
+            // Only apply if genome is loaded (i.e., a Hi-C map has been loaded)
+            // If no genome is loaded yet, the locus will be applied when a map loads via onMapLoaded callback
+            if (ensembleManager && ensembleManager.locus && this.browser.genome) {
                 const { chr, genomicStart, genomicEnd } = ensembleManager.locus
                 try {
                     await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
@@ -278,31 +281,18 @@ class JuiceboxPanel extends Panel {
         // These events are not posted by Juicebox. Will revisit after testing coordinator-based approach.
         // If needed, these can be handled via coordinator callbacks or other integration points.
 
-        // Use coordinator callback instead of event bus subscription for MapLoad
-        // This ensures Spacewalk is isolated from internal Juicebox event bus traffic
-        // Note: Locus is now passed in config during loadHicFile() to avoid duplicate setState() calls
-        // This callback handles post-load tasks like tab assessment and repainting
+        // Use coordinator callback for map load
+        // Note: Locus is already set via config.locus during load, so no need to set it here
         this.browser.coordinator.addCallback('onMapLoaded', async ({ dataset, state, datasetType }) => {
             // Store Hi-C dataset/state references so we can restore them when switching back to Hi-C Map tab
-            // This prevents the Hi-C map from disappearing when switching between tabs
             if (datasetType !== 'livemap') {
                 this.hicDataset = dataset
                 this.hicState = state
             }
             
-            // For live map datasets, ensure Spacewalk's locus is applied after load
-            // Live maps don't support config.locus, so we must set it explicitly here
-            if (datasetType === 'livemap' && ensembleManager && ensembleManager.locus) {
-                const { chr, genomicStart, genomicEnd } = ensembleManager.locus
-                try {
-                    await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
-                } catch (error) {
-                    console.warn('Error applying Spacewalk locus in onMapLoaded callback:', error.message)
-                }
-            }
-            
             const activeTabButton = this.container.querySelector('button.nav-link.active')
             tabAssessment(this.browser, activeTabButton, this)
+            
             // Ensure repaint after map load (especially important for session loading)
             if (this.browser.activeDataset && this.browser.activeDataset.datasetType !== 'livemap') {
                 setTimeout(() => {
@@ -314,12 +304,27 @@ class JuiceboxPanel extends Panel {
         })
 
         // Add callback for locus changes to keep Juicebox in sync with Spacewalk's locus
-        // This ensures that if Spacewalk's locus changes (e.g., user navigates), Juicebox updates accordingly
+        // CRITICAL: If Juicebox's locus changes internally (e.g., after genome setup, state updates),
+        // we need to ensure it matches Spacewalk's ensemble locus. This acts as a safeguard to
+        // prevent Juicebox from maintaining a different locus than Spacewalk's single source of truth.
         this.browser.coordinator.addCallback('onLocusChange', async ({ state, changes }) => {
-            // Note: This callback fires when Juicebox's locus changes internally
-            // We don't want to override Juicebox's locus here if the user is interacting with Juicebox
-            // But we should sync if Spacewalk's locus changes externally
-            // For now, we'll rely on explicit calls to parseGotoInput() when Spacewalk's locus changes
+            // Only override if we have an ensemble locus and the change wasn't from Spacewalk explicitly setting it
+            // We use a flag to prevent feedback loops when we programmatically set the locus
+            if (ensembleManager && ensembleManager.locus && this.browser.genome && !this._isApplyingSpacewalkLocus) {
+                const { chr, genomicStart, genomicEnd } = ensembleManager.locus
+                const currentLocus = state?.locus
+                if (currentLocus && (currentLocus.start !== genomicStart || currentLocus.end !== genomicEnd)) {
+                    // Locus doesn't match Spacewalk's - re-apply it
+                    this._isApplyingSpacewalkLocus = true
+                    try {
+                        await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
+                    } catch (error) {
+                        console.warn('Error re-applying Spacewalk locus after Juicebox locus change:', error.message)
+                    } finally {
+                        this._isApplyingSpacewalkLocus = false
+                    }
+                }
+            }
         })
 
         this.browser.setCustomCrosshairsHandler(({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, interpolantX, interpolantY }) => {
@@ -414,7 +419,9 @@ class JuiceboxPanel extends Panel {
             // Apply Spacewalk's locus to browser state
             // This ensures the locus field shows Spacewalk's locus (single source of truth)
             // The locus field reflects browser.activeState, so we update it here
-            if (ensembleManager && ensembleManager.locus) {
+            // Note: Only apply if genome is loaded (i.e., a Hi-C map has been loaded)
+            // If no genome is loaded yet, the locus will be applied when a map loads via onMapLoaded callback
+            if (ensembleManager && ensembleManager.locus && this.browser.genome) {
                 const { chr, genomicStart, genomicEnd } = ensembleManager.locus
                 try {
                     await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
@@ -440,12 +447,9 @@ class JuiceboxPanel extends Panel {
         try {
             const isControl = ('control-map' === mapType)
 
-            // Pass Spacewalk's locus in config to avoid duplicate setState() calls
-            // This ensures Juicebox uses Spacewalk's locus from the start, avoiding:
-            // 1. Setting default locus in first setState()
-            // 2. Updating components with default locus
-            // 3. Then setting Spacewalk locus in second setState()
-            // 4. Re-updating components again
+            // Pass Spacewalk's locus in config so Juicebox uses it from the start
+            // This prevents configureLocus() from deriving a default locus
+            // Spacewalk's ensemble locus is the single source of truth
             const config = { url, name, isControl }
             if (ensembleManager && ensembleManager.locus && !isControl) {
                 const { chr, genomicStart, genomicEnd } = ensembleManager.locus
