@@ -80,13 +80,21 @@ class JuiceboxPanel extends Panel {
                 session = { browsers: [ { width, height, queryParametersSupported: false } ] }
             }
             await hic.restoreSession(document.querySelector('#spacewalk_juicebox_root_container'), session)
+            this.browser = hic.getCurrentBrowser()
+            
+            // Verify browser was created successfully
+            if (!this.browser) {
+                throw new Error('Failed to create browser instance after session restore')
+            }
         } catch (e) {
             const error = new Error(`Error loading Juicebox Session ${ e.message }`)
             console.error(error.message)
             alert(error.message)
+            // Set browser to null to indicate failure - prevents downstream code from crashing
+            this.browser = null
+            // Don't continue with initialization if session restore failed
+            return
         }
-
-        this.browser = hic.getCurrentBrowser()
 
         // Check if session has a url property (indicating a Hi-C file)
         const hasHicFile = session.url || (session.browsers && session.browsers[0]?.url)
@@ -100,16 +108,12 @@ class JuiceboxPanel extends Panel {
         // Initialize live map canvas contexts (Spacewalk-specific)
         this.initializeLiveMapContexts()
 
-        // Only load live map dataset if ensemble datasource is available
-        // But if we have a Hi-C file, we'll switch back to it when showing Hi-C tab
-        if (ensembleManager.datasource) {
-            await this.loadLiveMapDataset()
-            // Store live map dataset reference
-            if (this.browser.activeDataset && this.browser.activeDataset.datasetType === 'livemap') {
-                this.liveMapDataset = this.browser.activeDataset
-                this.liveMapState = this.browser.activeState
-            }
-        }
+        // Note: Live map dataset is NOT loaded automatically when panel opens
+        // Live maps are calculated on-demand when user presses buttons on Live Map tabs
+        // The dataset will be loaded lazily when:
+        // 1. User switches to Live Map tab and dataset doesn't exist
+        // 2. User calculates a live contact/distance map
+        // This keeps the panel clean and doesn't affect Hi-C Map tab's locus display
 
         this.attachMouseHandlersAndEventSubscribers()
 
@@ -121,7 +125,8 @@ class JuiceboxPanel extends Panel {
             
             // Apply Spacewalk locus after switching to Hi-C dataset
             // This ensures the map displays the correct region from Spacewalk
-            if (ensembleManager && ensembleManager.locus) {
+            // Genome should be available since we have a Hi-C dataset, but check for safety
+            if (ensembleManager && ensembleManager.locus && this.browser.genome) {
                 const { chr, genomicStart, genomicEnd } = ensembleManager.locus
                 try {
                     await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
@@ -141,8 +146,21 @@ class JuiceboxPanel extends Panel {
                 }
             }, 150)
         } else {
-            // No Hi-C file in session, show live map tab
-            this.liveMapTab.show()
+            // No Hi-C file in session - show Hi-C Map tab (prepared to receive maps)
+            // User can then load Hi-C map or calculate live maps on-demand
+            this.hicMapTab.show()
+            
+            // Apply Spacewalk's locus so the locus field shows correctly
+            // Only apply if genome is loaded (i.e., a Hi-C map has been loaded)
+            // If no genome is loaded yet, the locus will be applied when a map loads via onMapLoaded callback
+            if (ensembleManager && ensembleManager.locus && this.browser.genome) {
+                const { chr, genomicStart, genomicEnd } = ensembleManager.locus
+                try {
+                    await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
+                } catch (error) {
+                    console.warn('Error applying Spacewalk locus on initial panel load:', error.message)
+                }
+            }
         }
 
     }
@@ -267,27 +285,53 @@ class JuiceboxPanel extends Panel {
 
         this.browser.eventBus.subscribe('DidHideCrosshairs', genomicNavigator)
 
-        this.browser.eventBus.subscribe('DidUpdateColor', async ({ data }) => {
-            await this.colorPickerHandler(data)
-        })
+        // Note: DidUpdateColor and DidUpdateColorScaleThreshold subscriptions removed
+        // These events are not posted by Juicebox. Will revisit after testing coordinator-based approach.
+        // If needed, these can be handled via coordinator callbacks or other integration points.
 
-        this.browser.eventBus.subscribe('DidUpdateColorScaleThreshold', async ({ data }) => {
-            const { threshold, r, g, b } = data
-            console.log('JuiceboxPanel. Render Live Contact Map')
-            await this.renderLiveMapWithContactData(liveContactMapService.contactFrequencies, liveContactMapService.rgbaMatrix, ensembleManager.getLiveMapTraceLength())
-
-        })
-
-        this.browser.eventBus.subscribe('MapLoad', async event => {
+        // Use coordinator callback for map load
+        // Note: Locus is already set via config.locus during load, so no need to set it here
+        this.browser.coordinator.addCallback('onMapLoaded', async ({ dataset, state, datasetType }) => {
+            // Store Hi-C dataset/state references so we can restore them when switching back to Hi-C Map tab
+            if (datasetType !== 'livemap') {
+                this.hicDataset = dataset
+                this.hicState = state
+            }
+            
             const activeTabButton = this.container.querySelector('button.nav-link.active')
             tabAssessment(this.browser, activeTabButton, this)
-            // Ensure repaint after MapLoad event (especially important for session loading)
+            
+            // Ensure repaint after map load (especially important for session loading)
             if (this.browser.activeDataset && this.browser.activeDataset.datasetType !== 'livemap') {
                 setTimeout(() => {
                     if (this.browser.contactMatrixView && this.browser.activeDataset) {
                         this.browser.contactMatrixView.update().catch(err => console.warn('Error updating contact matrix view after MapLoad:', err))
                     }
                 }, 50)
+            }
+        })
+
+        // Add callback for locus changes to keep Juicebox in sync with Spacewalk's locus
+        // CRITICAL: If Juicebox's locus changes internally (e.g., after genome setup, state updates),
+        // we need to ensure it matches Spacewalk's ensemble locus. This acts as a safeguard to
+        // prevent Juicebox from maintaining a different locus than Spacewalk's single source of truth.
+        this.browser.coordinator.addCallback('onLocusChange', async ({ state, changes }) => {
+            // Only override if we have an ensemble locus and the change wasn't from Spacewalk explicitly setting it
+            // We use a flag to prevent feedback loops when we programmatically set the locus
+            if (ensembleManager && ensembleManager.locus && this.browser.genome && !this._isApplyingSpacewalkLocus) {
+                const { chr, genomicStart, genomicEnd } = ensembleManager.locus
+                const currentLocus = state?.locus
+                if (currentLocus && (currentLocus.start !== genomicStart || currentLocus.end !== genomicEnd)) {
+                    // Locus doesn't match Spacewalk's - re-apply it
+                    this._isApplyingSpacewalkLocus = true
+                    try {
+                        await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
+                    } catch (error) {
+                        console.warn('Error re-applying Spacewalk locus after Juicebox locus change:', error.message)
+                    } finally {
+                        this._isApplyingSpacewalkLocus = false
+                    }
+                }
             }
         })
 
@@ -354,19 +398,57 @@ class JuiceboxPanel extends Panel {
 
         if ('DidLoadEnsembleFile' === type) {
 
-            // Clear Hi-C map rendering
-            const ctx = this.browser.contactMatrixView.ctx
-            ctx.fillStyle = rgb255String( appleCrayonColorRGB255('snow') )
-            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            // When an ensemble loads, prepare the Juicebox panel for receiving maps:
+            // 1. Clear all canvases (erase what's there)
+            // 2. Pre-select Hi-C Map tab (user can then load Hi-C map or calculate live maps)
+            // 3. Update locus to match Spacewalk's locus (single source of truth)
+            // Do NOT load any datasets - live maps are calculated on-demand when user presses buttons
 
-            // Load live map dataset
-            await this.loadLiveMapDataset()
+            // Clear all canvases
+            if (this.browser.contactMatrixView) {
+                // Clear Hi-C map canvas
+                if (this.browser.contactMatrixView.ctx) {
+                    const ctx = this.browser.contactMatrixView.ctx
+                    ctx.fillStyle = rgb255String( appleCrayonColorRGB255('snow') )
+                    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                }
+                // Clear live contact map canvas
+                if (this.browser.contactMatrixView.ctx_live) {
+                    const ctx_live = this.browser.contactMatrixView.ctx_live
+                    ctx_live.transferFromImageBitmap(null)
+                }
+                // Clear live distance map canvas
+                if (this.browser.contactMatrixView.ctx_live_distance) {
+                    const ctx_live_distance = this.browser.contactMatrixView.ctx_live_distance
+                    ctx_live_distance.transferFromImageBitmap(null)
+                }
+            }
 
-            // Show Live Map tab to be consistent with Live Dataset
-            this.liveMapTab.show()
+            // Clear cached dataset/state references
+            // Live maps are derived from the current ensemble locus, so previous references are stale
+            // Clearing them forces a lazy reload with the new ensemble when switching to Live Map tab
+            this.liveMapDataset = null
+            this.liveMapState = null
+            // Note: Hi-C maps are not derived from ensemble locus, so we keep hicDataset/hicState
+            // If the user wants to clear Hi-C references too, they can reload the Hi-C file
 
-            // MapLoad event will be posted automatically by loadLiveMapDataset
-            // Locus change will be handled by the standard update cycle
+            // Apply Spacewalk's locus to browser state
+            // This ensures the locus field shows Spacewalk's locus (single source of truth)
+            // The locus field reflects browser.activeState, so we update it here
+            // Note: Only apply if genome is loaded (i.e., a Hi-C map has been loaded)
+            // If no genome is loaded yet, the locus will be applied when a map loads via onMapLoaded callback
+            if (ensembleManager && ensembleManager.locus && this.browser.genome) {
+                const { chr, genomicStart, genomicEnd } = ensembleManager.locus
+                try {
+                    await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
+                } catch (error) {
+                    console.warn('Error applying Spacewalk locus after ensemble load:', error.message)
+                }
+            }
+
+            // Pre-select Hi-C Map tab (user can then load Hi-C map or switch to live map tabs)
+            // Do NOT load live map dataset - it will be loaded lazily when user calculates a live map
+            this.hicMapTab.show()
 
         }
 
@@ -381,7 +463,14 @@ class JuiceboxPanel extends Panel {
         try {
             const isControl = ('control-map' === mapType)
 
+            // Pass Spacewalk's locus in config so Juicebox uses it from the start
+            // This prevents configureLocus() from deriving a default locus
+            // Spacewalk's ensemble locus is the single source of truth
             const config = { url, name, isControl }
+            if (ensembleManager && ensembleManager.locus && !isControl) {
+                const { chr, genomicStart, genomicEnd } = ensembleManager.locus
+                config.locus = `${chr}:${genomicStart}-${genomicEnd}`
+            }
 
             if (false === isControl) {
 
@@ -397,19 +486,17 @@ class JuiceboxPanel extends Panel {
             alert(error.message)
         }
 
-        const { chr, genomicStart, genomicEnd } = ensembleManager.locus
-
-        try {
-            await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
-        } catch (error) {
-            console.warn(error.message)
-        }
-
     }
 
     async loadLiveMapDataset() {
         if (!isLiveMapSupported()) {
             return;
+        }
+
+        // Double-check locus exists (should be guaranteed by isLiveMapSupported, but be defensive)
+        if (!ensembleManager || !ensembleManager.locus) {
+            console.warn('Cannot load live map dataset: ensemble locus not available')
+            return
         }
 
         const { chr, genomicStart, genomicEnd } = ensembleManager.locus
@@ -637,6 +724,11 @@ function juiceboxMouseHandler({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, in
 
 function isLiveMapSupported() {
 
+    // Live maps require an ensemble with a valid locus
+    if (!ensembleManager || !ensembleManager.locus) {
+        return false
+    }
+
     const { chr } = ensembleManager.locus
     // const chromosome = igvPanel.browser.genome.getChromosome(chr.toLowerCase())
     const chromosome = igvPanel.browser.genome.getChromosome(chr)
@@ -695,9 +787,35 @@ function tabAssessment(browser, activeTabButton, panel) {
         case 'spacewalk-juicebox-panel-live-map-tab':
             if (liveContactContainer) {
                 liveContactContainer.style.display = 'block'
-                // Switch to live map dataset if available
-                if (panel && panel.liveMapDataset && panel.liveMapState) {
-                    browser.setActiveDataset(panel.liveMapDataset, panel.liveMapState)
+                // Load live map dataset lazily if not already loaded
+                // This ensures we don't load it unnecessarily when ensemble loads
+                if (!panel.liveMapDataset || !panel.liveMapState) {
+                    panel.loadLiveMapDataset().then(async () => {
+                        if (panel.browser.activeDataset && panel.browser.activeDataset.datasetType === 'livemap') {
+                            // Store dataset reference (dataset doesn't change)
+                            panel.liveMapDataset = panel.browser.activeDataset
+                            
+                            // Apply Spacewalk's locus - this updates the state
+                            if (ensembleManager && ensembleManager.locus) {
+                                const { chr, genomicStart, genomicEnd } = ensembleManager.locus
+                                try {
+                                    await panel.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
+                                } catch (err) {
+                                    console.warn('Error applying Spacewalk locus after lazy live map load:', err)
+                                }
+                            }
+                            
+                            // Update stored state reference AFTER locus is applied
+                            // This captures the state with the correct locus
+                            panel.liveMapState = panel.browser.activeState
+                        }
+                    })
+                } else {
+                    // Switch to live map dataset if already loaded
+                    // Only switch if not already active to avoid unnecessary state changes
+                    if (browser.activeDataset !== panel.liveMapDataset) {
+                        browser.setActiveDataset(panel.liveMapDataset, panel.liveMapState)
+                    }
                 }
             }
             document.getElementById('hic-live-distance-map-toggle-widget').style.display = 'none'
