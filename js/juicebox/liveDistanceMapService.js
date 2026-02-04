@@ -24,6 +24,9 @@ class LiveDistanceMapService {
 
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this);
+        
+        // Initialize contact threshold (computed as side effect of distance map calculation)
+        this.computedContactThreshold = null
 
     }
 
@@ -77,6 +80,7 @@ class LiveDistanceMapService {
             this.rgbaMatrix = undefined
             this.distances = undefined
             this.maxDistance = undefined
+            this.computedContactThreshold = null  // Reset threshold when ensemble file changes
 
             this.traceToggleElement.checked = false
             this.ensembleToggleElement.checked = false
@@ -167,6 +171,86 @@ class LiveDistanceMapService {
 
 }
 
+/**
+ * Compute contact map threshold from distance map distribution
+ * Analyzes distance values to find an optimal threshold that captures meaningful contacts
+ * Uses percentiles to find a threshold that balances contact density and variation
+ * 
+ * @param {Float32Array} distances - Distance array from distance map
+ * @param {number} maxDistance - Maximum distance in the dataset
+ * @returns {number|null} Recommended contact threshold, or null if insufficient data
+ */
+function computeContactThresholdFromDistances(distances, maxDistance) {
+    if (!distances || distances.length === 0) {
+        return null
+    }
+    
+    // Extract valid distances (exclude undefined/missing)
+    const validDistances = []
+    for (let i = 0; i < distances.length; i++) {
+        if (distances[i] !== kDistanceUndefined && distances[i] > 0) {
+            validDistances.push(distances[i])
+        }
+    }
+    
+    if (validDistances.length === 0) {
+        return null
+    }
+    
+    // Sort for percentile calculation
+    const sorted = [...validDistances].sort((a, b) => a - b)
+    
+    // Calculate percentiles
+    const p25 = percentile(sorted, 25)
+    const p50 = percentile(sorted, 50)
+    const p75 = percentile(sorted, 75)
+    const p90 = percentile(sorted, 90)
+    
+    // Strategy: Use p75 as baseline (captures medium-range contacts)
+    // This provides a good balance - more inclusive than median, but not extreme
+    // p75 captures distances that appear frequently enough to create variation in contact frequencies
+    const baseline = p75
+    
+    // Apply a multiplier to account for contacts that span multiple consecutive segments
+    // Using 1.5x p75 provides a threshold that captures meaningful medium-range contacts
+    // This creates better frequency variation than using p50 or p90
+    const threshold = baseline * 1.5
+    
+    // Log for debugging
+    console.log('Contact threshold from distance map:', {
+        validDistances: validDistances.length,
+        p25: p25.toFixed(2),
+        p50: p50.toFixed(2),
+        p75: p75.toFixed(2),
+        p90: p90.toFixed(2),
+        baseline: baseline.toFixed(2),
+        multiplier: 1.5,
+        threshold: threshold.toFixed(2)
+    })
+    
+    return threshold
+}
+
+/**
+ * Helper function to compute percentile from sorted array
+ * @param {Array<number>} sortedValues - Sorted array
+ * @param {number} percentile - Percentile (0-100)
+ * @returns {number} Value at percentile
+ */
+function percentile(sortedValues, percentile) {
+    if (sortedValues.length === 0) return 0
+    if (sortedValues.length === 1) return sortedValues[0]
+    if (percentile <= 0) return sortedValues[0]
+    if (percentile >= 100) return sortedValues[sortedValues.length - 1]
+    
+    const index = (percentile / 100) * (sortedValues.length - 1)
+    const lowerIndex = Math.floor(index)
+    const upperIndex = Math.ceil(index)
+    const weight = index - lowerIndex
+    
+    return sortedValues[lowerIndex] * (1 - weight) + sortedValues[upperIndex] * weight
+}
+
 async function processWebWorkerResult(result) {
 
     const traceLength = ensembleManager.getLiveMapTraceLength()
@@ -207,6 +291,13 @@ async function processWebWorkerResult(result) {
         p95: this.nearnessStats.percentiles.p95.toFixed(2),
         sparsity: (this.nearnessStats.sparsity * 100).toFixed(1) + '%'
     })
+    
+    // Side effect: Compute contact map threshold from distance distribution
+    // This leverages the fast distance map calculation to inform the slower contact map threshold
+    this.computedContactThreshold = computeContactThresholdFromDistances(this.distances, this.maxDistance)
+    if (this.computedContactThreshold !== null) {
+        console.log(`Distance map computed contact threshold: ${this.computedContactThreshold.toFixed(2)}`)
+    }
     
     await juiceboxPanel.renderLiveMapWithDistanceData(this.distances, this.maxDistance, this.rgbaMatrix, ensembleManager.getLiveMapTraceLength())
 

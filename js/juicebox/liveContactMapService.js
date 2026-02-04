@@ -1,4 +1,4 @@
-import {ensembleManager, juiceboxPanel} from "../app.js"
+import {ensembleManager, juiceboxPanel, liveDistanceMapService} from "../app.js"
 import EnsembleManager from "../ensembleManager.js"
 import SpacewalkEventBus from "../spacewalkEventBus.js"
 import {hideGlobalSpinner, showGlobalSpinner} from "../utils/utils.js"
@@ -71,7 +71,7 @@ class LiveContactMapService {
 
     }
 
-    receiveEvent({ type, data }) {
+    async receiveEvent({ type, data }) {
 
         if ("DidLoadEnsembleFile" === type) {
 
@@ -83,7 +83,7 @@ class LiveContactMapService {
             this.contactFrequencies = undefined
             this.rgbaMatrix = undefined
 
-            this.distanceThreshold = distanceThresholdEstimate(ensembleManager.currentTrace)
+            this.distanceThreshold = await distanceThresholdEstimate(ensembleManager.currentTrace)
 
             this.input.value = this.distanceThreshold.toString()
         }
@@ -106,7 +106,7 @@ class LiveContactMapService {
 
             showGlobalSpinner()
 
-            this.distanceThreshold = distanceThresholdOrUndefined || distanceThresholdEstimate(ensembleManager.currentTrace)
+            this.distanceThreshold = distanceThresholdOrUndefined || await distanceThresholdEstimate(ensembleManager.currentTrace)
             this.input.value = this.distanceThreshold.toString()
 
             const data =
@@ -612,14 +612,59 @@ function autoDetermineThreshold(trace, vertices, traceLength) {
 
 /**
  * Estimate distance threshold for contact detection
- * Uses hybrid approach: combines radius-based heuristic with k-nearest neighbor analysis
+ * First tries to use distance-map-derived threshold (fast and data-driven)
+ * Falls back to hybrid approach if distance map not available
  * 
  * @param {Object} trace - Trace object
- * @returns {number} Estimated threshold
+ * @returns {Promise<number>} Estimated threshold
  */
-function distanceThresholdEstimate(trace) {
-    // Get vertices for the current trace
-    // Note: For point cloud datasets, vertex lists may not be initialized yet
+async function distanceThresholdEstimate(trace) {
+    // Strategy: Use distance map results if available (faster and more accurate)
+    // Check if distance map service has already computed a threshold
+    if (liveDistanceMapService && liveDistanceMapService.computedContactThreshold !== undefined && 
+        liveDistanceMapService.computedContactThreshold !== null) {
+        console.log(`Using distance-map-derived contact threshold: ${liveDistanceMapService.computedContactThreshold.toFixed(2)}`)
+        return Math.floor(liveDistanceMapService.computedContactThreshold)
+    }
+    
+    // Check if distance map data exists but threshold not computed yet
+    if (liveDistanceMapService && liveDistanceMapService.distances && liveDistanceMapService.maxDistance) {
+        // Compute threshold from existing distance data
+        const threshold = computeContactThresholdFromDistances(
+            liveDistanceMapService.distances, 
+            liveDistanceMapService.maxDistance
+        )
+        if (threshold !== null) {
+            liveDistanceMapService.computedContactThreshold = threshold
+            console.log(`Computed contact threshold from existing distance map: ${threshold.toFixed(2)}`)
+            return Math.floor(threshold)
+        }
+    }
+    
+    // If no distance map available, trigger quick distance map calculation for ensemble
+    // This is the "hack" - use fast distance map to bootstrap contact map threshold
+    const vertexLists = ensembleManager.getLiveMapVertexLists()
+    if (vertexLists && vertexLists.length > 0) {
+        try {
+            console.log('No distance map found - triggering quick distance map calculation to derive contact threshold...')
+            const traceLength = ensembleManager.getLiveMapTraceLength()
+            
+            // Trigger distance map calculation (this will compute threshold as side effect)
+            await liveDistanceMapService.updateEnsembleAverageDistanceCanvas(traceLength)
+            
+            // Check if threshold was computed
+            if (liveDistanceMapService.computedContactThreshold !== undefined && 
+                liveDistanceMapService.computedContactThreshold !== null) {
+                console.log(`Using distance-map-derived contact threshold: ${liveDistanceMapService.computedContactThreshold.toFixed(2)}`)
+                return Math.floor(liveDistanceMapService.computedContactThreshold)
+            }
+        } catch (err) {
+            console.warn('Failed to compute distance map for threshold estimation:', err)
+            // Fall through to hybrid approach
+        }
+    }
+    
+    // Fallback to hybrid approach (consecutive distances + k-NN)
     const vertices = ensembleManager.getLiveMapTraceVertices(trace)
     
     if (!vertices || vertices.length === 0) {
@@ -635,6 +680,75 @@ function distanceThresholdEstimate(trace) {
     
     // Use hybrid approach to determine threshold
     return autoDetermineThreshold(trace, vertices, traceLength)
+}
+
+/**
+ * Compute contact map threshold from distance map distribution
+ * (Duplicated from liveDistanceMapService for use here)
+ * 
+ * @param {Float32Array} distances - Distance array from distance map
+ * @param {number} maxDistance - Maximum distance in the dataset
+ * @returns {number|null} Recommended contact threshold, or null if insufficient data
+ */
+function computeContactThresholdFromDistances(distances, maxDistance) {
+    const kDistanceUndefined = -1
+    
+    if (!distances || distances.length === 0) {
+        return null
+    }
+    
+    // Extract valid distances (exclude undefined/missing)
+    const validDistances = []
+    for (let i = 0; i < distances.length; i++) {
+        if (distances[i] !== kDistanceUndefined && distances[i] > 0) {
+            validDistances.push(distances[i])
+        }
+    }
+    
+    if (validDistances.length === 0) {
+        return null
+    }
+    
+    // Sort for percentile calculation
+    const sorted = [...validDistances].sort((a, b) => a - b)
+    
+    // Calculate percentiles
+    const p25 = percentile(sorted, 25)
+    const p50 = percentile(sorted, 50)
+    const p75 = percentile(sorted, 75)
+    const p90 = percentile(sorted, 90)
+    
+    // Strategy: Use p75 as baseline (captures medium-range contacts)
+    // This provides a good balance - more inclusive than median, but not extreme
+    // p75 captures distances that appear frequently enough to create variation in contact frequencies
+    const baseline = p75
+    
+    // Apply a multiplier to account for contacts that span multiple consecutive segments
+    // Using 1.5x p75 provides a threshold that captures meaningful medium-range contacts
+    // This creates better frequency variation than using p50 or p90
+    const threshold = baseline * 1.5
+    
+    return threshold
+}
+
+/**
+ * Compute percentile from sorted array
+ * @param {Array<number>} sortedValues - Sorted array
+ * @param {number} percentileValue - Percentile (0-100)
+ * @returns {number} Value at percentile
+ */
+function percentile(sortedValues, percentileValue) {
+    if (sortedValues.length === 0) return 0
+    if (sortedValues.length === 1) return sortedValues[0]
+    if (percentileValue <= 0) return sortedValues[0]
+    if (percentileValue >= 100) return sortedValues[sortedValues.length - 1]
+    
+    const index = (percentileValue / 100) * (sortedValues.length - 1)
+    const lowerIndex = Math.floor(index)
+    const upperIndex = Math.ceil(index)
+    const weight = index - lowerIndex
+    
+    return sortedValues[lowerIndex] * (1 - weight) + sortedValues[upperIndex] * weight
 }
 
 export { defaultDistanceThreshold }
