@@ -311,30 +311,6 @@ class JuiceboxPanel extends Panel {
             }
         })
 
-        // Add callback for locus changes to keep Juicebox in sync with Spacewalk's locus
-        // CRITICAL: If Juicebox's locus changes internally (e.g., after genome setup, state updates),
-        // we need to ensure it matches Spacewalk's ensemble locus. This acts as a safeguard to
-        // prevent Juicebox from maintaining a different locus than Spacewalk's single source of truth.
-        this.browser.coordinator.addCallback('onLocusChange', async ({ state, changes }) => {
-            // Only override if we have an ensemble locus and the change wasn't from Spacewalk explicitly setting it
-            // We use a flag to prevent feedback loops when we programmatically set the locus
-            if (ensembleManager && ensembleManager.locus && this.browser.genome && !this._isApplyingSpacewalkLocus) {
-                const { chr, genomicStart, genomicEnd } = ensembleManager.locus
-                const currentLocus = state?.locus
-                if (currentLocus && (currentLocus.start !== genomicStart || currentLocus.end !== genomicEnd)) {
-                    // Locus doesn't match Spacewalk's - re-apply it
-                    this._isApplyingSpacewalkLocus = true
-                    try {
-                        await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
-                    } catch (error) {
-                        console.warn('Error re-applying Spacewalk locus after Juicebox locus change:', error.message)
-                    } finally {
-                        this._isApplyingSpacewalkLocus = false
-                    }
-                }
-            }
-        })
-
         this.browser.setCustomCrosshairsHandler(({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, interpolantX, interpolantY }) => {
             juiceboxMouseHandler({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, interpolantX, interpolantY });
         })
