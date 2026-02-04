@@ -649,6 +649,12 @@ async function distanceThresholdEstimate(trace) {
             console.log('No distance map found - triggering quick distance map calculation to derive contact threshold...')
             const traceLength = ensembleManager.getLiveMapTraceLength()
             
+            // Set ensemble toggle button to match the ensemble calculation we're about to do
+            if (liveDistanceMapService.ensembleToggleElement) {
+                liveDistanceMapService.ensembleToggleElement.checked = true
+                liveDistanceMapService.traceToggleElement.checked = false
+            }
+            
             // Trigger distance map calculation (this will compute threshold as side effect)
             await liveDistanceMapService.updateEnsembleAverageDistanceCanvas(traceLength)
             
