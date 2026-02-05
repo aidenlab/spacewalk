@@ -1,0 +1,32 @@
+{
+  "folders": [
+    {
+      "name": "Spacewalk",
+      "path": "."
+    },
+    {
+      "name": "IGV.js (Spacewalk Branch)",
+      "path": "../../IGVDevelopment/igv.js",
+      "//": "Spacewalk-specific branch of IGV.js for coordinator pattern implementation"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/.DS_Store": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true
+    },
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/dist/**": true
+    },
+    "//": "Workspace for implementing IGV Coordinator Pattern - see development-notes/igv-coordinator-handoff.md"
+  },
+  "extensions": {
+    "recommendations": []
+  }
+}
