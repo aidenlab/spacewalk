@@ -1,0 +1,142 @@
+{
+	"spacewalk": {
+		"url": "https://www.dropbox.com/scl/fi/295mfufin32ps41ejffxw/IMR90_chr21-28-30Mb.sw?rlkey=q0lxcfccr4mbh3jtzj8hwuwr7&st=8f8d1n2k&dl=0",
+		"locus": {
+			"chr": "chr21",
+			"genomicStart": 28000000,
+			"genomicEnd": 29950000
+		},
+		"traceKey": "320",
+		"igvPanelState": "Wiggle track 2",
+		"renderStyle": "render-style-ball-stick",
+		"panelVisibility": {
+			"IGVPanel": "visible",
+			"JuiceboxPanel": "hidden",
+			"DistanceMapPanel": "hidden",
+			"ContactFrequencyMapPanel": "hidden"
+		},
+		"gnomonVisibility": "hidden",
+		"gnomonColor": {
+			"r": 0.008023192982520563,
+			"g": 0.008023192982520563,
+			"b": 0.008023192982520563
+		},
+		"groundPlaneVisibility": "hidden",
+		"groundplaneColor": {
+			"r": 0.008023192982520563,
+			"g": 0.008023192982520563,
+			"b": 0.008023192982520563
+		},
+		"cameraLightingRig": {
+			"metadata": {
+				"version": 4.6,
+				"type": "Object",
+				"generator": "Object3D.toJSON"
+			},
+			"object": {
+				"uuid": "abac41ca-4df1-4caf-80e2-8e05d43dcd40",
+				"type": "PerspectiveCamera",
+				"name": "orbital_camera",
+				"layers": 1,
+				"matrix": [
+					1,
+					0,
+					0,
+					0,
+					0,
+					1,
+					0,
+					0,
+					0,
+					0,
+					1,
+					0,
+					11241.500000000002,
+					105910.5,
+					15935.95360428438,
+					1
+				],
+				"up": [
+					0,
+					1,
+					0
+				],
+				"fov": 11.421186274999284,
+				"zoom": 1,
+				"near": 23.304907208568757,
+				"far": 233049.07208568757,
+				"focus": 10,
+				"aspect": 1,
+				"filmGauge": 35,
+				"filmOffset": 0
+			},
+			"position": {
+				"x": 11241.500000000002,
+				"y": 105910.5,
+				"z": 15935.95360428438
+			},
+			"target": {
+				"tx": 11241.500000000002,
+				"ty": 105910.5,
+				"tz": 4283.5
+			}
+		},
+		"contactFrequencyMapDistanceThreshold": 256
+	},
+	"igv": {
+		"version": "2.16.0",
+		"showSampleNames": false,
+		"reference": {
+			"id": "hg38",
+			"name": "Human (GRCh38/hg38)",
+			"fastaURL": "https://igv-genepattern-org.s3.amazonaws.com/genomes/seq/hg38/hg38.fa",
+			"indexURL": "https://igv-genepattern-org.s3.amazonaws.com/genomes/seq/hg38/hg38.fa.fai",
+			"cytobandURL": "https://s3.amazonaws.com/igv.org.genomes/hg38/annotations/cytoBandIdeo.txt.gz",
+			"aliasURL": "https://s3.amazonaws.com/igv.org.genomes/hg38/hg38_alias.tab",
+			"chromosomeOrder": "chr1, chr2, chr3, chr4, chr5, chr6, chr7, chr8, chr9, chr10, chr11, chr12, chr13, chr14, chr15, chr16, chr17, chr18, chr19, chr20, chr21, chr22, chrX, chrY"
+		},
+		"locus": "chr21:28,000,000-29,950,000",
+		"roi": [],
+		"tracks": [
+			{
+				"name": "Wiggle track 1",
+				"url": "https://www.encodeproject.org/files/ENCFF201JLZ/@@download/ENCFF201JLZ.bigWig",
+				"order": -9007199254740991,
+				"format": "bigwig",
+				"type": "wig",
+				"color": "rgb(0, 46, 255)"
+			},
+			{
+				"name": "Wiggle track 2",
+				"url": "https://www.encodeproject.org/files/ENCFF356HIB/@@download/ENCFF356HIB.bigWig",
+				"order": -9007199254740991,
+				"format": "bigwig",
+				"type": "wig",
+				"color": "rgb(255, 114, 110)"
+			},
+			{
+				"name": "Wiggle track 3",
+				"url": "https://www.encodeproject.org/files/ENCFF233QTZ/@@download/ENCFF233QTZ.bigWig",
+				"order": -9007199254740991,
+				"format": "bigwig",
+				"type": "wig",
+				"color": "rgb(104, 249, 110)"
+			},
+			{
+				"type": "sequence",
+				"order": -9007199254740991
+			},
+			{
+				"name": "Refseq Genes",
+				"format": "refgene",
+				"url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/ncbiRefSeq.txt.gz",
+				"indexed": false,
+				"removable": false,
+				"order": 1000000,
+				"infoURL": "https://www.ncbi.nlm.nih.gov/gene/?term=$$",
+				"type": "annotation",
+				"height": 70
+			}
+		]
+	}
+}

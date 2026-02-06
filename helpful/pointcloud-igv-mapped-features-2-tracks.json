@@ -1,0 +1,253 @@
+{
+	"spacewalk": {
+		"url": "https://www.dropbox.com/scl/fi/ml3mwnh1vnr1tflsa6gsw/IMR90.sw?rlkey=fszu1eybclc1izgyk56y0dwgq&dl=0",
+		"locus": {
+			"chr": "chr2",
+			"genomicStart": 59553365,
+			"genomicEnd": 61553615
+		},
+		"traceKey": "0",
+		"ensembleGroupKey": "K562",
+		"igvPanelState": [
+			"H3K36me3",
+			"H3K9me3"
+		],
+		"renderStyle": "render-style-point-cloud",
+		"panelVisibility": {
+			"IGVPanel": "visible",
+			"JuiceboxPanel": "hidden"
+		},
+		"gnomonVisibility": "hidden",
+		"gnomonColor": {
+			"r": 0.08865558627723595,
+			"g": 0.08865558627723595,
+			"b": 0.08650046202808521
+		},
+		"groundPlaneVisibility": "hidden",
+		"groundplaneColor": {
+			"r": 0.08865558627723595,
+			"g": 0.08865558627723595,
+			"b": 0.08650046202808521
+		},
+		"rulerVisibility": "hidden",
+		"rulerColor": {
+			"r": 0.08865558627723595,
+			"g": 0.08865558627723595,
+			"b": 0.08650046202808521
+		},
+		"backgroundColor": {
+			"r": 0.004024717016506897,
+			"g": 0,
+			"b": 0
+		},
+		"cameraLightingRig": {
+			"metadata": {
+				"version": 4.7,
+				"type": "Object",
+				"generator": "Object3D.toJSON"
+			},
+			"object": {
+				"uuid": "91368026-251b-4143-902d-6b8d3a2454d3",
+				"type": "PerspectiveCamera",
+				"name": "orbital_camera",
+				"layers": 1,
+				"matrix": [
+					1,
+					0,
+					0,
+					0,
+					0,
+					1,
+					0,
+					0,
+					0,
+					0,
+					1,
+					0,
+					34741.5,
+					32850,
+					10903.957466744658,
+					1
+				],
+				"up": [
+					0,
+					1,
+					0
+				],
+				"fov": 11.421186274999284,
+				"zoom": 1,
+				"near": 21.253914933489312,
+				"far": 212539.14933489313,
+				"focus": 10,
+				"aspect": 0.9980430528375733,
+				"filmGauge": 35,
+				"filmOffset": 0
+			},
+			"position": {
+				"x": 34741.5,
+				"y": 32850,
+				"z": 10903.957466744658
+			},
+			"target": {
+				"tx": 34741.5,
+				"ty": 32850,
+				"tz": 277
+			}
+		},
+		"contactFrequencyMapDistanceThreshold": 531
+	},
+	"igv": {
+		"version": "2.16.0",
+		"showSampleNames": false,
+		"reference": {
+			"id": "hg38",
+			"name": "Human (GRCh38/hg38)",
+			"fastaURL": "https://igv-genepattern-org.s3.amazonaws.com/genomes/seq/hg38/hg38.fa",
+			"indexURL": "https://igv-genepattern-org.s3.amazonaws.com/genomes/seq/hg38/hg38.fa.fai",
+			"cytobandURL": "https://s3.amazonaws.com/igv.org.genomes/hg38/annotations/cytoBandIdeo.txt.gz",
+			"aliasURL": "https://s3.amazonaws.com/igv.org.genomes/hg38/hg38_alias.tab",
+			"chromosomeOrder": "chr1, chr2, chr3, chr4, chr5, chr6, chr7, chr8, chr9, chr10, chr11, chr12, chr13, chr14, chr15, chr16, chr17, chr18, chr19, chr20, chr21, chr22, chrX, chrY"
+		},
+		"locus": "chr2:59,553,365-61,553,615",
+		"roi": [],
+		"tracks": [
+			{
+				"type": "sequence",
+				"order": -9007199254740991
+			},
+			{
+				"url": "https://www.dropbox.com/scl/fi/4u7pyip4s0pieqchb2qeu/IMR-90output.bw?rlkey=flmnqoxvnfbpzac7zeuhjgj3u&dl=0",
+				"filename": "IMR-90output.bw",
+				"name": "RNA expression",
+				"order": -8,
+				"format": "bigwig",
+				"type": "wig",
+				"color": "rgb(69, 132, 1)",
+				"logScale": true
+			},
+			{
+				"name": "H3K36me3",
+				"url": "https://www.encodeproject.org/files/ENCFF175TOT/@@download/ENCFF175TOT.bigWig",
+				"color": "rgb(255, 41, 135)",
+				"metadata": {
+					"Biosample": "Homo sapiens IMR-90",
+					"AssayType": "ChIP-seq",
+					"Target": "H3K36me3 ",
+					"BioRep": "1,2",
+					"TechRep": "1_1,2_1",
+					"OutputType": "fold change over control",
+					"Format": "bigWig",
+					"Lab": "Bing Ren, UCSD",
+					"Accession": "ENCFF175TOT",
+					"Experiment": "ENCSR437ORF"
+				},
+				"order": -7,
+				"format": "bigwig",
+				"type": "wig"
+			},
+			{
+				"name": "H3K27ac",
+				"url": "https://www.encodeproject.org/files/ENCFF699OAR/@@download/ENCFF699OAR.bigWig",
+				"color": "rgb(137, 72, 0)",
+				"metadata": {
+					"Biosample": "Homo sapiens IMR-90",
+					"AssayType": "ChIP-seq",
+					"Target": "H3K27ac ",
+					"BioRep": "1,2",
+					"TechRep": "1_1,1_2,2_1",
+					"OutputType": "fold change over control",
+					"Format": "bigWig",
+					"Lab": "Bing Ren, UCSD",
+					"Accession": "ENCFF699OAR",
+					"Experiment": "ENCSR002YRE"
+				},
+				"order": -6,
+				"format": "bigwig",
+				"type": "wig"
+			},
+			{
+				"name": "H3K9me3",
+				"url": "https://www.encodeproject.org/files/ENCFF066MEE/@@download/ENCFF066MEE.bigWig",
+				"color": "rgb(0, 140, 255)",
+				"metadata": {
+					"Biosample": "Homo sapiens IMR-90",
+					"AssayType": "ChIP-seq",
+					"Target": "H3K9me3 ",
+					"BioRep": "1,2",
+					"TechRep": "1_1,2_2",
+					"OutputType": "fold change over control",
+					"Format": "bigWig",
+					"Lab": "Bing Ren, UCSD",
+					"Accession": "ENCFF066MEE",
+					"Experiment": "ENCSR055ZZY"
+				},
+				"order": -5,
+				"format": "bigwig",
+				"type": "wig"
+			},
+			{
+				"name": "H3K27me3",
+				"url": "https://www.encodeproject.org/files/ENCFF427IDA/@@download/ENCFF427IDA.bigWig",
+				"color": "rgb(110, 118, 255)",
+				"metadata": {
+					"Biosample": "Homo sapiens IMR-90",
+					"AssayType": "ChIP-seq",
+					"Target": "H3K27me3 ",
+					"BioRep": "1,2",
+					"TechRep": "1_1,2_1",
+					"OutputType": "fold change over control",
+					"Format": "bigWig",
+					"Lab": "Bing Ren, UCSD",
+					"Accession": "ENCFF427IDA",
+					"Experiment": "ENCSR431UUY"
+				},
+				"order": -4,
+				"format": "bigwig",
+				"type": "wig"
+			},
+			{
+				"name": "Hi-C compartments",
+				"url": "https://www.encodeproject.org/files/ENCFF924HBN/@@download/ENCFF924HBN.bigWig",
+				"metadata": {
+					"Biosample": "Homo sapiens IMR-90",
+					"AssayType": "HiC",
+					"Target": "",
+					"BioRep": "1,2,3",
+					"TechRep": "1_1,1_2,1_3,1_4,1_5,2_1,2_2,2_3,3_1",
+					"OutputType": "genome compartments",
+					"Format": "bigWig",
+					"Lab": "Erez Aiden, Baylor",
+					"Accession": "ENCFF924HBN",
+					"Experiment": "ENCSR852KQC"
+				},
+				"order": -3,
+				"format": "bigwig",
+				"type": "wig",
+				"color": "rgb(136, 135, 135)"
+			},
+			{
+				"name": "Refseq Genes",
+				"format": "refgene",
+				"url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/ncbiRefSeq.txt.gz",
+				"indexed": false,
+				"removable": false,
+				"order": -2,
+				"infoURL": "https://www.ncbi.nlm.nih.gov/gene/?term=$$",
+				"type": "annotation",
+				"height": 70
+			}
+		]
+	},
+	"juicebox": {
+		"browsers": [
+			{
+				"backgroundColor": "255,255,255",
+				"url": "https://www.encodeproject.org/files/ENCFF685BLG/@@download/ENCFF685BLG.hic",
+				"name": "ENCFF685BLG.hic",
+				"state": "2,2,8,11848.464036842104,11939.384536842106,480,480,1.0448688689569459,NONE",
+				"colorScale": "17,255,0,0",
+				"nvi": "16797022992,47429"
+			}
+		]
+	}
+}

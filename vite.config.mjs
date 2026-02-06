@@ -9,7 +9,11 @@ export default defineConfig({
         'process.env.TINYURL_API_KEY': JSON.stringify(process.env.TINYURL_API_KEY)
     },
     build: {
-        target: 'es2020'
+        target: 'es2020',
+        sourcemap: true
+    },
+    server: {
+        sourcemapIgnoreList: false  // Don't ignore source maps from node_modules
     },
     css: {
         preprocessorOptions: {

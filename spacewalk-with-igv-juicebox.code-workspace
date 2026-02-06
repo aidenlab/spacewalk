@@ -5,6 +5,10 @@
       "name": "Spacewalk"
     },
     {
+      "path": "/Users/turner/IGVDevelopment/igv.js",
+      "name": "IGV.js"
+    },
+    {
       "path": "/Users/turner/JuiceboxDevelopment/juicebox.js",
       "name": "Juicebox.js"
     }
