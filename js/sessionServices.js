@@ -24,7 +24,7 @@ async function loadSession(json) {
     await loadSpacewalkSession(json.spacewalk)
 
     if (json.juicebox) {
-        await loadJuiceboxSession(json.juicebox)
+        await juiceboxPanel.loadSession(json.juicebox)
     } else {
         const { chr, genomicStart, genomicEnd } = json.spacewalk.locus
         juiceboxPanel.locus = `${chr}:${genomicStart}-${genomicEnd}`
@@ -39,32 +39,30 @@ async function loadSession(json) {
     // Note: We use json.spacewalk.locus directly (the session's saved locus) rather than
     // ensembleManager.locus (which may have been derived from the ensemble file) to ensure
     // we restore the exact locus that was saved in the session.
-    if (json.spacewalk && json.spacewalk.locus) {
-        const { chr, genomicStart, genomicEnd } = json.spacewalk.locus
-        const sessionLocus = { chr, genomicStart, genomicEnd }
-        
-        // Update ensembleManager's datasource locus to match session (if datasource supports it)
-        // This ensures ensembleManager.locus getter returns the session locus
-        if (ensembleManager && ensembleManager.datasource && ensembleManager.datasource.locus) {
-            ensembleManager.datasource.locus = sessionLocus
-        }
-        
-        // Apply to Juicebox (overrides any locus from juicebox session state)
-        // Only apply if browser exists and genome is loaded (i.e., a Hi-C map has been loaded)
-        if (juiceboxPanel.browser && juiceboxPanel.browser.genome) {
-            try {
-                await juiceboxPanel.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
-            } catch (error) {
-                console.warn('Error applying session ensemble locus to Juicebox after session load:', error.message)
-            }
-        }
-        
-        // Apply to IGV (overrides any locus from IGV session state)
+    const { chr, genomicStart, genomicEnd } = json.spacewalk.locus
+    const sessionLocus = { chr, genomicStart, genomicEnd }
+
+    // Update ensembleManager's datasource locus to match session (if datasource supports it)
+    // This ensures ensembleManager.locus getter returns the session locus
+    // if (ensembleManager && ensembleManager.datasource && ensembleManager.datasource.locus) {
+    //     ensembleManager.datasource.locus = sessionLocus
+    // }
+
+    // Apply to Juicebox (overrides any locus from juicebox session state)
+    // Only apply if browser exists and genome is loaded (i.e., a Hi-C map has been loaded)
+    if (juiceboxPanel.browser && juiceboxPanel.browser.genome) {
         try {
-            await igvPanel.locusDidChange(sessionLocus)
+            await juiceboxPanel.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
         } catch (error) {
-            console.warn('Error applying session ensemble locus to IGV after session load:', error.message)
+            console.warn('Error applying session ensemble locus to Juicebox after session load:', error.message)
         }
+    }
+
+    // Apply to IGV (overrides any locus from IGV session state)
+    try {
+        await igvPanel.locusDidChange(sessionLocus)
+    } catch (error) {
+        console.warn('Error applying session ensemble locus to IGV after session load:', error.message)
     }
 }
 
@@ -83,10 +81,6 @@ async function loadIGVSession(spacewalk, igv) {
         await igvPanel.restoreSessionState(spacewalk.igvPanelState)
     }
 
-}
-
-async function loadJuiceboxSession(session) {
-    await juiceboxPanel.loadSession(session)
 }
 
 async function loadSpacewalkSession (session) {

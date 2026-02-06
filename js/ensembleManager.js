@@ -82,13 +82,14 @@ class EnsembleManager {
 
     createEventBusPayload() {
 
-        const { genomicStart, genomicEnd } = this.datasource.getGenomicExtentWithIndex(this.currentIndex)
+        // const { genomicStart, genomicEnd } = this.datasource.getGenomicExtentWithIndex(this.currentIndex)
+        const { chr, genomicStart, genomicEnd } = this.datasource.locus
 
         const payload =
             {
                 sample: this.sample,
                 genomeAssembly: this.genomeAssembly,
-                chr: this.locus.chr,
+                chr,
                 genomicStart,
                 genomicEnd,
                 genomicExtentList : this.getCurrentGenomicExtentList(),
