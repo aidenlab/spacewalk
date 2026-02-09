@@ -3,28 +3,22 @@ import {clamp} from './mathUtils.js'
 
 let dragData = undefined
 
-// Generalized drag configuration function
 function configureDrag(targetElement, dragHandleElement, container, options = {}) {
-    // Default options
+
     const {
         topConstraint: providedTopConstraint,
-        namespace: customNamespace,
         onDragStart,
         onDragEnd
     } = options
 
-    // Calculate top constraint - can be from navbar element, number, or undefined
     let topConstraint = providedTopConstraint
     if (typeof providedTopConstraint === 'object' && providedTopConstraint !== null) {
         const { height } = providedTopConstraint.getBoundingClientRect()
         topConstraint = height
     }
 
-    // Use custom namespace or generate one based on target element
-    const targetId = targetElement.id || 'unknown'
-    const namespace = customNamespace || `.spacewalk-drag-${targetId.replace(/[^a-zA-Z0-9]/g, '-')}`
-
     const target = targetElement
+
     const doDrag = event => {
 
         if(undefined === dragData) {
@@ -43,56 +37,60 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
             return
         }
 
-        const { left, top } = getConstrainedDragValue(target, container, topConstraint, event);
+        const { left, top } = getConstrainedDragValue(target, container, topConstraint, event)
         target.style.left = left
         target.style.top  = top
 
-        $(document).off(namespace)
+        dragData.abortController.abort()
         dragData = undefined
 
-        // Call custom onDragEnd callback if provided
         if (onDragEnd) {
             onDragEnd(event, { left, top })
         }
 
         SpacewalkEventBus.globalBus.post({ type: "DidEndRenderContainerDrag" })
 
-    };
+    }
 
-    const handle = dragHandleElement
-    $(handle).on(`mousedown.${ namespace }`, event => {
+    dragHandleElement.addEventListener('mousedown', event => {
 
         event.stopPropagation()
 
-        const { x, y } = target.getBoundingClientRect();
+        const { x, y } = target.getBoundingClientRect()
+
+        // Defensive cleanup: abort previous drag session if still active
+        if (dragData && dragData.abortController) {
+            dragData.abortController.abort()
+        }
+
+        const abortController = new AbortController()
+        const { signal } = abortController
 
         dragData =
             {
                 dx: x - event.screenX,
-                dy: y - event.screenY
-            };
+                dy: y - event.screenY,
+                abortController
+            }
 
-        // Call custom onDragStart callback if provided
         if (onDragStart) {
             onDragStart(event, { x, y })
         }
 
-        $(document).on(`mousemove.${  namespace }`, event => {
+        document.addEventListener('mousemove', event => {
             event.stopPropagation()
             doDrag(event)
-        })
-        $(document).on(`mouseup.${    namespace }`, event => {
+        }, { signal })
+
+        document.addEventListener('mouseup', event => {
             event.stopPropagation()
             endDrag(event)
-        })
-        $(document).on(`mouseleave.${ namespace }`, event => {
+        }, { signal })
+
+        document.addEventListener('mouseleave', event => {
             event.stopPropagation()
             endDrag(event)
-        })
-        $(document).on(`mouseexit.${  namespace }`, event => {
-            event.stopPropagation()
-            endDrag(event)
-        })
+        }, { signal })
 
     })
 
@@ -100,16 +98,16 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
 
 function getConstrainedDragValue(target, container, topConstraint, { screenX, screenY }) {
 
-    const { x, y, width, height } = container.getBoundingClientRect();
-    const { width:w, height:h } = target.getBoundingClientRect();
+    const { x, y, width, height } = container.getBoundingClientRect()
+    const { width:w, height:h } = target.getBoundingClientRect()
 
-    let left = dragData.dx + screenX;
-    left = clamp(left, x, width - w);
+    let left = dragData.dx + screenX
+    left = clamp(left, x, width - w)
 
-    let top = dragData.dy + screenY;
+    let top = dragData.dy + screenY
 
-    const yy = topConstraint || y;
-    top = clamp(top, yy, height - h);
+    const yy = topConstraint || y
+    top = clamp(top, yy, height - h)
 
     return { left: `${ left }px`, top: `${ top }px` }
 }

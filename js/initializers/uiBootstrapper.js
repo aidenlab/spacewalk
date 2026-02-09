@@ -9,7 +9,7 @@ import { toJSON, loadSession } from "../sessionServices.js"
 import { createSpacewalkFileLoaders } from '../spacewalkFileLoadWidgetServices.js'
 import configureContactMapLoaders from '../widgets/contactMapLoad.js'
 import { createShareWidgets, shareWidgetConfigurator } from '../share/shareWidgets.js'
-import { configureDrag } from "../utils/drag.js"
+import { configureDrag } from "../utils/draggable.js"
 import ScaleBarService from "../scaleBarService.js"
 import GUIManager from "../guiManager.js"
 import { showRelease } from "../utils/release.js"

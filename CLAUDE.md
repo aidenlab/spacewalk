@@ -68,7 +68,7 @@ File (.sw/.swb/.cndb) → Datasource (js/datasource/) → EnsembleManager → Tr
 
 ### External Libraries (CDN via index.html)
 
-Bootstrap 5.3.3, jQuery 3.7.0, jQuery UI 1.13.2, Spectrum Colorpicker, DataTables, Font Awesome, Dropbox Chooser. These are loaded from CDNs in `index.html`, not bundled.
+Bootstrap 5.3.3, DataTables, Font Awesome, Dropbox Chooser. These are loaded from CDNs in `index.html`, not bundled. jQuery and DataTables JS/CSS remain only as transitive dependencies of the `data-modal` package (`ModalTable`).
 
 ### Configuration
 

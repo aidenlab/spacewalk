@@ -1,5 +1,5 @@
 import SpacewalkEventBus from './spacewalkEventBus.js'
-import {configureDrag} from "./utils/drag"
+import {configureDrag} from "./utils/draggable.js"
 
 const zIndexPanelSelected = 1124;
 const zIndexPanelUnselected = 1024;
