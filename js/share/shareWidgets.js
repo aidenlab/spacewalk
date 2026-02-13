@@ -34,7 +34,7 @@ function createShareWidgets({ modalElement, inputElement, button }) {
 
         const result = await getShareURL()
         if (result) {
-            inputElement.value = await getShareURL()
+            inputElement.value = result
             inputElement.focus()
             inputElement.select()
         } else {
