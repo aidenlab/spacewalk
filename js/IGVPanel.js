@@ -1,9 +1,15 @@
 import igv from 'igv'
 import SpacewalkEventBus from './spacewalkEventBus.js'
 import {setMaterialProvider} from './utils/utils.js';
+import {installShim} from './igvTrackMaterialProviderShim.js';
 import Panel from './panel.js';
 import { getPathsWithTrackRegistry, updateTrackMenusWithTrackConfigurations } from './widgets/trackWidgets.js'
 import { spacewalkConfig } from "../spacewalk-config.js";
+
+/** Fallback when IGV master does not return knownGenomes from createBrowser. Used for genome validation in datasources. */
+const KNOWN_GENOMES_FALLBACK = Object.fromEntries([
+    'ce10', 'ce11', 'dm3', 'dm6', 'GRCh38', 'hg19', 'mm9', 'mm10', 'hg38', 'GRCh37', 'mm39', 'sacCer3', 'Loxafr3.0_HiC'
+].map(id => [id, true]))
 
 let resizeObserver
 let resizeTimeout
@@ -69,16 +75,21 @@ class IGVPanel extends Panel {
             igvConfig.genomeList = [ ...spacewalkConfig.igvConfig.genomeList ]
         }
         try {
-            const { browser, knownGenomes } = await igv.createBrowser( root, igvConfig )
-            this.browser = browser
-            this.knownGenomes = knownGenomes
+            const result = await igv.createBrowser( root, igvConfig )
+            this.browser = result.browser ?? result
+            this.knownGenomes = result.knownGenomes ?? KNOWN_GENOMES_FALLBACK
         } catch (e) {
             console.error(e.message)
             alert(e.message)
         }
 
         if (this.browser) {
+            // Ensure cursor guide callback fires: spacewalk branch removed the doShowCursorGuide
+            // guard from rulerViewport.mouseMove so customMouseHandler always receives position.
+            // Master wraps that logic in if(doShowCursorGuide); without this, callback never fires.
+            this.browser.doShowCursorGuide = true
             this.configureMouseHandlers()
+            installShim(this.browser, this)
         }
 
         resizeObserver = new ResizeObserver(entries => {
@@ -128,7 +139,10 @@ class IGVPanel extends Panel {
         if ("DidUpdateGenomicInterpolant" === type) {
             const { poster, interpolantList } = data
             if (poster === this.genomicNavigator && interpolantList) {
-                this.browser.cursorGuide.updateWithInterpolant(interpolantList[ 0 ])
+                const update = this.browser.cursorGuide?.updateWithInterpolant
+                if (typeof update === 'function') {
+                    update.call(this.browser.cursorGuide, interpolantList[ 0 ])
+                }
             }
         }
 
@@ -151,18 +165,15 @@ class IGVPanel extends Panel {
 
     configureMouseHandlers () {
 
-        this.browser.on('dataValueMaterialCheckbox', async track => {
-            console.log(`${track.name} checkbox changed to ${track.trackView.materialProviderInput.checked}`);
+        // Re-apply cursor guide after IGV rebuilds (loadSession, etc.). Same pattern as track
+        // material provider re-injection: IGV's DOM lifecycle can affect visibility/state.
+        this.browser.doShowCursorGuide = true
+        this.browser.setCursorGuideVisibility(true)
 
-            if (track.trackView.materialProviderInput.checked) {
-                await this.activateTrackMaterialProvider(track);
-            } else {
-                await this.deactivateTrackMaterialProvider(track);
-            }
-        });
+        installShim(this.browser, this)
 
         this.browser.on('trackremoved', track => {
-            if (track.trackView.materialProviderInput?.checked) {
+            if (track.embeddingCheckboxChecked || track.trackView?.materialProviderInput?.checked) {
                 this.removeTrackFromMaterialProvider(track);
             }
         });
@@ -191,7 +202,10 @@ class IGVPanel extends Panel {
         // Check if track can be used (zoom level check)
         if (!this.canUseTrackForMaterial(track)) {
             console.warn(`Track ${track.name} zoom level too low. Cannot add to material provider.`);
-            track.trackView.materialProviderInput.checked = false;
+            track.embeddingCheckboxChecked = false;
+            if (track.trackView?.materialProviderInput) {
+                track.trackView.materialProviderInput.checked = false;
+            }
             return;
         }
 
@@ -230,7 +244,12 @@ class IGVPanel extends Panel {
     }
 
     canUseTrackForMaterial(track) {
-        const zoomInNotice = track.trackView.viewports[0].$zoomInNotice.get(0);
+        const viewport = track.trackView?.viewports?.[0];
+        if (!viewport) return false;
+        if (typeof viewport.checkZoomIn === 'function') {
+            return viewport.checkZoomIn();
+        }
+        const zoomInNotice = viewport.$zoomInNotice?.get?.(0);
         return !(zoomInNotice && zoomInNotice.style.display !== 'none');
     }
 
@@ -255,8 +274,9 @@ class IGVPanel extends Panel {
         const checkedTracks = [];
 
         for (let trackView of this.browser.trackViews) {
-            if (trackView.materialProviderInput && trackView.materialProviderInput.checked) {
-                checkedTracks.push(trackView.track.name);
+            const track = trackView.track;
+            if (track && (track.embeddingCheckboxChecked || (trackView.materialProviderInput && trackView.materialProviderInput.checked))) {
+                checkedTracks.push(track.name);
             }
         }
 
@@ -287,12 +307,15 @@ class IGVPanel extends Panel {
 
         // Check all tracks and add them to material provider
         for (const track of tracksToRestore) {
-            if (track.trackView.loading === false) {
-                console.warn(`Track ${track.name} is NOT loaded. Skipping.`);
+            if (typeof track.trackView?.isLoading === 'function' && track.trackView.isLoading()) {
+                console.warn(`Track ${track.name} is still loading. Skipping.`);
                 continue;
             }
 
-            track.trackView.materialProviderInput.checked = true;
+            track.embeddingCheckboxChecked = true;
+            if (track.trackView?.materialProviderInput) {
+                track.trackView.materialProviderInput.checked = true;
+            }
             await this.activateTrackMaterialProvider(track);
         }
 

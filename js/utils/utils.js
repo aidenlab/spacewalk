@@ -20,6 +20,9 @@ function hideGlobalSpinner() {
 
 function unsetDataMaterialProviderCheckbox(trackViews) {
     for (const trackView of trackViews) {
+        if (trackView.track) {
+            trackView.track.embeddingCheckboxChecked = false;
+        }
         if (trackView.materialProviderInput) {
             trackView.materialProviderInput.checked = false;
         }
