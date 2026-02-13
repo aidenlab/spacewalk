@@ -33,6 +33,9 @@ class IGVPanel extends Panel {
         this.ensembleManager = ensembleManager;
         this.genomicNavigator = genomicNavigator;
 
+        /** Map of trackId (name|index) -> true for material provider checkbox state. Single source of truth. */
+        this.materialProviderCheckedTracks = new Map();
+
         // const dragHandle = panel.querySelector('.spacewalk_card_drag_container')
         // makeDraggable(panel, dragHandle)
 
@@ -173,7 +176,12 @@ class IGVPanel extends Panel {
         installShim(this.browser, this)
 
         this.browser.on('trackremoved', track => {
-            if (track.embeddingCheckboxChecked || track.trackView?.materialProviderInput?.checked) {
+            const id = this.getUniqueTrackId(track);
+            const wasChecked = id.endsWith('|-1') ? (track.embeddingCheckboxChecked || track.trackView?.materialProviderInput?.checked) : this.materialProviderCheckedTracks.has(id);
+            if (!id.endsWith('|-1')) {
+                this.materialProviderCheckedTracks.delete(id);
+            }
+            if (wasChecked) {
                 this.removeTrackFromMaterialProvider(track);
             }
         });
@@ -253,6 +261,36 @@ class IGVPanel extends Panel {
         return !(zoomInNotice && zoomInNotice.style.display !== 'none');
     }
 
+    getUniqueTrackId(track) {
+        const idx = this.browser.trackViews.findIndex(tv => tv.track === track);
+        return `${track.name}|${idx}`;
+    }
+
+    setMaterialProviderTrackChecked(track, checked) {
+        const id = this.getUniqueTrackId(track);
+        if (id.endsWith('|-1')) return;
+        if (checked) {
+            this.materialProviderCheckedTracks.set(id, true);
+        } else {
+            this.materialProviderCheckedTracks.delete(id);
+        }
+    }
+
+    clearMaterialProviderSessionState() {
+        this.materialProviderCheckedTracks.clear();
+    }
+
+    getMaterialProviderCheckedTrackIds() {
+        const trackViews = this.browser?.trackViews ?? [];
+        return Array.from(this.materialProviderCheckedTracks.keys()).filter(id => {
+            const lastPipe = id.lastIndexOf('|');
+            if (lastPipe < 0) return false;
+            const name = id.slice(0, lastPipe);
+            const idx = parseInt(id.slice(lastPipe + 1), 10);
+            return trackViews[idx]?.track?.name === name;
+        });
+    }
+
     async loadTrackList(configurations) {
 
         let tracks = [];
@@ -271,41 +309,60 @@ class IGVPanel extends Panel {
     }
 
     getSessionState() {
-        const checkedTracks = [];
+        let ids = this.getMaterialProviderCheckedTrackIds();
 
-        for (let trackView of this.browser.trackViews) {
-            const track = trackView.track;
-            if (track && (track.embeddingCheckboxChecked || (trackView.materialProviderInput && trackView.materialProviderInput.checked))) {
-                checkedTracks.push(track.name);
+        if (ids.length === 0) {
+            const trackViews = this.browser.trackViews ?? [];
+            for (let i = 0; i < trackViews.length; i++) {
+                const track = trackViews[i]?.track;
+                if (track && (track.embeddingCheckboxChecked || trackViews[i].materialProviderInput?.checked)) {
+                    this.materialProviderCheckedTracks.set(`${track.name}|${i}`, true);
+                }
             }
+            ids = this.getMaterialProviderCheckedTrackIds();
         }
 
-        // Return array of checked track names, or 'none' if none checked
-        return checkedTracks.length > 0 ? checkedTracks : 'none';
+        return ids.length > 0 ? ids : 'none';
     }
 
     async restoreSessionState(state) {
-        // Handle backward compatibility: if state is a string (old format), convert to array
-        const trackNames = Array.isArray(state) ? state : (state === 'none' ? [] : [state]);
+        const raw = Array.isArray(state) ? state : (state === 'none' ? [] : [state]);
 
-        if (trackNames.length === 0) {
+        if (raw.length === 0) {
             console.log('No tracks to restore for material provider');
             return;
         }
 
-        console.log(`Restoring ${trackNames.length} tracks: ${trackNames.join(', ')}`);
+        const isNewFormat = raw.some(s => typeof s === 'string' && s.includes('|'));
+        const trackViews = this.browser.trackViews ?? [];
+        let tracksToRestore;
 
-        // Find and activate all tracks
-        const tracksToRestore = this.browser.trackViews
-            .map(({ track }) => track)
-            .filter(track => trackNames.includes(track.name));
+        if (isNewFormat) {
+            const idSet = new Set(raw);
+            tracksToRestore = trackViews
+                .map((tv, i) => ({ track: tv.track, id: `${tv.track.name}|${i}` }))
+                .filter(({ track, id }) => track && idSet.has(id))
+                .map(({ track }) => track);
+        } else {
+            const namesToRestore = new Set(raw);
+            const restored = new Set();
+            tracksToRestore = [];
+            for (const tv of trackViews) {
+                const track = tv.track;
+                if (!track || !namesToRestore.has(track.name)) continue;
+                if (restored.has(track.name)) continue;
+                restored.add(track.name);
+                tracksToRestore.push(track);
+            }
+        }
 
         if (tracksToRestore.length === 0) {
             console.warn('No matching tracks found for restoration');
             return;
         }
 
-        // Check all tracks and add them to material provider
+        console.log(`Restoring ${tracksToRestore.length} tracks`);
+
         for (const track of tracksToRestore) {
             if (typeof track.trackView?.isLoading === 'function' && track.trackView.isLoading()) {
                 console.warn(`Track ${track.name} is still loading. Skipping.`);
@@ -316,10 +373,10 @@ class IGVPanel extends Panel {
             if (track.trackView?.materialProviderInput) {
                 track.trackView.materialProviderInput.checked = true;
             }
+            this.setMaterialProviderTrackChecked(track, true);
             await this.activateTrackMaterialProvider(track);
         }
 
-        // Ensure final blended colors are applied
         if (tracksToRestore.length > 0) {
             this.materialProvider = this.trackMaterialProvider;
             setMaterialProvider(this.trackMaterialProvider);

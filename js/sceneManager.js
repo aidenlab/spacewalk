@@ -60,7 +60,7 @@ class SceneManager {
         this.setupWithTrace(ensembleManager.currentTrace)
         this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
 
-        unsetDataMaterialProviderCheckbox(igvPanel.browser.trackViews)
+        unsetDataMaterialProviderCheckbox(igvPanel)
         setMaterialProvider(this.colorRampMaterialProvider)
 
         if (ensembleManager.genomeAssembly !== igvPanel.browser.genome.id) {
@@ -79,7 +79,7 @@ class SceneManager {
         this.setupWithTrace(ensembleManager.currentTrace)
         this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
 
-        unsetDataMaterialProviderCheckbox(igvPanel.browser.trackViews)
+        unsetDataMaterialProviderCheckbox(igvPanel)
         setMaterialProvider(this.colorRampMaterialProvider)
 
         await igvPanel.locusDidChange(ensembleManager.locus)
