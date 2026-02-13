@@ -165,11 +165,14 @@ async function getShareURL() {
         const index = path.indexOf("?")
         const prefix = index > 0 ? path.substring(0, index) : path
 
-        let url
+        // Encode blob values so special chars (=, &, etc.) in compressed data don't break URL parsing
+        const spacewalkParam = encodeURIComponent(`blob:${spacewalkCompressedSession}`)
+        const igvParam = encodeURIComponent(`blob:${igvCompressedSession}`)
+
+        let url = `${prefix}?spacewalkSessionURL=${spacewalkParam}&sessionURL=${igvParam}`
         if (juiceboxCompressedSession) {
-            url = `${ prefix }?spacewalkSessionURL=blob:${ spacewalkCompressedSession }&sessionURL=blob:${ igvCompressedSession }&${ juiceboxCompressedSession }`
-        } else {
-            url = `${ prefix }?spacewalkSessionURL=blob:${ spacewalkCompressedSession }&sessionURL=blob:${ igvCompressedSession }`
+            const [jKey, jVal] = juiceboxCompressedSession.split('=', 2)
+            url += `&${jKey}=${encodeURIComponent(jVal)}`
         }
 
         return shortenURL(url)
