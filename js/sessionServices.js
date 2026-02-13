@@ -69,6 +69,7 @@ async function loadSession(json) {
 async function loadIGVSession(spacewalk, igv) {
 
     igvPanel.browser.removeAllTracks()
+    igvPanel.clearMaterialProviderSessionState()
 
     // Clear any existing track colors from previous session
 

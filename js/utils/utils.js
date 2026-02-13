@@ -18,7 +18,8 @@ function hideGlobalSpinner() {
     document.getElementById('spacewalk-spinner').style.display = 'none'
 }
 
-function unsetDataMaterialProviderCheckbox(trackViews) {
+function unsetDataMaterialProviderCheckbox(igvPanel) {
+    const trackViews = igvPanel.browser?.trackViews ?? [];
     for (const trackView of trackViews) {
         if (trackView.track) {
             trackView.track.embeddingCheckboxChecked = false;
@@ -27,6 +28,7 @@ function unsetDataMaterialProviderCheckbox(trackViews) {
             trackView.materialProviderInput.checked = false;
         }
     }
+    igvPanel.clearMaterialProviderSessionState();
 }
 
 function setMaterialProvider(materialProvider) {
