@@ -1,7 +1,7 @@
 import Panel, { doInspectPanelVisibilityCheckbox } from "../panel.js"
 import IGVPanel from "../IGVPanel.js"
 import JuiceboxPanel from "../juicebox/juiceboxPanel.js"
-import LiveContactMapService, { defaultDistanceThreshold } from "../juicebox/liveContactMapService.js"
+import LiveContactMapService from "../juicebox/liveContactMapService.js"
 import LiveDistanceMapService from "../juicebox/liveDistanceMapService.js"
 import configureContactMapLoaders from '../widgets/contactMapLoad.js'
 import { spacewalkConfig } from "../../spacewalk-config.js"
@@ -52,7 +52,7 @@ class PanelInitializer {
         );
 
         // NOW initialize live map services (these depend on panels being ready AND module-level variables populated)
-        panelObjects.liveContactMapService = new LiveContactMapService(defaultDistanceThreshold);
+        panelObjects.liveContactMapService = new LiveContactMapService();
         panelObjects.liveDistanceMapService = new LiveDistanceMapService();
 
         // Configure contact map loaders
