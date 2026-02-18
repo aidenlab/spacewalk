@@ -6,6 +6,9 @@
 
 const DISTANCE_UNDEFINED = -1
 
+const defaultForeground = { r: 255, g: 0, b: 0 }
+const defaultBackground = { r: 255, g: 255, b: 255 }
+
 /**
  * Fill a scaled pixel block in an ImageData buffer.
  * Each logical bin (x, y) maps to a rectangular block of screen pixels.
@@ -20,8 +23,11 @@ const DISTANCE_UNDEFINED = -1
  * @param {number} g - Green (0-255)
  * @param {number} b - Blue (0-255)
  * @param {number} a - Alpha (0-255)
+ * @param {number} bgR - Background red for alpha blending (0-255)
+ * @param {number} bgG - Background green for alpha blending (0-255)
+ * @param {number} bgB - Background blue for alpha blending (0-255)
  */
-function fillScaledPixel(data, size, x, y, scale, r, g, b, a) {
+function fillScaledPixel(data, size, x, y, scale, r, g, b, a, bgR, bgG, bgB) {
     const x0 = Math.floor(x * scale)
     const y0 = Math.floor(y * scale)
     const x1 = Math.floor((x + 1) * scale)
@@ -31,11 +37,10 @@ function fillScaledPixel(data, size, x, y, scale, r, g, b, a) {
             if (px >= size || py >= size) continue
             const idx = (py * size + px) * 4
             if (a < 255) {
-                // Alpha blend over white background
                 const invA = 255 - a
-                data[idx]     = Math.floor((r * a + 255 * invA) / 255)
-                data[idx + 1] = Math.floor((g * a + 255 * invA) / 255)
-                data[idx + 2] = Math.floor((b * a + 255 * invA) / 255)
+                data[idx]     = Math.floor((r * a + bgR * invA) / 255)
+                data[idx + 1] = Math.floor((g * a + bgG * invA) / 255)
+                data[idx + 2] = Math.floor((b * a + bgB * invA) / 255)
                 data[idx + 3] = 255
             } else {
                 data[idx]     = r
@@ -49,12 +54,18 @@ function fillScaledPixel(data, size, x, y, scale, r, g, b, a) {
 
 /**
  * Render a contact map onto a 2d canvas.
- * Iterates contact records and paints red pixels with alpha proportional to frequency.
+ * Iterates contact records and paints pixels with alpha proportional to frequency.
  *
  * @param {CanvasRenderingContext2D} ctx - The 2d canvas context
  * @param {LiveContactMap} lcm - The initialized LiveContactMap instance
+ * @param {Object} [colorConfig] - Optional color configuration
+ * @param {Object} [colorConfig.foreground] - Foreground {r, g, b} for contact pixels
+ * @param {Object} [colorConfig.background] - Background {r, g, b} for canvas fill and alpha blending
  */
-function renderContactMap(ctx, lcm) {
+function renderContactMap(ctx, lcm, colorConfig) {
+
+    const fg = colorConfig?.foreground || defaultForeground
+    const bg = colorConfig?.background || defaultBackground
 
     const N = lcm.traceLength
     const canvas = ctx.canvas
@@ -62,8 +73,8 @@ function renderContactMap(ctx, lcm) {
     const scale = size / N
     const offset = lcm.binOffset
 
-    // White background
-    ctx.fillStyle = '#ffffff'
+    // Background fill
+    ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`
     ctx.fillRect(0, 0, size, size)
 
     const imageData = ctx.getImageData(0, 0, size, size)
@@ -78,13 +89,13 @@ function renderContactMap(ctx, lcm) {
         const alpha = Math.floor(255 * Math.min(rec.counts, 1))
 
         // Upper and lower triangle
-        fillScaledPixel(data, size, x, y, scale, 255, 0, 0, alpha)
-        fillScaledPixel(data, size, y, x, scale, 255, 0, 0, alpha)
+        fillScaledPixel(data, size, x, y, scale, fg.r, fg.g, fg.b, alpha, bg.r, bg.g, bg.b)
+        fillScaledPixel(data, size, y, x, scale, fg.r, fg.g, fg.b, alpha, bg.r, bg.g, bg.b)
     }
 
     // Diagonal
     for (let i = 0; i < N; i++) {
-        fillScaledPixel(data, size, i, i, scale, 40, 40, 40, 255)
+        fillScaledPixel(data, size, i, i, scale, 40, 40, 40, 255, bg.r, bg.g, bg.b)
     }
 
     ctx.putImageData(imageData, 0, 0)
@@ -92,20 +103,27 @@ function renderContactMap(ctx, lcm) {
 
 /**
  * Render a distance map onto a 2d canvas.
- * Close = blue, far = red.
+ * Uses foreground color for close distances, background for far.
+ * Gradient: close (t=0) = foreground, far (t=1) = background.
  *
  * @param {CanvasRenderingContext2D} ctx - The 2d canvas context
  * @param {LiveContactMap} lcm - The initialized LiveContactMap instance
+ * @param {Object} [colorConfig] - Optional color configuration
+ * @param {Object} [colorConfig.foreground] - Foreground {r, g, b} for close distances
+ * @param {Object} [colorConfig.background] - Background {r, g, b} for canvas fill and far distances
  */
-function renderDistanceMap(ctx, lcm) {
+function renderDistanceMap(ctx, lcm, colorConfig) {
+
+    const fg = colorConfig?.foreground || defaultForeground
+    const bg = colorConfig?.background || defaultBackground
 
     const { distances, maxDistance, traceLength: N } = lcm.getDistanceMatrix()
     const canvas = ctx.canvas
     const size = canvas.width
     const scale = size / N
 
-    // Black background
-    ctx.fillStyle = '#000000'
+    // Background fill
+    ctx.fillStyle = `rgb(${bg.r},${bg.g},${bg.b})`
     ctx.fillRect(0, 0, size, size)
 
     const imageData = ctx.getImageData(0, 0, size, size)
@@ -116,14 +134,14 @@ function renderDistanceMap(ctx, lcm) {
             const dist = distances[i * N + j]
             if (dist === DISTANCE_UNDEFINED) continue
 
-            // close = blue, far = red
+            // t=0 (close) -> foreground, t=1 (far) -> background
             const t = maxDistance > 0 ? dist / maxDistance : 0
-            const r = Math.floor(255 * t)
-            const g = 0
-            const b = Math.floor(255 * (1 - t))
+            const r = Math.floor(fg.r * (1 - t) + bg.r * t)
+            const g = Math.floor(fg.g * (1 - t) + bg.g * t)
+            const b = Math.floor(fg.b * (1 - t) + bg.b * t)
 
-            fillScaledPixel(data, size, i, j, scale, r, g, b, 255)
-            fillScaledPixel(data, size, j, i, scale, r, g, b, 255)
+            fillScaledPixel(data, size, i, j, scale, r, g, b, 255, bg.r, bg.g, bg.b)
+            fillScaledPixel(data, size, j, i, scale, r, g, b, 255, bg.r, bg.g, bg.b)
         }
     }
 

@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "name": "spacewalk",
+      "path": "."
+    },
+    {
+      "name": "juicebox.js",
+      "path": "../../JuiceboxDevelopment/juicebox.js"
+    },
+    {
+      "name": "hic-straw",
+      "path": "../hic-straw"
+    }
+  ],
+  "settings": {}
+}

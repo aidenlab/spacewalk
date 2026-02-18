@@ -26,8 +26,9 @@ class LiveDistanceMapService {
      * Called by LiveContactMapService after the Calculate button is pressed.
      *
      * @param {LiveContactMap} lcm - The initialized LiveContactMap instance
+     * @param {Object} [colorConfig] - Optional color configuration { background: {r,g,b} }
      */
-    renderFromLiveContactMap(lcm) {
+    renderFromLiveContactMap(lcm, colorConfig) {
 
         this.lcm = lcm
 
@@ -37,7 +38,7 @@ class LiveDistanceMapService {
             return
         }
 
-        renderDistanceMap(ctx, lcm)
+        renderDistanceMap(ctx, lcm, colorConfig)
     }
 
     getClassName() {

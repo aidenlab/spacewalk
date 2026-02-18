@@ -1,7 +1,7 @@
 import hic from 'juicebox.js'
 import SpacewalkEventBus from '../spacewalkEventBus.js'
 import Panel from '../panel.js'
-import { ballAndStick, ensembleManager, ribbon, igvPanel, genomicNavigator } from '../app.js'
+import { ballAndStick, ensembleManager, ribbon, genomicNavigator, liveContactMapService } from '../app.js'
 import {appleCrayonColorRGB255, rgb255String} from "../utils/colorUtils"
 import {spacewalkConfig} from "../../spacewalk-config.js"
 
@@ -241,6 +241,23 @@ class JuiceboxPanel extends Panel {
             }
         })
 
+        // Repaint live maps when Juicebox color swatches change
+        this.browser.coordinator.addCallback('onBackgroundColorChange', ({ rgb }) => {
+            if (liveContactMapService) {
+                this.updateLiveMapCanvasSizes(this.browser.contactMatrixView)
+                liveContactMapService.repaintContactMap({ background: rgb })
+                liveContactMapService.repaintDistanceMap({ background: rgb })
+            }
+        })
+
+        this.browser.coordinator.addCallback('onForegroundColorChange', ({ rgb }) => {
+            if (liveContactMapService) {
+                this.updateLiveMapCanvasSizes(this.browser.contactMatrixView)
+                liveContactMapService.repaintContactMap({ foreground: rgb })
+                liveContactMapService.repaintDistanceMap({ foreground: rgb })
+            }
+        })
+
         this.browser.setCustomCrosshairsHandler(({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, interpolantX, interpolantY }) => {
             juiceboxMouseHandler({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, interpolantX, interpolantY });
         })
@@ -422,6 +439,13 @@ function tabAssessment(browser, activeTabButton, panel) {
         case 'spacewalk-juicebox-panel-live-distance-map-tab':
             if (liveDistanceContainer) {
                 liveDistanceContainer.style.display = 'block'
+                // Repaint with current colors when tab becomes visible
+                setTimeout(() => {
+                    if (liveContactMapService) {
+                        panel.updateLiveMapCanvasSizes(browser.contactMatrixView)
+                        liveContactMapService.repaintDistanceMap()
+                    }
+                }, 0)
             }
             document.getElementById('hic-live-map-controls-widget').style.display = 'none'
             document.getElementById('hic-file-chooser-dropdown').style.display = 'none'

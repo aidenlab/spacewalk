@@ -3,7 +3,7 @@ import { ensembleManager, juiceboxPanel, igvPanel, liveDistanceMapService } from
 import SpacewalkEventBus from '../spacewalkEventBus.js'
 import { ensureLiveMapVertexLists } from '../utils/liveMapUtils.js'
 import { showGlobalSpinner, hideGlobalSpinner } from '../utils/utils.js'
-import { renderContactMap } from './liveMapRenderUtils.js'
+import { renderContactMap, renderDistanceMap } from './liveMapRenderUtils.js'
 
 const defaultDistanceThreshold = 200
 const defaultNeighborExclusion = 3
@@ -69,6 +69,25 @@ class LiveContactMapService {
         }
     }
 
+    /**
+     * Read the current foreground and background colors from Juicebox.
+     * Falls back to defaults if the browser is not available.
+     */
+    getColorConfig() {
+        const browser = juiceboxPanel?.browser
+        const cmv = browser?.contactMatrixView
+
+        const foreground = cmv?.colorScale
+            ? { r: cmv.colorScale.r, g: cmv.colorScale.g, b: cmv.colorScale.b }
+            : { r: 255, g: 0, b: 0 }
+
+        const background = cmv?.backgroundColor
+            ? { ...cmv.backgroundColor }
+            : { r: 255, g: 255, b: 255 }
+
+        return { foreground, background }
+    }
+
     async calculateLiveMaps() {
 
         if (!ensembleManager || !ensembleManager.locus) {
@@ -130,12 +149,14 @@ class LiveContactMapService {
             // Ensure canvases are sized
             juiceboxPanel.updateLiveMapCanvasSizes(juiceboxPanel.browser.contactMatrixView)
 
+            const colorConfig = this.getColorConfig()
+
             // Render contact map directly to canvas
             this.repaintContactMap()
 
             // Render distance map from the same LiveContactMap instance
             if (liveDistanceMapService) {
-                liveDistanceMapService.renderFromLiveContactMap(this.lcm)
+                liveDistanceMapService.renderFromLiveContactMap(this.lcm, colorConfig)
             }
 
         } catch (err) {
@@ -148,18 +169,38 @@ class LiveContactMapService {
 
     /**
      * Repaint the contact map canvas from the current LiveContactMap state.
-     * Called after threshold/exclusion slider changes and after initial calculation.
+     * Called after threshold/exclusion slider changes, color changes, and initial calculation.
+     * @param {Object} [colorOverride] - Optional override for foreground/background { foreground?: {r,g,b}, background?: {r,g,b} }
      */
-    repaintContactMap() {
+    repaintContactMap(colorOverride) {
         if (!this.lcm) return
 
-        const ctx = juiceboxPanel.browser.contactMatrixView.ctx_live_contact
+        const ctx = juiceboxPanel?.browser?.contactMatrixView?.ctx_live_contact
         if (!ctx) {
             console.warn('Live contact canvas context not available')
             return
         }
 
-        renderContactMap(ctx, this.lcm)
+        const colorConfig = { ...this.getColorConfig(), ...colorOverride }
+        renderContactMap(ctx, this.lcm, colorConfig)
+    }
+
+    /**
+     * Repaint the distance map canvas from the current LiveContactMap state.
+     * Called after background/foreground color changes (distance map uses background for fill).
+     * @param {Object} [colorOverride] - Optional override for background { background?: {r,g,b} }
+     */
+    repaintDistanceMap(colorOverride) {
+        if (!this.lcm) return
+
+        const ctx = juiceboxPanel?.browser?.contactMatrixView?.ctx_live_distance
+        if (!ctx) {
+            console.warn('Live distance canvas context not available')
+            return
+        }
+
+        const colorConfig = { ...this.getColorConfig(), ...colorOverride }
+        renderDistanceMap(ctx, this.lcm, colorConfig)
     }
 
     // Session state support
