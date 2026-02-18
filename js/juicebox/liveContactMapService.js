@@ -22,8 +22,12 @@ class LiveContactMapService {
         this.exclusionDisplay = document.getElementById('live-map-exclusion-value')
         this.contactModeSelect = document.getElementById('live-map-contact-mode')
 
-        // Calculate button (shared — computes both contact + distance maps)
+        // Calculate buttons — both compute distance + contact maps
         document.getElementById('live-map-calculate-button').addEventListener('click', () => {
+            this.calculateLiveMaps()
+        })
+
+        document.getElementById('live-distance-map-calculate-button').addEventListener('click', () => {
             this.calculateLiveMaps()
         })
 

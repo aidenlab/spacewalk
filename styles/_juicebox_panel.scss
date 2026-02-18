@@ -71,6 +71,15 @@
         border-width: thin;
         border-radius: .25rem;
       }
+
+      // Controls widgets when relocated into Juicebox navbar
+      .hic-navbar-container #hic-live-map-controls-widget,
+      .hic-navbar-container #hic-live-distance-map-controls-widget {
+        width: 95%;
+        border: none;
+        background-color: transparent;
+        padding: 2px 0;
+      }
     }
   }
 

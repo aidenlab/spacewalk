@@ -274,6 +274,10 @@ class JuiceboxPanel extends Panel {
     }
 
     detachMouseHandlers() {
+        // Move controls back to card-header before browser DOM is destroyed
+        moveControlsToCardHeader(document.getElementById('hic-live-map-controls-widget'))
+        moveControlsToCardHeader(document.getElementById('hic-live-distance-map-controls-widget'))
+
         for (const tabElement of this.container.querySelectorAll('button[data-bs-toggle="tab"]')) {
             tabElement.removeEventListener('show.bs.tab', tabEventHandler);
         }
@@ -387,7 +391,13 @@ function tabAssessment(browser, activeTabButton, panel) {
     const liveContactContainer = viewport.querySelector(`#${browser.id}-live-contact-map-canvas-container`)
     const liveDistanceContainer = viewport.querySelector(`#${browser.id}-live-distance-map-canvas-container`)
 
-    // Hide all containers
+    // Juicebox navbar elements
+    const hicNavbarContainer = browser.rootElement?.querySelector('.hic-navbar-container')
+    const contactMapNavBar = hicNavbarContainer?.querySelector(`div[id$='-contact-map-hic-nav-bar-map-container']`)
+    const controlsWidget = document.getElementById('hic-live-map-controls-widget')
+    const distanceControlsWidget = document.getElementById('hic-live-distance-map-controls-widget')
+
+    // Hide all canvas containers
     if (hicContainer) hicContainer.style.display = 'none'
     if (liveContactContainer) liveContactContainer.style.display = 'none'
     if (liveDistanceContainer) liveDistanceContainer.style.display = 'none'
@@ -403,7 +413,12 @@ function tabAssessment(browser, activeTabButton, panel) {
                     }
                 }, 0)
             }
-            document.getElementById('hic-live-map-controls-widget').style.display = 'none'
+            // Show navbar dataset row, restore controls to card-header
+            if (contactMapNavBar) contactMapNavBar.style.display = ''
+            moveControlsToCardHeader(controlsWidget)
+            moveControlsToCardHeader(distanceControlsWidget)
+            controlsWidget.style.display = 'none'
+            distanceControlsWidget.style.display = 'none'
             document.getElementById('hic-file-chooser-dropdown').style.display = 'block'
             break;
 
@@ -418,7 +433,12 @@ function tabAssessment(browser, activeTabButton, panel) {
                     }
                 }, 0)
             }
-            document.getElementById('hic-live-map-controls-widget').style.display = 'block'
+            // Hide navbar dataset row, move contact controls into navbar
+            if (contactMapNavBar) contactMapNavBar.style.display = 'none'
+            moveControlsToNavbar(controlsWidget, hicNavbarContainer, contactMapNavBar)
+            moveControlsToCardHeader(distanceControlsWidget)
+            controlsWidget.style.display = ''
+            distanceControlsWidget.style.display = 'none'
             document.getElementById('hic-file-chooser-dropdown').style.display = 'none'
             break;
 
@@ -433,7 +453,12 @@ function tabAssessment(browser, activeTabButton, panel) {
                     }
                 }, 0)
             }
-            document.getElementById('hic-live-map-controls-widget').style.display = 'none'
+            // Hide navbar dataset row, move distance controls into navbar
+            if (contactMapNavBar) contactMapNavBar.style.display = 'none'
+            moveControlsToCardHeader(controlsWidget)
+            moveControlsToNavbar(distanceControlsWidget, hicNavbarContainer, contactMapNavBar)
+            controlsWidget.style.display = 'none'
+            distanceControlsWidget.style.display = ''
             document.getElementById('hic-file-chooser-dropdown').style.display = 'none'
             break;
 
@@ -441,6 +466,19 @@ function tabAssessment(browser, activeTabButton, panel) {
             console.log('Unknown tab is active');
             break;
     }
+}
+
+function moveControlsToNavbar(controlsWidget, hicNavbarContainer, contactMapNavBar) {
+    if (!hicNavbarContainer || controlsWidget.parentElement === hicNavbarContainer) return
+    if (!controlsWidget._originalParent) {
+        controlsWidget._originalParent = controlsWidget.parentElement
+    }
+    hicNavbarContainer.insertBefore(controlsWidget, contactMapNavBar)
+}
+
+function moveControlsToCardHeader(controlsWidget) {
+    if (!controlsWidget?._originalParent || controlsWidget.parentElement === controlsWidget._originalParent) return
+    controlsWidget._originalParent.appendChild(controlsWidget)
 }
 
 export default JuiceboxPanel;
