@@ -147,6 +147,17 @@ class JuiceboxPanel extends Panel {
             liveContactContainer.appendChild(contactCanvas)
         }
 
+        // Spinner overlay for live contact map
+        let contactSpinner = liveContactContainer.querySelector('.spacewalk-live-map-spinner-overlay')
+        if (!contactSpinner) {
+            contactSpinner = document.createElement('div')
+            contactSpinner.className = 'spacewalk-live-map-spinner-overlay'
+            contactSpinner.innerHTML = '<div class="spinner-border text-secondary"></div>'
+            liveContactContainer.appendChild(contactSpinner)
+        }
+        liveContactContainer.style.position = 'relative'
+        this.liveContactSpinner = contactSpinner
+
         // Store 2d context for live contact map rendering
         browser.contactMatrixView.ctx_live_contact = contactCanvas.getContext('2d')
 
@@ -169,6 +180,17 @@ class JuiceboxPanel extends Panel {
             distanceCanvas.style.imageRendering = 'pixelated'
             liveDistanceContainer.appendChild(distanceCanvas)
         }
+
+        // Spinner overlay for live distance map
+        let distanceSpinner = liveDistanceContainer.querySelector('.spacewalk-live-map-spinner-overlay')
+        if (!distanceSpinner) {
+            distanceSpinner = document.createElement('div')
+            distanceSpinner.className = 'spacewalk-live-map-spinner-overlay'
+            distanceSpinner.innerHTML = '<div class="spinner-border text-secondary"></div>'
+            liveDistanceContainer.appendChild(distanceSpinner)
+        }
+        liveDistanceContainer.style.position = 'relative'
+        this.liveDistanceSpinner = distanceSpinner
 
         // Store 2d context for live distance map rendering
         browser.contactMatrixView.ctx_live_distance = distanceCanvas.getContext('2d')
@@ -267,6 +289,20 @@ class JuiceboxPanel extends Panel {
         for (const tabElement of this.container.querySelectorAll('button[data-bs-toggle="tab"]')) {
             tabElement.addEventListener('show.bs.tab', tabEventHandler)
         }
+    }
+
+    showLiveMapSpinner() {
+        const activeTabButton = this.panel.querySelector('button.nav-link.active')
+        if (activeTabButton?.id === 'spacewalk-juicebox-panel-live-map-tab' && this.liveContactSpinner) {
+            this.liveContactSpinner.style.display = 'flex'
+        } else if (activeTabButton?.id === 'spacewalk-juicebox-panel-live-distance-map-tab' && this.liveDistanceSpinner) {
+            this.liveDistanceSpinner.style.display = 'flex'
+        }
+    }
+
+    hideLiveMapSpinner() {
+        if (this.liveContactSpinner) this.liveContactSpinner.style.display = 'none'
+        if (this.liveDistanceSpinner) this.liveDistanceSpinner.style.display = 'none'
     }
 
     isActiveTab(tab) {

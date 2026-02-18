@@ -2,7 +2,6 @@ import { LiveContactMap } from 'hic-straw'
 import { ensembleManager, juiceboxPanel, igvPanel, liveDistanceMapService } from '../app.js'
 import SpacewalkEventBus from '../spacewalkEventBus.js'
 import { ensureLiveMapVertexLists } from '../utils/liveMapUtils.js'
-import { showGlobalSpinner, hideGlobalSpinner } from '../utils/utils.js'
 import { renderContactMap, renderDistanceMap } from './liveMapRenderUtils.js'
 
 const defaultDistanceThreshold = 200
@@ -38,8 +37,12 @@ class LiveContactMapService {
 
         this.thresholdSlider.addEventListener('change', () => {
             if (!this.lcm) return
-            this.lcm.setDistanceThreshold(parseInt(this.thresholdSlider.value))
-            this.repaintContactMap()
+            juiceboxPanel.showLiveMapSpinner()
+            setTimeout(() => {
+                this.lcm.setDistanceThreshold(parseInt(this.thresholdSlider.value))
+                this.repaintContactMap()
+                juiceboxPanel.hideLiveMapSpinner()
+            }, 0)
         })
 
         // Exclusion slider: update display on drag, repaint on release
@@ -49,14 +52,21 @@ class LiveContactMapService {
 
         this.exclusionSlider.addEventListener('change', () => {
             if (!this.lcm) return
-            this.lcm.setNeighborExclusion(parseInt(this.exclusionSlider.value))
-            this.repaintContactMap()
+            juiceboxPanel.showLiveMapSpinner()
+            setTimeout(() => {
+                this.lcm.setNeighborExclusion(parseInt(this.exclusionSlider.value))
+                this.repaintContactMap()
+                juiceboxPanel.hideLiveMapSpinner()
+            }, 0)
         })
 
         // Contact mode: full rebuild required
         this.contactModeSelect.addEventListener('change', () => {
             if (!this.lcm) return
-            this.calculateLiveMaps()
+            juiceboxPanel.showLiveMapSpinner()
+            setTimeout(() => {
+                this.calculateLiveMaps()
+            }, 0)
         })
 
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this)
@@ -99,7 +109,7 @@ class LiveContactMapService {
             return
         }
 
-        showGlobalSpinner()
+        juiceboxPanel.showLiveMapSpinner()
 
         try {
             const traces = await ensureLiveMapVertexLists()
@@ -175,7 +185,7 @@ class LiveContactMapService {
             console.error('Error calculating live maps:', err)
             alert(`Error calculating live maps: ${err.message}`)
         } finally {
-            hideGlobalSpinner()
+            juiceboxPanel.hideLiveMapSpinner()
         }
     }
 

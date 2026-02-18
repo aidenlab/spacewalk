@@ -140,8 +140,6 @@ class SWBDatasource extends DataSourceBase {
 
     async calculateLiveMapVertexLists() {
 
-        showGlobalSpinner()
-
         let str = `Calculate Live Contact Frequency Map VertexLists`
         console.time(str)
 
@@ -208,8 +206,6 @@ class SWBDatasource extends DataSourceBase {
         }
 
         console.timeEnd(str)
-
-        hideGlobalSpinner()
 
         this.liveContactFrequencyMapVertexLists = result
     }
