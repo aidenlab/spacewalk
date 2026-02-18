@@ -431,6 +431,13 @@ function tabAssessment(browser, activeTabButton, panel) {
         case 'spacewalk-juicebox-panel-live-map-tab':
             if (liveContactContainer) {
                 liveContactContainer.style.display = 'block'
+                // Repaint with current state when tab becomes visible (contact canvas may have been cleared when switching to Distance tab)
+                setTimeout(() => {
+                    if (liveContactMapService) {
+                        panel.updateLiveMapCanvasSizes(browser.contactMatrixView)
+                        liveContactMapService.repaintContactMap()
+                    }
+                }, 0)
             }
             document.getElementById('hic-live-map-controls-widget').style.display = 'block'
             document.getElementById('hic-file-chooser-dropdown').style.display = 'none'
