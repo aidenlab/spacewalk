@@ -142,6 +142,14 @@ class LiveContactMapService {
 
             await this.lcm.init()
 
+            // Register live map with Juicebox so locus input, scrollbars, and rulers get populated
+            const locusStr = `${chr}:${genomicStart}-${genomicEnd}`
+            await juiceboxPanel.browser.loadLiveContactMap({
+                liveContactMap: this.lcm,
+                name: 'Live Contact Map',
+                locus: `${locusStr} ${locusStr}`
+            })
+
             // Update slider ranges based on computed data
             this.thresholdSlider.max = Math.ceil(this.lcm.maxDistance * 2)
             this.exclusionSlider.max = Math.min(20, traceLength - 2)

@@ -25,10 +25,6 @@ class JuiceboxPanel extends Panel {
         // Store singleton instance for event handlers to access
         juiceboxPanelInstance = this;
 
-        // Store references to Hi-C dataset for tab switching
-        this.hicDataset = null;
-        this.hicState = null;
-
         this.panel.addEventListener('mouseenter', (event) => {
             event.stopPropagation();
             SpacewalkEventBus.globalBus.post({ type: 'DidEnterGenomicNavigator', data: 'DidEnterGenomicNavigator' });
@@ -82,15 +78,6 @@ class JuiceboxPanel extends Panel {
             return
         }
 
-        // Check if session has a url property (indicating a Hi-C file)
-        const hasHicFile = session.url || (session.browsers && session.browsers[0]?.url)
-
-        // Store reference to Hi-C dataset (if it exists)
-        if (hasHicFile && this.browser.activeDataset) {
-            this.hicDataset = this.browser.activeDataset
-            this.hicState = this.browser.activeState
-        }
-
         // Initialize live map canvases (Spacewalk-specific, 2d contexts)
         this.initializeLiveMapCanvases()
 
@@ -109,8 +96,8 @@ class JuiceboxPanel extends Panel {
             }
         }
 
-        if (hasHicFile && this.hicDataset) {
-            // Ensure Hi-C map is repainted after session load
+        if (this.browser.activeDataset) {
+            // Ensure map is repainted after session load
             setTimeout(() => {
                 const activeTabButton = this.container.querySelector('button.nav-link.active')
                 if (activeTabButton && activeTabButton.id === 'spacewalk-juicebox-panel-hic-map-tab') {
@@ -221,22 +208,14 @@ class JuiceboxPanel extends Panel {
         this.browser.eventBus.subscribe('DidHideCrosshairs', ballAndStick)
         this.browser.eventBus.subscribe('DidHideCrosshairs', genomicNavigator)
 
-        // Store Hi-C dataset/state when maps load
         this.browser.coordinator.addCallback('onMapLoaded', async ({ dataset, state, datasetType }) => {
-            if (datasetType !== 'livecontactmap') {
-                this.hicDataset = dataset
-                this.hicState = state
-            }
-
             const activeTabButton = this.container.querySelector('button.nav-link.active')
             tabAssessment(this.browser, activeTabButton, this)
 
-            // Ensure repaint after Hi-C map load
-            if (datasetType !== 'livecontactmap') {
+            // Ensure repaint after map load
+            if (this.browser.contactMatrixView && this.browser.activeDataset) {
                 setTimeout(() => {
-                    if (this.browser.contactMatrixView && this.browser.activeDataset) {
-                        this.browser.contactMatrixView.update().catch(err => console.warn('Error updating contact matrix view after MapLoad:', err))
-                    }
+                    this.browser.contactMatrixView.update().catch(err => console.warn('Error updating contact matrix view after MapLoad:', err))
                 }, 50)
             }
         })
