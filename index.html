@@ -513,11 +513,19 @@
                                 <label class="form-label mb-0 small text-muted" style="white-space:nowrap;">Threshold</label>
                                 <input type="range" id="live-map-threshold-slider" class="form-range" style="width:100px;" min="1" max="2000" value="200" step="1">
                                 <span id="live-map-threshold-value" class="small fw-bold" style="min-width:35px;">200</span>
+                                <div class="btn-group-vertical ms-1" role="group" aria-label="Threshold stepper">
+                                    <button type="button" id="live-map-threshold-up" class="btn btn-outline-secondary" style="padding:1px 5px; font-size:0.55rem; line-height:1;"><i class="fas fa-chevron-up"></i></button>
+                                    <button type="button" id="live-map-threshold-down" class="btn btn-outline-secondary" style="padding:1px 5px; font-size:0.55rem; line-height:1;"><i class="fas fa-chevron-down"></i></button>
+                                </div>
                             </div>
                             <div class="d-flex align-items-center gap-1">
                                 <label class="form-label mb-0 small text-muted" style="white-space:nowrap;">Exclusion</label>
                                 <input type="range" id="live-map-exclusion-slider" class="form-range" style="width:80px;" min="0" max="20" value="3" step="1">
                                 <span id="live-map-exclusion-value" class="small fw-bold" style="min-width:20px;">3</span>
+                                <div class="btn-group-vertical ms-1" role="group" aria-label="Exclusion stepper">
+                                    <button type="button" id="live-map-exclusion-up" class="btn btn-outline-secondary" style="padding:1px 5px; font-size:0.55rem; line-height:1;"><i class="fas fa-chevron-up"></i></button>
+                                    <button type="button" id="live-map-exclusion-down" class="btn btn-outline-secondary" style="padding:1px 5px; font-size:0.55rem; line-height:1;"><i class="fas fa-chevron-down"></i></button>
+                                </div>
                             </div>
                             <select id="live-map-contact-mode" class="form-select form-select-sm" style="width:auto;">
                                 <option value="frequency" selected>Frequency</option>

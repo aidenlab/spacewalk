@@ -20,6 +20,10 @@ class LiveContactMapService {
         this.exclusionSlider = document.getElementById('live-map-exclusion-slider')
         this.exclusionDisplay = document.getElementById('live-map-exclusion-value')
         this.contactModeSelect = document.getElementById('live-map-contact-mode')
+        this.thresholdUpBtn   = document.getElementById('live-map-threshold-up')
+        this.thresholdDownBtn = document.getElementById('live-map-threshold-down')
+        this.exclusionUpBtn   = document.getElementById('live-map-exclusion-up')
+        this.exclusionDownBtn = document.getElementById('live-map-exclusion-down')
 
         // Calculate buttons — both compute distance + contact maps
         document.getElementById('live-map-calculate-button').addEventListener('click', () => {
@@ -58,6 +62,30 @@ class LiveContactMapService {
                 this.repaintContactMap()
                 juiceboxPanel.hideLiveMapSpinner()
             }, 0)
+        })
+
+        // Threshold steppers
+        this.thresholdUpBtn.addEventListener('click', () => {
+            this.thresholdSlider.stepUp()
+            this.thresholdSlider.dispatchEvent(new Event('input'))
+            this.thresholdSlider.dispatchEvent(new Event('change'))
+        })
+        this.thresholdDownBtn.addEventListener('click', () => {
+            this.thresholdSlider.stepDown()
+            this.thresholdSlider.dispatchEvent(new Event('input'))
+            this.thresholdSlider.dispatchEvent(new Event('change'))
+        })
+
+        // Exclusion steppers
+        this.exclusionUpBtn.addEventListener('click', () => {
+            this.exclusionSlider.stepUp()
+            this.exclusionSlider.dispatchEvent(new Event('input'))
+            this.exclusionSlider.dispatchEvent(new Event('change'))
+        })
+        this.exclusionDownBtn.addEventListener('click', () => {
+            this.exclusionSlider.stepDown()
+            this.exclusionSlider.dispatchEvent(new Event('input'))
+            this.exclusionSlider.dispatchEvent(new Event('change'))
         })
 
         // Contact mode: full rebuild required
