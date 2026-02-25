@@ -39,9 +39,9 @@ function configureContactMapLoaders({
 
     localFileInput.addEventListener('change', async e => {
 
-        const file = this.files[0]
+        const file = e.target.files[0]
 
-        this.value = ""
+        e.target.value = ""
 
         const { name } = file
         await loadHandler(file, name, mapType)
