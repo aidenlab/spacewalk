@@ -6,16 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Spacewalk is a browser-based 3D visualization application for super-resolution microscopy data. It renders chromatin 3D structures and integrates with IGV.js (genomics browser) and Juicebox.js (Hi-C contact map viewer) for synchronized genomic analysis. Built with Three.js, Vite, and vanilla JavaScript (no framework).
 
+## Deployment
+
+Hosted on Netlify. Production site: https://aidenlab.org/spacewalk
+
 ## Build & Development Commands
 
 ```bash
 npm install          # Install dependencies (Node.js >= 18.0.0 required)
-npm run dev          # Start Vite dev server with HMR
-npm run build        # Production build to dist/
+npm run dev          # Start Vite dev server with HMR (localhost:5173)
+npm run build        # Production build to dist/ (~6s)
 npm run preview      # Preview production build locally
 ```
 
-There is no test framework or linter configured. The `.env` file contains a `TINYURL_API_KEY` for URL shortening (injected via `vite.config.mjs`).
+There is no `npm start` script, no test framework, and no linter. The `.env` file contains a `TINYURL_API_KEY` for URL shortening (injected via `vite.config.mjs`).
 
 ## Architecture
 
@@ -77,6 +81,8 @@ Bootstrap 5.3.3, DataTables, Font Awesome, Dropbox Chooser. These are loaded fro
 ## Code Conventions
 
 - Vanilla JavaScript with ES modules (no TypeScript, no framework)
+- Imports use explicit `.js` extensions (e.g., `from "./utils/draggable.js"`)
 - Three.js resources must be explicitly disposed (geometries, materials, textures) — see `js/utils/disposalUtils.js` and `purgeScene()` in `SceneManager`
 - Color utilities use Apple Crayon color names (e.g., `appleCrayonColorRGB255('snow')`, `appleCrayonColorThreeJS('iron')`) — see `js/utils/colorUtils.js`
 - Heavy computations (contact maps, distance maps) run in web workers (`js/juicebox/liveContactMapWorker.js`, `liveDistanceMapWorker.js`)
+- Prefer vanilla JS APIs over jQuery — use `AbortController` with `signal` on `addEventListener` for bulk listener cleanup (replaces jQuery namespaced events)
