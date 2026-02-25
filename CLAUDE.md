@@ -56,7 +56,7 @@ Each has `configure(trace)`, `addToScene(scene)`, `show()`/`hide()`, `dispose()`
 File (.sw/.swb/.cndb) → Datasource (js/datasource/) → EnsembleManager → Trace
   → Visualization objects (PointCloud/BallAndStick/Ribbon)
   → IGVPanel (genomic view sync)
-  → JuiceboxPanel (Hi-C view sync, web workers for live contact/distance maps)
+  → JuiceboxPanel (Hi-C view sync, hic-straw for live contact/distance maps)
 ```
 
 ### Key Directories
@@ -64,7 +64,7 @@ File (.sw/.swb/.cndb) → Datasource (js/datasource/) → EnsembleManager → Tr
 - `js/initializers/` — Three-stage app bootstrap (ThreeJS, UI, Panels)
 - `js/datasource/` — File format loaders (SWBDatasource for HDF5-based .sw/.swb files, CNDBDatasource)
 - `js/widgets/` — UI components (file loading, session management, track registry, genome selection)
-- `js/juicebox/` — Juicebox integration with web workers for live map computation
+- `js/juicebox/` — Juicebox integration with hic-straw for live map computation; `liveMapRenderUtils.js` handles canvas rendering
 - `js/utils/` — Color utilities, math, disposal helpers, web worker support
 - `js/share/` — URL compression/shortening for session sharing
 - `styles/` — SCSS stylesheets
@@ -73,6 +73,11 @@ File (.sw/.swb/.cndb) → Datasource (js/datasource/) → EnsembleManager → Tr
 ### External Libraries (CDN via index.html)
 
 Bootstrap 5.3.3, DataTables, Font Awesome, Dropbox Chooser. These are loaded from CDNs in `index.html`, not bundled. jQuery and DataTables JS/CSS remain only as transitive dependencies of the `data-modal` package (`ModalTable`).
+
+### Key npm Dependencies
+
+- `juicebox.js` — Uses the `aidenlab/juicebox.js#live-map` fork branch (not upstream igvteam)
+- `hic-straw` — Uses the `aidenlab/hic-straw#spacewalk-extensions` branch for live map data provider APIs
 
 ### Configuration
 
@@ -84,5 +89,5 @@ Bootstrap 5.3.3, DataTables, Font Awesome, Dropbox Chooser. These are loaded fro
 - Imports use explicit `.js` extensions (e.g., `from "./utils/draggable.js"`)
 - Three.js resources must be explicitly disposed (geometries, materials, textures) — see `js/utils/disposalUtils.js` and `purgeScene()` in `SceneManager`
 - Color utilities use Apple Crayon color names (e.g., `appleCrayonColorRGB255('snow')`, `appleCrayonColorThreeJS('iron')`) — see `js/utils/colorUtils.js`
-- Heavy computations (contact maps, distance maps) run in web workers (`js/juicebox/liveContactMapWorker.js`, `liveDistanceMapWorker.js`)
+- Live map computations (contact maps, distance maps) use `hic-straw` library directly on the main thread, replacing the previous web worker approach (`liveContactMapWorker.js` and `liveDistanceMapWorker.js` have been removed)
 - Prefer vanilla JS APIs over jQuery — use `AbortController` with `signal` on `addEventListener` for bulk listener cleanup (replaces jQuery namespaced events)
