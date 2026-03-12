@@ -162,7 +162,7 @@ const appleCrayonPaletteDictionary =
 
 function appleCrayonColorThreeJS (name) {
     // HEX colors are automatically converted to linear color space.
-    // No need explicitly call convertSRGBToLinear()
+    // No need to explicitly call setRGB() with SRGBColorSpace
     return new THREE.Color(appleCrayonPaletteDictionary[ name ])
 }
 
@@ -177,7 +177,7 @@ function threeJSColorToRGB255  (color) {
 }
 
 function rgb255ToThreeJSColor  (r, g, b) {
-    return new THREE.Color(r/255, g/255, b/255).convertSRGBToLinear()
+    return new THREE.Color().setRGB(r/255, g/255, b/255, THREE.SRGBColorSpace)
 }
 
 function blendColorsLab(colorList, weights = null) {

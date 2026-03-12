@@ -38,7 +38,7 @@
     "igv-utils": "github:igvteam/igv-utils#v1.5.8",
     "juicebox.js": "github:igvteam/juicebox.js#v3.1.2",
     "quickhull3d": "^3.1.2",
-    "three": "^0.182.0",
+    "three": "^0.183.2",
     "vanilla-picker": "^2.12.3"
   },
   "devDependencies": {
