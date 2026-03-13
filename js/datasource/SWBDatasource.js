@@ -46,15 +46,12 @@ class SWBDatasource extends DataSourceBase {
         let genomeAssembly
 
         const hackedGenomeID = woollyMammothGenomeIDHack(this.header.genome)
-        const a = undefined === hackedGenomeID
-        const b = undefined === igvPanel.knownGenomes[ hackedGenomeID ]
-        if (a || b) {
+        if (hackedGenomeID !== undefined && igvPanel.knownGenomes[ hackedGenomeID ] !== undefined) {
+            genomeAssembly = hackedGenomeID
+        } else {
             console.warn(`Warning: Unrecognized genome ${ this.header.genome || 'undefined' }`)
             genomeAssembly = 'hg19'
-        } else {
-            genomeAssembly = hackedGenomeID
         }
-
 
         return { sample: 'Unspecified Sample', genomeAssembly }
     }
@@ -140,8 +137,6 @@ class SWBDatasource extends DataSourceBase {
 
     async calculateLiveMapVertexLists() {
 
-        showGlobalSpinner()
-
         let str = `Calculate Live Contact Frequency Map VertexLists`
         console.time(str)
 
@@ -208,8 +203,6 @@ class SWBDatasource extends DataSourceBase {
         }
 
         console.timeEnd(str)
-
-        hideGlobalSpinner()
 
         this.liveContactFrequencyMapVertexLists = result
     }

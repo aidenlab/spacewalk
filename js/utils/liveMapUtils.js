@@ -1,28 +1,25 @@
-import {ensembleManager, igvPanel} from "../app.js"
+import { ensembleManager } from "../app.js"
 import SWBDatasource from "../datasource/SWBDatasource.js"
 
-async function enableLiveMaps() {
+/**
+ * Ensure live map vertex lists are computed and return them.
+ * Lazily triggers calculation on SWBDatasource if not yet done.
+ *
+ * @returns {Promise<Array<Array<{x, y, z, isMissingData?}>>>} traces — array of vertex lists per trace
+ */
+async function ensureLiveMapVertexLists() {
 
-    const { chr } = ensembleManager.locus
+    if (!ensembleManager || !ensembleManager.locus) {
+        throw new Error('No ensemble loaded')
+    }
 
-    // let chromosome = igvPanel.browser.genome.getChromosome(chr.toLowerCase())
-    const chromosome = igvPanel.browser.genome.getChromosome(chr)
-
-    if (chromosome) {
-        if (ensembleManager.datasource instanceof SWBDatasource) {
-            if (undefined === ensembleManager.datasource.liveContactFrequencyMapVertexLists) {
-                await ensembleManager.datasource.calculateLiveMapVertexLists()
-            }
-            return true
+    if (ensembleManager.datasource instanceof SWBDatasource) {
+        if (!ensembleManager.datasource.liveContactFrequencyMapVertexLists) {
+            await ensembleManager.datasource.calculateLiveMapVertexLists()
         }
     }
 
-    const str = `Live Maps can not be enabled. No valid genome for chromosome ${ chr }.`
-    console.warn(str)
-    alert(str)
-
-    return false
-
+    return ensembleManager.getLiveMapVertexLists()
 }
 
-export { enableLiveMaps }
+export { ensureLiveMapVertexLists }

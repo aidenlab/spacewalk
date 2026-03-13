@@ -16,12 +16,9 @@ class GUIManager {
 
         // Dismiss Settings Panel by "clicking away"
         document.getElementById('spacewalk-root-container').addEventListener('click', (e) => {
-            e.stopPropagation()
-
             if (e.target === e.currentTarget){
                 panel.style.display = 'none'
             }
-
         })
 
         // panel.addEventListener('click', (e) => e.stopPropagation());
@@ -50,17 +47,7 @@ class GUIManager {
         for (const inputElement of checkboxDropdownMenu.querySelectorAll('input')) {
 
             inputElement.addEventListener('change', event => {
-
-                event.preventDefault()
                 event.stopPropagation()
-
-                const dropdown = inputElement.closest('.dropdown');
-                const toggleButton = dropdown ? dropdown.querySelector('.dropdown-toggle') : null;
-                if (toggleButton && typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
-                    const dropdownInstance = bootstrap.Dropdown.getOrCreateInstance(toggleButton);
-                    dropdownInstance.toggle();
-                }
-
                 const payload = inputElement.dataset.target
                 SpacewalkEventBus.globalBus.post({ type: 'ToggleUIControl', data: { payload } })
             })

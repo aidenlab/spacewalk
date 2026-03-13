@@ -63,6 +63,25 @@
     }
   }
 
+  .spacewalk-live-map-spinner-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.5);
+    z-index: 10;
+    pointer-events: none;
+
+    .spinner-border {
+      width: 4rem;
+      height: 4rem;
+    }
+  }
+
   .card-body {
     #spacewalk_juicebox_root_container {
       .hic-root {
@@ -70,6 +89,15 @@
         border-color: transparent;
         border-width: thin;
         border-radius: .25rem;
+      }
+
+      // Controls widgets when relocated into Juicebox navbar
+      .hic-navbar-container #hic-live-map-controls-widget,
+      .hic-navbar-container #hic-live-distance-map-controls-widget {
+        width: 95%;
+        border: none;
+        background-color: transparent;
+        padding: 2px 0;
       }
     }
   }

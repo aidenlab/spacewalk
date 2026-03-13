@@ -1,0 +1,14 @@
+{
+  "id": "HG00128#2",
+  "name": "HG00128_hap2_hprc_r2_v1.0.1",
+  "fastaURL": "https://human-pangenomics.s3.amazonaws.com/working/HPRC/HG00128/assemblies/release2/HG00128_hap2_hprc_r2_v1.0.1.fa.gz",
+  "indexURL": "https://human-pangenomics.s3.amazonaws.com/working/HPRC/HG00128/assemblies/release2/HG00128_hap2_hprc_r2_v1.0.1.fa.gz.fai",
+  "tracks": [
+    {
+      "name": "Gene annotations",
+      "url": "https://raw.githubusercontent.com/turner/hprc-annotations/main/gff3/HG00128_hap2_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz",
+      "indexURL": "https://raw.githubusercontent.com/turner/hprc-annotations/main/gff3/HG00128_hap2_hprc_r2_v1.0.1_cat_v1.1.sorted.gff3.gz.tbi",
+      "format": "gff3"
+    }
+  ]
+}

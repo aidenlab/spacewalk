@@ -6,10 +6,6 @@ import Panel from './panel.js';
 import { getPathsWithTrackRegistry, updateTrackMenusWithTrackConfigurations } from './widgets/trackWidgets.js'
 import { spacewalkConfig } from "../spacewalk-config.js";
 
-/** Fallback when IGV master does not return knownGenomes from createBrowser. Used for genome validation in datasources. */
-const KNOWN_GENOMES_FALLBACK = Object.fromEntries([
-    'ce10', 'ce11', 'dm3', 'dm6', 'GRCh38', 'hg19', 'mm9', 'mm10', 'hg38', 'GRCh37', 'mm39', 'sacCer3', 'Loxafr3.0_HiC'
-].map(id => [id, true]))
 
 let resizeObserver
 let resizeTimeout
@@ -80,7 +76,7 @@ class IGVPanel extends Panel {
         try {
             const result = await igv.createBrowser( root, igvConfig )
             this.browser = result.browser ?? result
-            this.knownGenomes = result.knownGenomes ?? KNOWN_GENOMES_FALLBACK
+            this.knownGenomes = Object.fromEntries((igvConfig.genomeList || []).map(g => [g.id, g]))
         } catch (e) {
             console.error(e.message)
             alert(e.message)
