@@ -4,6 +4,7 @@ import TrackMaterialProvider from "./trackMaterialProvider.js"
 import ColorRampMaterialProvider from "./colorRampMaterialProvider.js"
 import { appleCrayonColorRGB255 } from "./utils/colorUtils.js"
 import { getUrlParams, loadSession, uncompressSessionURL } from "./sessionServices.js"
+import SpacewalkEventBus from "./spacewalkEventBus.js"
 import { showGlobalSpinner, hideGlobalSpinner } from './utils/utils.js'
 import { defaultColormapName } from "./utils/colorMapManager.js"
 import { spacewalkConfig } from "../spacewalk-config.js"
@@ -203,6 +204,18 @@ class App {
     }
 
     async consumeURLParams(params) {
+        // Mode 1: Direct file URL (e.g., ?file=https://example.com/data.sw)
+        if (params.file) {
+            const fileURL = extractFileParam(window.location.href);
+            const traceKey = params.traceKey || '0';
+            const ensembleGroupKey = params.ensembleGroupKey || undefined;
+            await this.sceneManager.ingestEnsemblePath(fileURL, traceKey, ensembleGroupKey);
+            const data = ensembleManager.createEventBusPayload();
+            SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
+            return;
+        }
+
+        // Mode 2: Compressed share session (existing logic)
         const { sessionURL: igvSessionURL, session: juiceboxSessionURL, spacewalkSessionURL } = params;
 
         let acc = {};
@@ -263,6 +276,32 @@ class App {
         };
         renderLoop();
     }
+}
+
+// Extract the file URL from the raw query string, preserving its own query parameters.
+// The file URL may contain '&' characters (e.g., Dropbox links with rlkey, st, dl params)
+// that would otherwise be split apart by standard query string parsing.
+const spacewalkParams = new Set(['traceKey', 'ensembleGroupKey']);
+
+function extractFileParam(href) {
+    const queryString = decodeURIComponent(href.slice(href.indexOf('?') + 1));
+    const fileIndex = queryString.indexOf('file=');
+    if (fileIndex === -1) return undefined;
+
+    const valueStart = fileIndex + 'file='.length;
+    const rest = queryString.slice(valueStart);
+
+    // Scan for '&key=' where key is a known Spacewalk parameter
+    let endIndex = rest.length;
+    for (const param of spacewalkParams) {
+        const marker = `&${param}=`;
+        const idx = rest.indexOf(marker);
+        if (idx !== -1 && idx < endIndex) {
+            endIndex = idx;
+        }
+    }
+
+    return rest.slice(0, endIndex);
 }
 
 export default App
