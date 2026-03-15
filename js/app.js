@@ -128,6 +128,9 @@ class App {
 
         hideGlobalSpinner();
 
+        // Signal readiness to opener (e.g., swtool) and listen for incoming files
+        this.initializePostMessageListener();
+
         // Start the render loop
         this.startRenderLoop();
     }
@@ -243,6 +246,28 @@ class App {
     if (result) {
             await loadSession(result);
         }
+    }
+
+    initializePostMessageListener() {
+        if (window.opener) {
+            window.opener.postMessage({ type: 'spacewalk-ready' }, '*');
+        }
+
+        window.addEventListener('message', async (event) => {
+            const { data } = event;
+            if (data?.type !== 'spacewalk-load') return;
+
+            const { bytes, filename } = data;
+            if (!(bytes instanceof Uint8Array) || typeof filename !== 'string') {
+                console.warn('spacewalk-load: invalid payload, expected { bytes: Uint8Array, filename: string }');
+                return;
+            }
+
+            const file = new File([bytes], filename);
+            await this.sceneManager.ingestEnsemblePath(file, '0', undefined);
+            const payload = ensembleManager.createEventBusPayload();
+            SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data: payload });
+        });
     }
 
     render() {
