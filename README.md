@@ -36,6 +36,31 @@ Visit our [Documentation Site](https://aidenlab.github.io/spacewalk/) for:
 - Integrated genomic views
 - Shareable visualization states
 - Support for various data formats
+- Direct file loading via URL parameter or cross-origin `postMessage`
+
+## Loading Data from External Tools
+
+Spacewalk can receive data files directly from external web applications, enabling seamless tool-to-viewer workflows without file downloads.
+
+### URL Parameter
+
+Load a hosted file by passing its URL as a query parameter:
+
+```
+https://aidenlab.org/spacewalk/?file=https://example.com/data.sw&traceKey=0
+```
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `file` | Yes | — | URL to a .sw/.swb/.cndb file |
+| `traceKey` | No | `0` | Trace index to display |
+| `ensembleGroupKey` | No | — | Ensemble group to load |
+
+### postMessage API
+
+Web applications that generate Spacewalk files in memory can send them directly without uploading or downloading. The sending app opens Spacewalk in a new tab, waits for a readiness signal, then transfers the file bytes via `postMessage`. See [notes/external-file-loading.md](notes/external-file-loading.md) for the full protocol specification.
+
+[swtool](https://github.com/aidenlab/swtool) is the first application to use this capability — after converting a `.swt` file, users can click "Open in Spacewalk" to visualize the result immediately.
 
 ## Development
 
