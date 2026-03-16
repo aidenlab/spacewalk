@@ -1,8 +1,11 @@
 /**
  * Shared rendering utilities for live contact and distance maps.
- * Replicates the canvas painting approach from hic-straw's
- * examples/live-contact-map.html.
+ * All color interpolation and alpha compositing is performed in linear RGB
+ * space for physically correct results. sRGB inputs are linearized before
+ * math, and results are gamma-encoded back to sRGB for the ImageData buffer.
  */
+
+import { srgbToLinearLUT, linearToSrgb, linearizeRGB255 } from '../utils/colorUtils.js'
 
 const DISTANCE_UNDEFINED = -1
 
@@ -12,42 +15,49 @@ const defaultBackground = { r: 255, g: 255, b: 255 }
 /**
  * Fill a scaled pixel block in an ImageData buffer.
  * Each logical bin (x, y) maps to a rectangular block of screen pixels.
- * Uses floor boundaries to guarantee full coverage with no gaps.
+ * Alpha compositing is performed in linear RGB space.
  *
  * @param {Uint8ClampedArray} data - ImageData.data buffer
  * @param {number} size - Canvas width/height in pixels
  * @param {number} x - Logical bin x index
  * @param {number} y - Logical bin y index
  * @param {number} scale - Pixels per bin (size / N)
- * @param {number} r - Red (0-255)
- * @param {number} g - Green (0-255)
- * @param {number} b - Blue (0-255)
+ * @param {number} r - Red (0-255 sRGB)
+ * @param {number} g - Green (0-255 sRGB)
+ * @param {number} b - Blue (0-255 sRGB)
  * @param {number} a - Alpha (0-255)
- * @param {number} bgR - Background red for alpha blending (0-255)
- * @param {number} bgG - Background green for alpha blending (0-255)
- * @param {number} bgB - Background blue for alpha blending (0-255)
+ * @param {number} bgR - Background red (0-255 sRGB)
+ * @param {number} bgG - Background green (0-255 sRGB)
+ * @param {number} bgB - Background blue (0-255 sRGB)
  */
 function fillScaledPixel(data, size, x, y, scale, r, g, b, a, bgR, bgG, bgB) {
     const x0 = Math.floor(x * scale)
     const y0 = Math.floor(y * scale)
     const x1 = Math.floor((x + 1) * scale)
     const y1 = Math.floor((y + 1) * scale)
+
+    // Precompute blended sRGB values once per bin, not per screen pixel
+    let outR, outG, outB
+    if (a < 255) {
+        const alpha01 = a / 255
+        const invAlpha = 1 - alpha01
+        outR = linearToSrgb(srgbToLinearLUT[r] * alpha01 + srgbToLinearLUT[bgR] * invAlpha)
+        outG = linearToSrgb(srgbToLinearLUT[g] * alpha01 + srgbToLinearLUT[bgG] * invAlpha)
+        outB = linearToSrgb(srgbToLinearLUT[b] * alpha01 + srgbToLinearLUT[bgB] * invAlpha)
+    } else {
+        outR = r
+        outG = g
+        outB = b
+    }
+
     for (let py = y0; py < y1; py++) {
         for (let px = x0; px < x1; px++) {
             if (px >= size || py >= size) continue
             const idx = (py * size + px) * 4
-            if (a < 255) {
-                const invA = 255 - a
-                data[idx]     = Math.floor((r * a + bgR * invA) / 255)
-                data[idx + 1] = Math.floor((g * a + bgG * invA) / 255)
-                data[idx + 2] = Math.floor((b * a + bgB * invA) / 255)
-                data[idx + 3] = 255
-            } else {
-                data[idx]     = r
-                data[idx + 1] = g
-                data[idx + 2] = b
-                data[idx + 3] = 255
-            }
+            data[idx]     = outR
+            data[idx + 1] = outG
+            data[idx + 2] = outB
+            data[idx + 3] = 255
         }
     }
 }
@@ -105,6 +115,7 @@ function renderContactMap(ctx, lcm, colorConfig) {
  * Render a distance map onto a 2d canvas.
  * Uses foreground color for close distances, background for far.
  * Gradient: close (t=0) = foreground, far (t=1) = background.
+ * Interpolation is performed in linear RGB space.
  *
  * @param {CanvasRenderingContext2D} ctx - The 2d canvas context
  * @param {LiveContactMap} lcm - The initialized LiveContactMap instance
@@ -129,6 +140,10 @@ function renderDistanceMap(ctx, lcm, colorConfig) {
     const imageData = ctx.getImageData(0, 0, size, size)
     const data = imageData.data
 
+    // Linearize fg/bg once before the loop
+    const fgL = linearizeRGB255(fg)
+    const bgL = linearizeRGB255(bg)
+
     for (let i = 0; i < N; i++) {
         for (let j = i; j < N; j++) {
             const dist = distances[i * N + j]
@@ -136,9 +151,10 @@ function renderDistanceMap(ctx, lcm, colorConfig) {
 
             // t=0 (close) -> foreground, t=1 (far) -> background
             const t = maxDistance > 0 ? dist / maxDistance : 0
-            const r = Math.floor(fg.r * (1 - t) + bg.r * t)
-            const g = Math.floor(fg.g * (1 - t) + bg.g * t)
-            const b = Math.floor(fg.b * (1 - t) + bg.b * t)
+            const invT = 1 - t
+            const r = linearToSrgb(fgL.r * invT + bgL.r * t)
+            const g = linearToSrgb(fgL.g * invT + bgL.g * t)
+            const b = linearToSrgb(fgL.b * invT + bgL.b * t)
 
             fillScaledPixel(data, size, i, j, scale, r, g, b, 255, bg.r, bg.g, bg.b)
             fillScaledPixel(data, size, j, i, scale, r, g, b, 255, bg.r, bg.g, bg.b)
