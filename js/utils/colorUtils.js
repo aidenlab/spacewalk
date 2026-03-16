@@ -3,6 +3,28 @@ import Picker from "vanilla-picker"
 import chroma from "chroma-js";
 import { lerp, clamp, random } from './mathUtils.js';
 
+// sRGB-to-linear lookup table (256 entries, built once at module load)
+const srgbToLinearLUT = new Float64Array(256)
+for (let i = 0; i < 256; i++) {
+    const c = i / 255
+    srgbToLinearLUT[i] = c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+}
+
+// linear [0-1] → sRGB [0-255]
+function linearToSrgb(c) {
+    const s = c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055
+    return Math.round(s * 255)
+}
+
+// Linearize an {r, g, b} object (0-255 sRGB) to {r, g, b} in [0-1] linear
+function linearizeRGB255(rgb) {
+    return {
+        r: srgbToLinearLUT[rgb.r],
+        g: srgbToLinearLUT[rgb.g],
+        b: srgbToLinearLUT[rgb.b]
+    }
+}
+
 function colorString2Tokens(string) {
 
     if (string.startsWith('rgba(')) {
@@ -59,10 +81,13 @@ export const greyScale255 = (value) => {
 }
 
 export const rgb255Lerp = (colorA, colorB, x) => {
-    const  red = lerp(colorA.r, colorB.r, x);
-    const  green = lerp(colorA.g, colorB.g, x);
-    const  blue = lerp(colorA.b, colorB.b, x);
-    return { r: Math.round(red), g: Math.round(green), b: Math.round(blue) }
+    const aL = linearizeRGB255(colorA)
+    const bL = linearizeRGB255(colorB)
+    return {
+        r: linearToSrgb(lerp(aL.r, bL.r, x)),
+        g: linearToSrgb(lerp(aL.g, bL.g, x)),
+        b: linearToSrgb(lerp(aL.b, bL.b, x))
+    }
 }
 
 export const greyScaleRandom255 = (min, max) => {
@@ -221,16 +246,20 @@ function blendColorsLab(colorList, weights = null) {
 
 const highlightColor = appleCrayonColorThreeJS('honeydew')
 
-// Live Map compositing method
+// Live Map compositing method — blends in linear space for correct results
 function compositeColors(foreRGBA, backRGB) {
 
     const alpha = foreRGBA.a / 255;
+    const invAlpha = 1 - alpha;
 
-    const r = Math.round(alpha * foreRGBA.r + (1 - alpha) * backRGB.r);
-    const g = Math.round(alpha * foreRGBA.g + (1 - alpha) * backRGB.g);
-    const b = Math.round(alpha * foreRGBA.b + (1 - alpha) * backRGB.b);
+    const fgL = linearizeRGB255(foreRGBA)
+    const bgL = linearizeRGB255(backRGB)
 
-    return { r, g, b };
+    return {
+        r: linearToSrgb(alpha * fgL.r + invAlpha * bgL.r),
+        g: linearToSrgb(alpha * fgL.g + invAlpha * bgL.g),
+        b: linearToSrgb(alpha * fgL.b + invAlpha * bgL.b)
+    };
 }
 
 function createColorPicker(container, initialColor, callback) {
@@ -277,6 +306,9 @@ function updateColorPicker(picker, container, rgb) {
 }
 
 export {
+    srgbToLinearLUT,
+    linearToSrgb,
+    linearizeRGB255,
     hexOrRGB255StringtoRGB255,
     createColorPicker,
     updateColorPicker,
