@@ -2,7 +2,7 @@ import SpacewalkEventBus from './spacewalkEventBus.js'
 import { StringUtils } from 'igv-utils'
 import Ribbon from "./ribbon.js";
 import BallAndStick from "./ballAndStick.js";
-import { scaleBarService, ballAndStick, sceneManager, ensembleManager, pointCloud } from "./app.js";
+import { ballAndStick, sceneManager, ensembleManager, pointCloud } from "./app.js";
 
 class GUIManager {
 
@@ -23,24 +23,6 @@ class GUIManager {
 
         // panel.addEventListener('click', (e) => e.stopPropagation());
         // panel.addEventListener('mousemove', (e) => e.stopPropagation());
-
-        // Configure Ground Plane Toggle
-        document.querySelector(`#spacewalk_ui_manager_groundplane`).addEventListener('change', e => {
-            e.stopPropagation()
-            sceneManager.getGroundPlane().toggle()
-        })
-
-        // Configure Gnomon Toggle
-        document.querySelector(`#spacewalk_ui_manager_gnomon`).addEventListener('change', e => {
-            e.stopPropagation()
-            sceneManager.getGnomon().toggle()
-        })
-
-        // Configure  Ruler Toggle
-        document.querySelector(`#spacewalk_ui_manager_scale_bars`).addEventListener('change', e => {
-            e.stopPropagation()
-            scaleBarService.toggle()
-        })
 
         const checkboxDropdownMenu = document.querySelector('#spacewalk-viewers-dropdown-menu')
 
