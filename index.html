@@ -220,6 +220,61 @@
                     </button>
                 </div>
             </li>
+
+        </ul>
+    </div>
+
+    <!-- Settings (pinned to right end of navbar) -->
+    <div class="dropdown ms-auto me-3">
+        <a href="#" id="spacewalk-settings-button" class="nav-link" data-bs-toggle="dropdown">
+            <i class="fas fa-cog" style="color: #a09fa0;"></i>
+        </a>
+        <ul id="spacewalk-settings-dropdown" class="dropdown-menu dropdown-menu-end">
+
+            <!-- Background -->
+            <li class="spacewalk-colorpicker-li">
+                <div class="input-group">
+                    <div class="input-group-text">
+                        <input id="spacewalk_ui_manager_input_group_shim" type="checkbox">
+                    </div>
+                    <span class="input-group-text">Background</span>
+                    <div class="input-group-text" data-colorpicker="background"></div>
+                </div>
+            </li>
+
+            <!-- Axes (Gnomon) -->
+            <li class="spacewalk-colorpicker-li">
+                <div class="input-group">
+                    <div class="input-group-text">
+                        <input id="spacewalk_ui_manager_gnomon" type="checkbox">
+                    </div>
+                    <span class="input-group-text">Axes</span>
+                    <div class="input-group-text" data-colorpicker="gnomon"></div>
+                </div>
+            </li>
+
+            <!-- Ground Plane -->
+            <li class="spacewalk-colorpicker-li">
+                <div class="input-group">
+                    <div class="input-group-text">
+                        <input id="spacewalk_ui_manager_groundplane" type="checkbox">
+                    </div>
+                    <div class="input-group-text">Ground Plane</div>
+                    <div class="input-group-text" data-colorpicker="groundplane"></div>
+                </div>
+            </li>
+
+            <!-- Scale Bars -->
+            <li class="spacewalk-colorpicker-li">
+                <div class="input-group">
+                    <div class="input-group-text">
+                        <input id="spacewalk_ui_manager_scale_bars" type="checkbox">
+                    </div>
+                    <span class="input-group-text">Scale Bars</span>
+                    <div class="input-group-text" data-colorpicker="scale-bars"></div>
+                </div>
+            </li>
+
         </ul>
     </div>
 </nav>
@@ -304,49 +359,6 @@
                     </div>
                 </li>
 
-                <!-- Ground Plane -->
-                <li class="list-group-item spacewalk-colorpicker-li">
-                    <div class="input-group">
-                        <div class="input-group-text">
-                            <input id="spacewalk_ui_manager_groundplane" type="checkbox">
-                        </div>
-                        <div class="input-group-text">Ground Plane</div>
-                        <div class="input-group-text" data-colorpicker="groundplane"></div>
-                    </div>
-                </li>
-
-                <!-- Axes (Gnomon) -->
-                <li class="list-group-item spacewalk-colorpicker-li">
-                    <div class="input-group">
-                        <div class="input-group-text">
-                            <input id="spacewalk_ui_manager_gnomon" type="checkbox">
-                        </div>
-                        <span class="input-group-text">Axes</span>
-                        <div class="input-group-text" data-colorpicker="gnomon"></div>
-                    </div>
-                </li>
-
-                <!-- Scale Bars -->
-                <li class="list-group-item spacewalk-colorpicker-li">
-                    <div class="input-group">
-                        <div class="input-group-text">
-                            <input id="spacewalk_ui_manager_scale_bars" type="checkbox">
-                        </div>
-                        <span class="input-group-text">Scale Bars</span>
-                        <div class="input-group-text" data-colorpicker="scale-bars"></div>
-                    </div>
-                </li>
-
-                <!-- Background -->
-                <li class="list-group-item spacewalk-colorpicker-li">
-                    <div class="input-group">
-                        <div class="input-group-text">
-                            <input id="spacewalk_ui_manager_input_group_shim" type="checkbox">
-                        </div>
-                        <span class="input-group-text">Background</span>
-                        <div class="input-group-text" data-colorpicker="background"></div>
-                    </div>
-                </li>
 
             </ul>
         </div>

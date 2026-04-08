@@ -8,6 +8,7 @@ import SceneManager from "../sceneManager.js"
 import BallHighlighter from "../ballHighlighter.js"
 import PointCloudHighlighter from "../pointCloudHighlighter.js"
 import { appleCrayonColorThreeJS, highlightColor, createColorPicker, updateColorPicker } from "../utils/colorUtils.js"
+import SettingsManager from "../settingsManager.js"
 import { getMouseXY } from '../utils/utils.js'
 
 /**
@@ -72,7 +73,13 @@ class ThreeJSInitializer {
 
         // Create scene
         threeJSObjects.scene = new THREE.Scene();
-        threeJSObjects.scene.background = appleCrayonColorThreeJS('snow');
+        const savedSettings = SettingsManager.load()
+        if (savedSettings?.background) {
+            const { r, g, b } = savedSettings.background
+            threeJSObjects.scene.background = new THREE.Color(r, g, b)
+        } else {
+            threeJSObjects.scene.background = appleCrayonColorThreeJS('snow')
+        }
 
         // Create camera
         const fov = 35;

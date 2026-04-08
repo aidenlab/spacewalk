@@ -272,7 +272,7 @@ function createColorPicker(container, initialColor, callback) {
     const config =
         {
             parent: container,
-            popup: 'right',
+            popup: 'left',
             editor: false,
             editorFormat: 'rgb',
             alpha: false,
@@ -290,6 +290,8 @@ function createColorPicker(container, initialColor, callback) {
         const [ b, dev_null ] = tail.split(')')
 
         callback(rgb255ToThreeJSColor(parseInt(r), parseInt(g), parseInt(b)))
+
+        document.dispatchEvent(new Event('spacewalk-settings-changed'))
     }
 
     return picker
