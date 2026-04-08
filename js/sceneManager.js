@@ -20,7 +20,8 @@ import {
     cameraLightingRig,
     getThreeJSContainerRect,
 } from "./app.js"
-import {appleCrayonColorThreeJS} from "./utils/colorUtils"
+import {appleCrayonColorThreeJS} from "./utils/colorUtils.js"
+import SettingsManager from "./settingsManager.js"
 
 const disposableSet = new Set([ 'gnomon', 'groundplane', 'ribbon', 'ball' , 'stick' ]);
 
@@ -113,15 +114,18 @@ class SceneManager {
 
         scene.add(createHemisphereLight())
 
+        // Apply saved settings if available
+        const saved = SettingsManager.load()
+
         // GroundPlane
         const groundPlaneConfig =
             {
             size: boundingDiameter,
             divisions: 16,
             position: new THREE.Vector3(center.x, min.y, center.z),
-            color: appleCrayonColorThreeJS( 'iron'),
+            color: saved?.groundPlane ? new THREE.Color(saved.groundPlane.r, saved.groundPlane.g, saved.groundPlane.b) : appleCrayonColorThreeJS('iron'),
             opacity: 0.25,
-            isHidden: GroundPlane.setGroundPlaneHidden()
+            isHidden: saved?.groundPlane ? !saved.groundPlane.visible : GroundPlane.setGroundPlaneHidden()
             };
 
         const groundPlane = new GroundPlane(groundPlaneConfig)
@@ -133,8 +137,8 @@ class SceneManager {
                 min,
                 max,
                 boundingDiameter,
-                color: appleCrayonColorThreeJS('iron'),
-                isHidden: Gnomon.setGnomonHidden()
+                color: saved?.gnomon ? new THREE.Color(saved.gnomon.r, saved.gnomon.g, saved.gnomon.b) : appleCrayonColorThreeJS('iron'),
+                isHidden: saved?.gnomon ? !saved.gnomon.visible : Gnomon.setGnomonHidden()
             };
         const gnomon = new Gnomon(gnomonConfig)
         gnomon.addToScene(scene)

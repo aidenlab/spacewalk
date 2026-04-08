@@ -371,6 +371,13 @@ input#spacewalk_ui_manager_input_group_shim {
   pointer-events: none; /* Prevents interaction */
 }
 
+#spacewalk-settings-dropdown {
+  padding: 8px;
+}
+#spacewalk-settings-dropdown li {
+  padding: 4px 8px;
+}
+
 li.spacewalk-colorpicker-li {
   display: flex;
   flex-direction: row;

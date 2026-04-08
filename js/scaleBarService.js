@@ -83,6 +83,11 @@ class ScaleBarService {
 
     scaleBarAnimationLoopHelper(convexHullMesh, camera){
 
+        if (!this.visible) return
+
+        this.horizontalContainer.style.display = 'block'
+        this.verticalContainer.style.display = 'block'
+
         const scaleBarBounds = ScaleBarService.calculateScaleBarBounds(convexHullMesh, camera, this.renderContainer)
 
         this.updateScaleBars(scaleBarBounds)
@@ -127,6 +132,7 @@ class ScaleBarService {
         ScaleBarService.setSVGElementColor('horizontal-scale-bar-label', this.color)
         ScaleBarService.setSVGElementColor('vertical-scale-bar', this.color)
         ScaleBarService.setSVGElementColor('vertical-scale-bar-label', this.color)
+
 
     }
 
