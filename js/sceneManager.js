@@ -20,7 +20,7 @@ import {
     cameraLightingRig,
     getThreeJSContainerRect,
 } from "./app.js"
-import {appleCrayonColorThreeJS} from "./utils/colorUtils.js"
+import {appleCrayonColorThreeJS, createColorPicker, updateColorPicker} from "./utils/colorUtils.js"
 import SettingsManager from "./settingsManager.js"
 
 const disposableSet = new Set([ 'gnomon', 'groundplane', 'ribbon', 'ball' , 'stick' ]);
@@ -30,6 +30,19 @@ class SceneManager {
     constructor(colorRampMaterialProvider) {
         this.colorRampMaterialProvider = colorRampMaterialProvider;
         this.isLoading = false;
+
+        this.groundPlaneColorPicker = createColorPicker(
+            document.querySelector(`div[data-colorpicker='groundplane']`),
+            appleCrayonColorThreeJS('iron'),
+            color => this.getGroundPlane()?.setColor(color)
+        )
+
+        this.gnomonColorPicker = createColorPicker(
+            document.querySelector(`div[data-colorpicker='gnomon']`),
+            appleCrayonColorThreeJS('iron'),
+            color => this.getGnomon()?.setColor(color)
+        )
+
         SpacewalkEventBus.globalBus.subscribe('RenderStyleDidChange', this);
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
     }
@@ -156,6 +169,7 @@ class SceneManager {
 
         const groundPlane = new GroundPlane(groundPlaneConfig)
         scene.add(groundPlane)
+        updateColorPicker(this.groundPlaneColorPicker, document.querySelector(`div[data-colorpicker='groundplane']`), groundPlaneConfig.color)
 
         // Gnomon
         const gnomonConfig =
@@ -168,6 +182,7 @@ class SceneManager {
             };
         const gnomon = new Gnomon(gnomonConfig)
         gnomon.addToScene(scene)
+        updateColorPicker(this.gnomonColorPicker, document.querySelector(`div[data-colorpicker='gnomon']`), gnomonConfig.color)
 
     }
 
