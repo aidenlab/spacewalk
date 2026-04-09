@@ -145,7 +145,7 @@ function disposeThreeJSGroup(group, scene) {
     });
 
     // Remove the group from the scene
-    if (scene && scene instanceof THREE.Scene) {
+    if (scene) {
         scene.remove(group)
     }
 

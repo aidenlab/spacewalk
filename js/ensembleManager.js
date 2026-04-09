@@ -54,6 +54,9 @@ class EnsembleManager {
         this.sample = sample
         this.genomeAssembly = genomeAssembly
 
+        if (this.datasource) {
+            this.datasource.dispose()
+        }
         this.datasource = datasource
 
         const initialIndex = index || 0
@@ -72,6 +75,9 @@ class EnsembleManager {
 
         this.genomeAssembly = genomeAssembly
 
+        if (this.datasource) {
+            this.datasource.dispose()
+        }
         this.datasource = datasource
 
         const initialIndex = index || 0

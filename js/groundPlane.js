@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import {appleCrayonColorThreeJS, createColorPicker, updateColorPicker } from "./utils/colorUtils.js"
+import {appleCrayonColorThreeJS} from "./utils/colorUtils.js"
 
 class GroundPlane extends THREE.GridHelper {
 
@@ -16,8 +16,6 @@ class GroundPlane extends THREE.GridHelper {
 
         this.visible = !(isHidden);
         this.material.transparent = true;
-
-        this.colorPicker = createColorPicker(document.querySelector(`div[data-colorpicker='groundplane']`), this.color, color => this.setColor(color))
 
     }
 
@@ -44,6 +42,8 @@ class GroundPlane extends THREE.GridHelper {
 
         }
 
+        this.geometry.attributes.color.needsUpdate = true
+
     }
 
     setVisibility(status) {
@@ -58,7 +58,6 @@ class GroundPlane extends THREE.GridHelper {
     setState({ r, g, b, visibility}) {
         this.setVisibility(visibility);
         this.setColor(new THREE.Color(r, g, b))
-        updateColorPicker(this.colorPicker, document.querySelector(`div[data-colorpicker='groundplane']`), {r, g, b})
     }
 
     toJSON() {
@@ -67,7 +66,7 @@ class GroundPlane extends THREE.GridHelper {
     }
 
     renderLoopHelper () {
-        this.geometry.attributes.color.needsUpdate = true;
+        // Color updates handled by setColor()
     }
 
     toggle() {
@@ -83,6 +82,11 @@ class GroundPlane extends THREE.GridHelper {
     dismiss() {
         this.visible = false;
         GroundPlane.setGroundPlaneWidgetVisibilityStatus(this.visible);
+    }
+
+    dispose() {
+        this.geometry.dispose()
+        this.material.dispose()
     }
 
     static setGroundPlaneHidden() {

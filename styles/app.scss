@@ -115,6 +115,11 @@ $spacewalk-threejs-drag-container-height: 32px;
     width: calc(100% - #{$spacewalk-trace-navigator-width});
     background-color: #ffffff;
 
+    &.sw-drag-over {
+      outline: 3px dashed #4a90d9;
+      outline-offset: -3px;
+    }
+
     #spacewalk-threejs-canvas-center-dot {
       z-index: 512;
       position: absolute;

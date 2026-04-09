@@ -240,10 +240,6 @@ class BallAndStick {
 
     renderLoopHelper () {
 
-        if (this.balls) {
-            this.balls.geometry.attributes.instanceColor.needsUpdate = true
-        }
-
         if (this.sticks) {
             this.sticks.visible = (this.isStickVisible && sceneManager.renderStyle === BallAndStick.renderStyle)
         }
