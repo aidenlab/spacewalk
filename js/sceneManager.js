@@ -29,6 +29,7 @@ class SceneManager {
 
     constructor(colorRampMaterialProvider) {
         this.colorRampMaterialProvider = colorRampMaterialProvider;
+        this.isLoading = false;
         SpacewalkEventBus.globalBus.subscribe('RenderStyleDidChange', this);
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
     }
@@ -49,41 +50,66 @@ class SceneManager {
 
         }  else if ('DidSelectTrace' === type) {
             const { trace } = data
-            this.setupWithTrace(trace)
+            this.isLoading = true
+            try {
+                this.setupWithTrace(trace)
+            } finally {
+                this.isLoading = false
+            }
         }
 
     }
 
     async ingestEnsemblePath(url, traceKey, ensembleGroupKey) {
 
-        await ensembleManager.loadURL(url, traceKey, ensembleGroupKey)
+        this.isLoading = true
 
-        this.setupWithTrace(ensembleManager.currentTrace)
-        this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
+        try {
+            await ensembleManager.loadURL(url, traceKey, ensembleGroupKey)
 
-        unsetDataMaterialProviderCheckbox(igvPanel)
-        setMaterialProvider(this.colorRampMaterialProvider)
+            this.setupWithTrace(ensembleManager.currentTrace)
+            this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
 
-        if (ensembleManager.genomeAssembly !== igvPanel.browser.genome.id) {
-            console.log(`Genome swap from ${ igvPanel.browser.genome.id } to ${ ensembleManager.genomeAssembly }. Call igv_browser.loadGenome`)
-            await igvPanel.browser.loadGenome(ensembleManager.genomeAssembly)
+            unsetDataMaterialProviderCheckbox(igvPanel)
+            setMaterialProvider(this.colorRampMaterialProvider)
+
+            if (ensembleManager.genomeAssembly !== igvPanel.browser.genome.id) {
+                console.log(`Genome swap from ${ igvPanel.browser.genome.id } to ${ ensembleManager.genomeAssembly }. Call igv_browser.loadGenome`)
+                await igvPanel.browser.loadGenome(ensembleManager.genomeAssembly)
+            }
+
+            await igvPanel.locusDidChange(ensembleManager.locus)
+        } catch (error) {
+            console.error('Error loading ensemble:', error)
+            this.purgeScene()
+            throw error
+        } finally {
+            this.isLoading = false
         }
-
-        await igvPanel.locusDidChange(ensembleManager.locus)
 
     }
 
     async ingestEnsembleGroup(ensembleGroupKey) {
 
-        await ensembleManager.loadEnsembleGroup(ensembleGroupKey)
+        this.isLoading = true
 
-        this.setupWithTrace(ensembleManager.currentTrace)
-        this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
+        try {
+            await ensembleManager.loadEnsembleGroup(ensembleGroupKey)
 
-        unsetDataMaterialProviderCheckbox(igvPanel)
-        setMaterialProvider(this.colorRampMaterialProvider)
+            this.setupWithTrace(ensembleManager.currentTrace)
+            this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
 
-        await igvPanel.locusDidChange(ensembleManager.locus)
+            unsetDataMaterialProviderCheckbox(igvPanel)
+            setMaterialProvider(this.colorRampMaterialProvider)
+
+            await igvPanel.locusDidChange(ensembleManager.locus)
+        } catch (error) {
+            console.error('Error loading ensemble group:', error)
+            this.purgeScene()
+            throw error
+        } finally {
+            this.isLoading = false
+        }
 
     }
 
@@ -182,20 +208,18 @@ class SceneManager {
     }
 
     isGood2Go() {
-        return scene && this.getGnomon() && this.getGroundPlane()
+        return !this.isLoading && scene && this.getGnomon() && this.getGroundPlane()
      }
 
     purgeScene() {
 
-        // First dispose render objects (they may reference scene objects)
+        // Dispose visualization objects
         ballAndStick.dispose()
         ribbon.dispose()
         pointCloud.dispose()
 
-        // Then clear all scene objects
-        clearScene(scene)
-
-        // Dispose any remaining scene objects that might be referenced by name
+        // Dispose named objects with custom cleanup (color pickers)
+        // BEFORE clearScene removes them from the scene
         const gnomonInstance = this.getGnomon()
         if (gnomonInstance) {
             gnomonInstance.dispose()
@@ -205,6 +229,9 @@ class SceneManager {
         if (groundPlaneInstance) {
             groundPlaneInstance.dispose()
         }
+
+        // Clear remaining scene objects (hemisphere light, etc.)
+        clearScene(scene)
 
     }
 

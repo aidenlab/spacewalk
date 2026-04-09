@@ -105,28 +105,32 @@ async function loadSpacewalkSession (session) {
 
     GUIManager.updateRenderStyleWidgetState(renderStyle)
 
-    await sceneManager.ingestEnsemblePath(url, traceKey, ensembleGroupKey)
+    try {
+        await sceneManager.ingestEnsemblePath(url, traceKey, ensembleGroupKey)
 
-    // TODO: Gnomon, ground plane, scale bars, and background color are now
-    // managed by SettingsManager (localStorage). Session values are ignored
-    // during testing of the new settings approach.
-    // const gnomonInstance = sceneManager.getGnomon()
-    // gnomonInstance.setState({ visibility: gnomonVisibility, ...gnomonColor })
-    // const groundPlaneInstance = sceneManager.getGroundPlane()
-    // groundPlaneInstance.setState({ visibility: groundPlaneVisibility, ...groundplaneColor })
-    // if (rulerColor && rulerVisibility) {
-    //     scaleBarService.setState({ visibility: rulerVisibility, ...rulerColor })
-    // }
-    // if (backgroundColor) {
-    //     const { r, g, b } = backgroundColor
-    //     scene.background = new THREE.Color(r, g, b)
-    // }
+        // TODO: Gnomon, ground plane, scale bars, and background color are now
+        // managed by SettingsManager (localStorage). Session values are ignored
+        // during testing of the new settings approach.
+        // const gnomonInstance = sceneManager.getGnomon()
+        // gnomonInstance.setState({ visibility: gnomonVisibility, ...gnomonColor })
+        // const groundPlaneInstance = sceneManager.getGroundPlane()
+        // groundPlaneInstance.setState({ visibility: groundPlaneVisibility, ...groundplaneColor })
+        // if (rulerColor && rulerVisibility) {
+        //     scaleBarService.setState({ visibility: rulerVisibility, ...rulerColor })
+        // }
+        // if (backgroundColor) {
+        //     const { r, g, b } = backgroundColor
+        //     scene.background = new THREE.Color(r, g, b)
+        // }
 
-    liveContactMapService.setState(contactFrequencyMapDistanceThreshold || defaultDistanceThreshold)
-    Panel.setState(panelVisibility)
+        liveContactMapService.setState(contactFrequencyMapDistanceThreshold || defaultDistanceThreshold)
+        Panel.setState(panelVisibility)
 
-    const data = ensembleManager.createEventBusPayload()
-    SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
+        const data = ensembleManager.createEventBusPayload()
+        SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
+    } catch (error) {
+        console.error('Failed to load session:', error)
+    }
 
 }
 

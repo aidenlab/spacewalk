@@ -12,6 +12,10 @@ class DataSourceBase {
         this.currentGenomicExtentList = undefined
     }
 
+    dispose() {
+        // Subclasses override for resource cleanup
+    }
+
     consumeLines(lines, regex) {
         console.warn('Warning: Dataset - base class method called consumeLines()')
     }

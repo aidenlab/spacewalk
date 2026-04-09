@@ -105,6 +105,9 @@ class App {
         const threeJSObjects = this.threeJSInitializer.initialize(this.colorRampMaterialProvider);
         this.assignThreeJSObjects(threeJSObjects);
 
+        // Enable drag-and-drop of .sw files onto the 3D viewer
+        this.initializeDragAndDrop(container);
+
         // Initialize UI components
         this.uiBootstrapper = new UIBootstrapper(this);
         const uiComponents = await this.uiBootstrapper.initialize(document.getElementById('spacewalk-root-container'));
@@ -212,9 +215,14 @@ class App {
             const fileURL = extractFileParam(window.location.href);
             const traceKey = params.traceKey || '0';
             const ensembleGroupKey = params.ensembleGroupKey || undefined;
-            await this.sceneManager.ingestEnsemblePath(fileURL, traceKey, ensembleGroupKey);
-            const data = ensembleManager.createEventBusPayload();
-            SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
+            try {
+                await this.sceneManager.ingestEnsemblePath(fileURL, traceKey, ensembleGroupKey);
+                const data = ensembleManager.createEventBusPayload();
+                SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
+            } catch (error) {
+                console.error('Failed to load file from URL params:', error)
+                hideGlobalSpinner()
+            }
             return;
         }
 
@@ -264,10 +272,52 @@ class App {
             }
 
             const file = new File([bytes], filename);
-            await this.sceneManager.ingestEnsemblePath(file, '0', undefined);
-            const payload = ensembleManager.createEventBusPayload();
-            SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data: payload });
+            try {
+                await this.sceneManager.ingestEnsemblePath(file, '0', undefined);
+                const payload = ensembleManager.createEventBusPayload();
+                SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data: payload });
+            } catch (error) {
+                console.error('Failed to load file from postMessage:', error)
+                hideGlobalSpinner()
+            }
         });
+    }
+
+    initializeDragAndDrop(container) {
+
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault()
+            e.dataTransfer.dropEffect = 'copy'
+            container.classList.add('sw-drag-over')
+        })
+
+        container.addEventListener('dragleave', (e) => {
+            e.preventDefault()
+            container.classList.remove('sw-drag-over')
+        })
+
+        container.addEventListener('drop', async (e) => {
+            e.preventDefault()
+            container.classList.remove('sw-drag-over')
+
+            const file = e.dataTransfer.files[0]
+            if (!file) return
+
+            const extension = file.name.split('.').pop().toLowerCase()
+            if (extension !== 'sw') {
+                console.warn(`Drag-and-drop: unsupported file type ".${extension}", expected ".sw"`)
+                return
+            }
+
+            try {
+                await this.sceneManager.ingestEnsemblePath(file, '0', undefined)
+                const payload = ensembleManager.createEventBusPayload()
+                SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data: payload })
+            } catch (error) {
+                console.error('Failed to load dropped file:', error)
+                hideGlobalSpinner()
+            }
+        })
     }
 
     render() {

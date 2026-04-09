@@ -68,6 +68,8 @@ class Gnomon extends THREE.AxesHelper {
         this.zAxisSprite.material.dispose();
         this.zAxisSprite.material = Gnomon.getAxisSpriteMaterial( colorString, this.max.z - this.min.z);
 
+        this.geometry.attributes.color.needsUpdate = true
+
     }
 
     setVisibility(status) {
@@ -91,7 +93,7 @@ class Gnomon extends THREE.AxesHelper {
     }
 
     renderLoopHelper () {
-        this.geometry.attributes.color.needsUpdate = true;
+        // Color updates handled by setColor()
     }
 
     addToScene (scene) {
@@ -99,6 +101,10 @@ class Gnomon extends THREE.AxesHelper {
     }
 
     dispose () {
+        if (this.colorPicker) {
+            this.colorPicker.destroy()
+            this.colorPicker = undefined
+        }
         super.dispose()
         disposeThreeJSGroup(this.group, scene)
         this.group = undefined

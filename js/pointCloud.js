@@ -211,13 +211,7 @@ class PointCloud {
     }
 
     renderLoopHelper () {
-
-        if (this.meshList) {
-            for (let mesh of this.meshList) {
-                mesh.geometry.attributes.color.needsUpdate = true;
-            }
-        }
-
+        // Color updates handled by updateMaterialProvider() and highlight/unhighlight
     }
 
     hide () {

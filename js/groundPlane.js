@@ -44,6 +44,8 @@ class GroundPlane extends THREE.GridHelper {
 
         }
 
+        this.geometry.attributes.color.needsUpdate = true
+
     }
 
     setVisibility(status) {
@@ -67,7 +69,7 @@ class GroundPlane extends THREE.GridHelper {
     }
 
     renderLoopHelper () {
-        this.geometry.attributes.color.needsUpdate = true;
+        // Color updates handled by setColor()
     }
 
     toggle() {
@@ -83,6 +85,15 @@ class GroundPlane extends THREE.GridHelper {
     dismiss() {
         this.visible = false;
         GroundPlane.setGroundPlaneWidgetVisibilityStatus(this.visible);
+    }
+
+    dispose() {
+        if (this.colorPicker) {
+            this.colorPicker.destroy()
+            this.colorPicker = undefined
+        }
+        this.geometry.dispose()
+        this.material.dispose()
     }
 
     static setGroundPlaneHidden() {
