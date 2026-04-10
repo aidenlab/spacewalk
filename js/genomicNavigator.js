@@ -26,8 +26,6 @@ class GenomicNavigator {
         fitToContainer(canvas)
         this.rgb_ctx = canvas.getContext('2d')
 
-        const namespace = 'color-ramp-material-provider'
-
         canvasContainer.addEventListener('mousemove', event => {
             event.stopPropagation()
             this.onCanvasMouseMove(canvas, event)
@@ -40,8 +38,8 @@ class GenomicNavigator {
 
         canvasContainer.addEventListener('mouseleave', event => {
             event.stopPropagation()
+            this.repaint()
             SpacewalkEventBus.globalBus.post({ type: 'DidLeaveGenomicNavigator', data: 'DidLeaveGenomicNavigator' })
-            // this.repaint()
         });
 
         const { r, g, b } = highlightColor
@@ -52,10 +50,6 @@ class GenomicNavigator {
 
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this);
-        SpacewalkEventBus.globalBus.subscribe('DidUpdateGenomicInterpolant', this)
-        SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this)
-        SpacewalkEventBus.globalBus.subscribe('DidHideCrosshairs', this)
-
     }
 
     receiveEvent({ type, data }) {
@@ -71,22 +65,9 @@ class GenomicNavigator {
 
             igvPanel.materialProvider = colorRampMaterialProvider;
             this.repaint()
-        } else if ("DidUpdateGenomicInterpolant" === type) {
-
-            const { poster, interpolantList } = data
-
-            if (this !== poster || sceneManager.renderStyle === Ribbon.renderStyle) {
-
-                const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
-                if (interpolantWindowList) {
-                    this.highlightWithInterpolantWindowList(interpolantWindowList.map(({genomicExtent}) => genomicExtent));
-                }
-
-            }
-        } else if ('DidHideCrosshairs' === type || 'DidLeaveGenomicNavigator' === type) {
+        } else if ('DidHideCrosshairs' === type) {
             this.repaint()
         }
-
 
     }
 
@@ -100,14 +81,34 @@ class GenomicNavigator {
             const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
 
             if (interpolantWindowList) {
-                SpacewalkEventBus.globalBus.post({ type: 'DidUpdateGenomicInterpolant', data: { poster: this, interpolantList } });
+                sceneManager.delegateGenomicInterpolant({ interpolantList })
+
+                const update = igvPanel.browser?.cursorGuide?.updateWithInterpolant
+                if (typeof update === 'function') {
+                    update.call(igvPanel.browser.cursorGuide, interpolantList[0])
+                }
+
+                if (sceneManager.renderStyle === Ribbon.renderStyle) {
+                    this.highlightFromInterpolant(interpolantList)
+                }
             } else {
-                // When there is no interpolant, publish interpolantList as undefined. Subscribers will handle this case.
-                SpacewalkEventBus.globalBus.post({ type: 'DidUpdateGenomicInterpolant', data: { poster: this } });
+                sceneManager.delegateGenomicInterpolant({})
             }
 
         }
 
+    }
+
+    /**
+     * Highlight the color ramp from an interpolant list.
+     * Called directly by IGVPanel and JuiceboxPanel when their cursors move,
+     * and by this class in Ribbon mode.
+     */
+    highlightFromInterpolant(interpolantList) {
+        const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
+        if (interpolantWindowList) {
+            this.highlightWithInterpolantWindowList(interpolantWindowList.map(({genomicExtent}) => genomicExtent))
+        }
     }
 
     resize(sceneManagerContainer) {

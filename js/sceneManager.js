@@ -62,8 +62,6 @@ class SceneManager {
 
         SpacewalkEventBus.globalBus.subscribe('RenderStyleDidChange', this);
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
-        SpacewalkEventBus.globalBus.subscribe('DidUpdateGenomicInterpolant', this);
-        SpacewalkEventBus.globalBus.subscribe('DidHideCrosshairs', this);
         SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this);
     }
 
@@ -89,12 +87,6 @@ class SceneManager {
             } finally {
                 this.isLoading = false
             }
-
-        } else if ('DidUpdateGenomicInterpolant' === type) {
-            this.delegateGenomicInterpolant(data)
-
-        } else if ('DidHideCrosshairs' === type) {
-            this.delegateHideCrosshairs()
 
         } else if ('DidLeaveGenomicNavigator' === type) {
             this.delegateLeaveGenomicNavigator()

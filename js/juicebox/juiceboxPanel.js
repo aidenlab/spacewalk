@@ -32,6 +32,7 @@ class JuiceboxPanel extends Panel {
 
         this.panel.addEventListener('mouseleave', (event) => {
             event.stopPropagation();
+            genomicNavigator.repaint()
             SpacewalkEventBus.globalBus.post({ type: 'DidLeaveGenomicNavigator', data: 'DidLeaveGenomicNavigator' });
         });
 
@@ -407,7 +408,8 @@ function juiceboxMouseHandler({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, in
         return
     }
 
-    SpacewalkEventBus.globalBus.post({ type: 'DidUpdateGenomicInterpolant', data: { poster: this, interpolantList: [ interpolantX, interpolantY ] } })
+    sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolantX, interpolantY ] })
+    genomicNavigator.highlightFromInterpolant([ interpolantX, interpolantY ])
 }
 
 function tabEventHandler(event) {

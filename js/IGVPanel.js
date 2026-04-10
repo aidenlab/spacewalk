@@ -1,6 +1,7 @@
 import igv from 'igv'
 import SpacewalkEventBus from './spacewalkEventBus.js'
 import {setMaterialProvider} from './utils/utils.js';
+import {sceneManager} from './app.js';
 import {installShim} from './igvTrackMaterialProviderShim.js';
 import Panel from './panel.js';
 import { getPathsWithTrackRegistry, updateTrackMenusWithTrackConfigurations } from './widgets/trackWidgets.js'
@@ -42,10 +43,9 @@ class IGVPanel extends Panel {
 
         this.panel.addEventListener('mouseleave', (event) => {
             event.stopPropagation();
+            this.genomicNavigator.repaint()
             SpacewalkEventBus.globalBus.post({ type: 'DidLeaveGenomicNavigator', data: 'DidLeaveGenomicNavigator' });
         });
-
-        SpacewalkEventBus.globalBus.subscribe("DidUpdateGenomicInterpolant", this)
     }
 
     async initialize(igvConfig) {
@@ -132,19 +132,7 @@ class IGVPanel extends Panel {
     getClassName(){ return 'IGVPanel' }
 
     receiveEvent({ type, data }) {
-
         super.receiveEvent({ type, data });
-
-        if ("DidUpdateGenomicInterpolant" === type) {
-            const { poster, interpolantList } = data
-            if (poster === this.genomicNavigator && interpolantList) {
-                const update = this.browser.cursorGuide?.updateWithInterpolant
-                if (typeof update === 'function') {
-                    update.call(this.browser.cursorGuide, interpolantList[ 0 ])
-                }
-            }
-        }
-
     }
 
     async locusDidChange({ chr, genomicStart, genomicEnd }) {
@@ -196,7 +184,8 @@ class IGVPanel extends Panel {
                 return;
             }
 
-            SpacewalkEventBus.globalBus.post({ type: 'DidUpdateGenomicInterpolant', data: { poster: this, interpolantList: [ interpolant ] } });
+            sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolant ] })
+            this.genomicNavigator.highlightFromInterpolant([ interpolant ])
 
         })
 
