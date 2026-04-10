@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import { igvxhr } from 'igv-utils'
 import { createSessionWidgets } from '../widgets/sessionWidgets.js'
 import { createTrackWidgetsWithTrackRegistry } from '../widgets/trackWidgets.js'
@@ -12,6 +13,7 @@ import { createShareWidgets, shareWidgetConfigurator } from '../share/shareWidge
 import { configureDrag } from "../utils/draggable.js"
 import ScaleBarService from "../scaleBarService.js"
 import GUIManager from "../guiManager.js"
+import SettingsManager from "../settingsManager.js"
 import { showRelease } from "../utils/release.js"
 import { spacewalkConfig } from "../../spacewalk-config.js"
 
@@ -45,8 +47,17 @@ class UIBootstrapper {
         });
 
         // Initialize scale bar service (after GUI manager, so checkbox exists)
-        uiComponents.scaleBarService = new ScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container'), ScaleBarService.setScaleBarsHidden());
+        const savedSettings = SettingsManager.load();
+        const scaleBarsHidden = savedSettings?.scaleBars ? !savedSettings.scaleBars.visible : ScaleBarService.setScaleBarsHidden();
+        uiComponents.scaleBarService = new ScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container'), scaleBarsHidden);
         uiComponents.scaleBarService.insertScaleBarDOM();
+        if (savedSettings?.scaleBars) {
+            const { r, g, b } = savedSettings.scaleBars;
+            uiComponents.scaleBarService.setColor(new THREE.Color(r, g, b));
+        }
+
+        // Initialize settings manager (after scale bar service, so all settings targets exist)
+        uiComponents.settingsManager = new SettingsManager();
 
         // Initialize trace selector and navigator
         uiComponents.traceSelector = new TraceSelector(document.querySelector('#spacewalk_trace_select_input'), this.appContext.ensembleManager);
@@ -111,9 +122,13 @@ class UIBootstrapper {
     initializeFileLoaders() {
         const fileLoader = {
             load: async fileOrPath => {
-                await this.appContext.sceneManager.ingestEnsemblePath(fileOrPath, '0', undefined);
-                const data = this.appContext.ensembleManager.createEventBusPayload();
-                SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
+                try {
+                    await this.appContext.sceneManager.ingestEnsemblePath(fileOrPath, '0', undefined);
+                    const data = this.appContext.ensembleManager.createEventBusPayload();
+                    SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
+                } catch (error) {
+                    console.error('Failed to load file:', error)
+                }
             }
         };
 

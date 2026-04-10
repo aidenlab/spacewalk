@@ -10,6 +10,13 @@ import SpacewalkEventBus from "../spacewalkEventBus.js"
 
 class SWBDatasource extends DataSourceBase {
 
+    dispose() {
+        this.hdf5 = undefined
+        this.header = undefined
+        this.ensembleGroupKeys = undefined
+        this.liveContactFrequencyMapVertexLists = undefined
+    }
+
     async load(path, ensembleGroupKey) {
 
         SpacewalkGlobals.url = false === FileUtils.isFilePath(path) ? path : undefined

@@ -193,10 +193,6 @@ class Ribbon {
 
         if (this.spline) {
             this.spline.mesh.material.resolution.set(window.innerWidth, window.innerHeight)
-
-            this.spline.mesh.geometry.attributes.instanceStart.needsUpdate = true
-            this.spline.mesh.geometry.attributes.instanceEnd.needsUpdate = true
-
         }
     }
 

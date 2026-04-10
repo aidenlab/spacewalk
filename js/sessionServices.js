@@ -105,31 +105,32 @@ async function loadSpacewalkSession (session) {
 
     GUIManager.updateRenderStyleWidgetState(renderStyle)
 
-    await sceneManager.ingestEnsemblePath(url, traceKey, ensembleGroupKey)
+    try {
+        await sceneManager.ingestEnsemblePath(url, traceKey, ensembleGroupKey)
 
-    const gnomonInstance = sceneManager.getGnomon()
-    gnomonInstance.setState({ visibility: gnomonVisibility, ...gnomonColor })
+        // TODO: Gnomon, ground plane, scale bars, and background color are now
+        // managed by SettingsManager (localStorage). Session values are ignored
+        // during testing of the new settings approach.
+        // const gnomonInstance = sceneManager.getGnomon()
+        // gnomonInstance.setState({ visibility: gnomonVisibility, ...gnomonColor })
+        // const groundPlaneInstance = sceneManager.getGroundPlane()
+        // groundPlaneInstance.setState({ visibility: groundPlaneVisibility, ...groundplaneColor })
+        // if (rulerColor && rulerVisibility) {
+        //     scaleBarService.setState({ visibility: rulerVisibility, ...rulerColor })
+        // }
+        // if (backgroundColor) {
+        //     const { r, g, b } = backgroundColor
+        //     scene.background = new THREE.Color(r, g, b)
+        // }
 
-    const groundPlaneInstance = sceneManager.getGroundPlane()
-    groundPlaneInstance.setState({ visibility: groundPlaneVisibility, ...groundplaneColor })
+        liveContactMapService.setState(contactFrequencyMapDistanceThreshold || defaultDistanceThreshold)
+        Panel.setState(panelVisibility)
 
-    if (rulerColor && rulerVisibility) {
-        scaleBarService.setState({ visibility: rulerVisibility, ...rulerColor })
+        const data = ensembleManager.createEventBusPayload()
+        SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
+    } catch (error) {
+        console.error('Failed to load session:', error)
     }
-
-    liveContactMapService.setState(contactFrequencyMapDistanceThreshold || defaultDistanceThreshold)
-    Panel.setState(panelVisibility)
-
-    // TODO: Decide whether to restore camera state
-    // sceneManager.cameraLightingRig.setState(cameraLightingRig);
-
-    if (backgroundColor) {
-        const { r, g, b } = backgroundColor
-        scene.background = new THREE.Color(r, g, b)
-    }
-
-    const data = ensembleManager.createEventBusPayload()
-    SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
 
 }
 
@@ -212,25 +213,19 @@ function spacewalkToJSON () {
 
         spacewalk.panelVisibility = Panel.toJSON()
 
-        let json
-
-        // gnomon
-        json = sceneManager.getGnomon().toJSON()
-        spacewalk.gnomonVisibility = json.visibility
-        spacewalk.gnomonColor = { r:json.r, g:json.g, b:json.b }
-
-        // groundplane
-        json = sceneManager.getGroundPlane().toJSON()
-        spacewalk.groundPlaneVisibility = json.visibility
-        spacewalk.groundplaneColor = { r:json.r, g:json.g, b:json.b }
-
-        // ruler
-        json = scaleBarService.toJSON()
-        spacewalk.rulerVisibility = json.visibility
-        spacewalk.rulerColor = { r:json.r, g:json.g, b:json.b }
-
-        // background
-        spacewalk.backgroundColor = sceneManager.toJSON()
+        // TODO: Gnomon, ground plane, scale bars, and background color are now
+        // managed by SettingsManager (localStorage). No longer saved to session files.
+        // let json
+        // json = sceneManager.getGnomon().toJSON()
+        // spacewalk.gnomonVisibility = json.visibility
+        // spacewalk.gnomonColor = { r:json.r, g:json.g, b:json.b }
+        // json = sceneManager.getGroundPlane().toJSON()
+        // spacewalk.groundPlaneVisibility = json.visibility
+        // spacewalk.groundplaneColor = { r:json.r, g:json.g, b:json.b }
+        // json = scaleBarService.toJSON()
+        // spacewalk.rulerVisibility = json.visibility
+        // spacewalk.rulerColor = { r:json.r, g:json.g, b:json.b }
+        // spacewalk.backgroundColor = sceneManager.toJSON()
 
         spacewalk.cameraLightingRig = cameraLightingRig.getState()
 

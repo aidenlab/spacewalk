@@ -12,6 +12,13 @@ class CNDBDatasource extends DataSourceBase {
         this.currentXYZList = undefined
     }
 
+    dispose() {
+        this.hdf5 = undefined
+        this.header = undefined
+        this.replicaKeys = undefined
+        this.currentXYZList = undefined
+    }
+
     async initialize(hdf5) {
 
         showGlobalSpinner()

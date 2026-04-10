@@ -131,11 +131,15 @@ function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroup
 
         modal.hide()
 
-        await sceneManager.ingestEnsembleGroup(selectElement.value)
+        try {
+            await sceneManager.ingestEnsembleGroup(selectElement.value)
 
-        const data = ensembleManager.createEventBusPayload()
+            const data = ensembleManager.createEventBusPayload()
 
-        SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
+            SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
+        } catch (error) {
+            console.error('Failed to load ensemble group:', error)
+        }
 
     })
 

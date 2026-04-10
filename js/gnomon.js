@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { StringUtils } from 'igv-utils'
-import { rgb255String, threeJSColorToRGB255, createColorPicker, updateColorPicker } from "./utils/colorUtils.js"
+import { rgb255String, threeJSColorToRGB255 } from "./utils/colorUtils.js"
 import {disposeThreeJSGroup} from "./utils/utils.js"
 import {scene} from "./app.js"
 
@@ -36,12 +36,6 @@ class Gnomon extends THREE.AxesHelper {
         this.group.add(this.zAxisSprite);
 
         this.group.visible = !isHidden;
-
-        this.colorPicker = createColorPicker(
-            document.querySelector(`div[data-colorpicker='gnomon']`),
-            this.color,
-            (color) => this.setColor(color)
-        );
     }
 
     setColor(color){
@@ -68,6 +62,8 @@ class Gnomon extends THREE.AxesHelper {
         this.zAxisSprite.material.dispose();
         this.zAxisSprite.material = Gnomon.getAxisSpriteMaterial( colorString, this.max.z - this.min.z);
 
+        this.geometry.attributes.color.needsUpdate = true
+
     }
 
     setVisibility(status) {
@@ -82,7 +78,6 @@ class Gnomon extends THREE.AxesHelper {
     setState({ r, g, b, visibility}) {
         this.setVisibility(visibility);
         this.setColor(new THREE.Color(r, g, b))
-        updateColorPicker(this.colorPicker, document.querySelector(`div[data-colorpicker='gnomon']`), {r, g, b})
     }
 
     toJSON() {
@@ -91,7 +86,7 @@ class Gnomon extends THREE.AxesHelper {
     }
 
     renderLoopHelper () {
-        this.geometry.attributes.color.needsUpdate = true;
+        // Color updates handled by setColor()
     }
 
     addToScene (scene) {
