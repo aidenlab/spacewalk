@@ -197,7 +197,7 @@ function appleCrayonColorRGB255(name) {
 
 function threeJSColorToRGB255  (color) {
     const { r, g, b } = color;
-    return { r: Math.floor(r*255), g: Math.floor(g*255), b: Math.floor(b*255) };
+    return { r: linearToSrgb(r), g: linearToSrgb(g), b: linearToSrgb(b) };
 }
 
 function rgb255ToThreeJSColor  (r, g, b) {

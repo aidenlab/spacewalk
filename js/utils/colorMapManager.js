@@ -99,16 +99,12 @@ class ColorMapManager {
 
 function retrieveRGB(rgbList, interpolant) {
 
-    const a =  Math.floor(interpolant * (rgbList.length - 1))
-    const colorA = rgbList[ a ]
+    const t = interpolant * (rgbList.length - 1)
+    const a = Math.floor(t)
+    const b = Math.ceil(t)
+    const frac = t - a
 
-    const b =  Math.ceil(interpolant * (rgbList.length - 1))
-    const colorB = rgbList[ b ]
-
-    return colorA.clone().lerp(colorB, interpolant)
-
-    // const index = Math.floor(interpolant * (rgbList.length - 1));
-    // return rgbList[ index ][ key ]
+    return rgbList[ a ].clone().lerp(rgbList[ b ], frac)
 }
 
 function rgbListWithImage(image) {
