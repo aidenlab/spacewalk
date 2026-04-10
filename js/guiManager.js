@@ -2,7 +2,7 @@ import SpacewalkEventBus from './spacewalkEventBus.js'
 import { StringUtils } from 'igv-utils'
 import Ribbon from "./ribbon.js";
 import BallAndStick from "./ballAndStick.js";
-import { ballAndStick, sceneManager, ensembleManager, pointCloud } from "./app.js";
+import { sceneManager, ensembleManager } from "./app.js";
 
 class GUIManager {
 
@@ -42,8 +42,8 @@ class GUIManager {
 
         // Ball radius
         const ballRadiusControl = document.getElementById('spacewalk-ball-radius-control');
-        ballRadiusControl.querySelector('i.fa-minus-circle').addEventListener('click', () => ballAndStick.updateBallRadius(-1));
-        ballRadiusControl.querySelector('i.fa-plus-circle').addEventListener('click', () => ballAndStick.updateBallRadius(1));
+        ballRadiusControl.querySelector('i.fa-minus-circle').addEventListener('click', () => sceneManager.ballAndStick?.updateBallRadius(-1));
+        ballRadiusControl.querySelector('i.fa-plus-circle').addEventListener('click', () => sceneManager.ballAndStick?.updateBallRadius(1));
 
         // Stick visibility switch
         const stickVisibilitySwitch = document.getElementById('spacewalk-stick-visibility-switch');
@@ -51,19 +51,19 @@ class GUIManager {
             stickVisibilitySwitch.addEventListener('change', (e) => {
                 e.stopPropagation();
                 console.log('Stick visibility toggled:', e.target.checked);
-                ballAndStick.setStickVisibility(e.target.checked);
+                sceneManager.ballAndStick?.setStickVisibility(e.target.checked);
             });
         }
 
         // PointCloud Point Size
         const pointSizeControl = document.getElementById('spacewalk_ui_manager_pointcloud_point_size');
-        pointSizeControl.querySelector('i.fa-minus-circle').addEventListener('click', () => pointCloud.updatePointSize(-1));
-        pointSizeControl.querySelector('i.fa-plus-circle').addEventListener('click', () => pointCloud.updatePointSize(1));
+        pointSizeControl.querySelector('i.fa-minus-circle').addEventListener('click', () => sceneManager.pointCloud?.updatePointSize(-1));
+        pointSizeControl.querySelector('i.fa-plus-circle').addEventListener('click', () => sceneManager.pointCloud?.updatePointSize(1));
 
         // PointCloud Point Transparency
         const pointTransparencyControl = document.getElementById('spacewalk_ui_manager_pointcloud_point_transparency');
-        pointTransparencyControl.querySelector('i.fa-minus-circle').addEventListener('click', () => pointCloud.updatePointTransparency(-1));
-        pointTransparencyControl.querySelector('i.fa-plus-circle').addEventListener('click', () => pointCloud.updatePointTransparency(1));
+        pointTransparencyControl.querySelector('i.fa-minus-circle').addEventListener('click', () => sceneManager.pointCloud?.updatePointTransparency(-1));
+        pointTransparencyControl.querySelector('i.fa-plus-circle').addEventListener('click', () => sceneManager.pointCloud?.updatePointTransparency(1));
 
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this);
         SpacewalkEventBus.globalBus.subscribe('DidSelectEnsembleGroup', this);

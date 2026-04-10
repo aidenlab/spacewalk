@@ -1,7 +1,7 @@
 import hic from 'juicebox.js'
 import SpacewalkEventBus from '../spacewalkEventBus.js'
 import Panel from '../panel.js'
-import { ballAndStick, ensembleManager, ribbon, genomicNavigator, liveContactMapService } from '../app.js'
+import { ensembleManager, sceneManager, genomicNavigator, liveContactMapService } from '../app.js'
 import {appleCrayonColorRGB255, rgb255String} from "../utils/colorUtils"
 import {spacewalkConfig} from "../../spacewalk-config.js"
 
@@ -226,8 +226,7 @@ class JuiceboxPanel extends Panel {
 
     attachMouseHandlersAndEventSubscribers() {
 
-        this.browser.eventBus.subscribe('DidHideCrosshairs', ribbon)
-        this.browser.eventBus.subscribe('DidHideCrosshairs', ballAndStick)
+        this.browser.eventBus.subscribe('DidHideCrosshairs', sceneManager)
         this.browser.eventBus.subscribe('DidHideCrosshairs', genomicNavigator)
 
         this.browser.coordinator.addCallback('onMapLoaded', async ({ dataset, state, datasetType }) => {

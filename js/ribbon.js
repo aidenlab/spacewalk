@@ -1,6 +1,5 @@
 import * as THREE from "three"
 import {StringUtils} from "igv-utils";
-import SpacewalkEventBus from './spacewalkEventBus.js'
 import { Line2 } from "three/examples/jsm/lines/Line2.js"
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js"
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js"
@@ -19,39 +18,7 @@ class Ribbon {
 
     static renderStyle = 'render-style-ribbon'
 
-    constructor() {
-
-        SpacewalkEventBus.globalBus.subscribe('DidUpdateGenomicInterpolant', this)
-        SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this)
-    }
-
-    receiveEvent({ type, data }) {
-
-        if (this.spline && Ribbon.renderStyle === sceneManager.renderStyle) {
-
-            if ('DidLeaveGenomicNavigator' === type || 'DidHideCrosshairs' === type) {
-                this.highlightBeads[ 0 ].visible = this.highlightBeads[ 1 ].visible = false
-            } else if ('DidUpdateGenomicInterpolant' === type) {
-
-                const { interpolantList } = data
-
-                if (interpolantList){
-                    for (let interpolant of interpolantList) {
-
-                        const { x, y, z } = this.curve.getPointAt(interpolant)
-                        const index = interpolantList.indexOf(interpolant)
-                        this.highlightBeads[ index ].position.set(x, y, z)
-                        this.highlightBeads[ index ].visible = true
-                    }
-                }
-
-            }
-
-        }
-
-    }
-
-    configure(trace) {
+    constructor(trace) {
 
         const traceVertices = EnsembleManager.getSingleCentroidVertices(trace, true)
         this.curve = new THREE.CatmullRomCurve3( traceVertices )
@@ -88,14 +55,32 @@ class Ribbon {
         const positionArray = getPositionArrayWithTrace(trace)
         this.hull = new ConvexHull(positionArray)
         this.hull.mesh.name = 'ribbon_convex_hull'
+    }
 
+    /**
+     * Handle genomic interpolant events (delegated from SceneManager)
+     */
+    handleGenomicInterpolant(data) {
+        const { interpolantList } = data
 
-        if (sceneManager.renderStyle === Ribbon.renderStyle) {
-            this.show()
-        } else {
-            this.hide()
+        if (interpolantList) {
+            for (let interpolant of interpolantList) {
+                const { x, y, z } = this.curve.getPointAt(interpolant)
+                const index = interpolantList.indexOf(interpolant)
+                this.highlightBeads[ index ].position.set(x, y, z)
+                this.highlightBeads[ index ].visible = true
+            }
         }
+    }
 
+    /**
+     * Handle leave genomic navigator or hide crosshairs events (delegated from SceneManager)
+     */
+    handleHideHighlights() {
+        if (this.highlightBeads) {
+            this.highlightBeads[ 0 ].visible = false
+            this.highlightBeads[ 1 ].visible = false
+        }
     }
 
     updateMaterialProvider (materialProvider) {
@@ -142,23 +127,18 @@ class Ribbon {
             scene.remove(this.spline.mesh)
             disposeMaterial(this.spline.mesh.material)
             this.spline.mesh.geometry.dispose()
-            this.spline = undefined
         }
 
         if (this.highlightBeads) {
             removeAndDisposeArrayFromScene(scene, this.highlightBeads)
-            this.highlightBeads = undefined
         }
 
         if (this.hull && this.hull.mesh) {
             scene.remove(this.hull.mesh)
             this.hull.mesh.geometry.dispose()
             disposeMaterial(this.hull.mesh.material)
-            this.hull.mesh = undefined
-            this.hull = undefined
         }
 
-        // Dispose curve if it exists
         if (this.curve) {
             this.curve = undefined
         }
@@ -166,9 +146,6 @@ class Ribbon {
     }
 
     hide () {
-        if (undefined === this.spline) {
-            return
-        }
         this.spline.mesh.visible = false
 
         if (this.highlightBeads) {
@@ -180,20 +157,12 @@ class Ribbon {
     }
 
     show () {
-        if (undefined === this.spline) {
-            return
-        }
         this.spline.mesh.visible = true
-
         this.hull.mesh.visible = true
-
     }
 
     renderLoopHelper () {
-
-        if (this.spline) {
-            this.spline.mesh.material.resolution.set(window.innerWidth, window.innerHeight)
-        }
+        this.spline.mesh.material.resolution.set(window.innerWidth, window.innerHeight)
     }
 
 }

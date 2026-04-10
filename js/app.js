@@ -8,16 +8,12 @@ import SpacewalkEventBus from "./spacewalkEventBus.js"
 import { showGlobalSpinner, hideGlobalSpinner } from './utils/utils.js'
 import { defaultColormapName } from "./utils/colorMapManager.js"
 import { spacewalkConfig } from "../spacewalk-config.js"
-import SceneManager from "./sceneManager.js"
 import ThreeJSInitializer from "./initializers/threeJSInitializer.js"
 import UIBootstrapper from "./initializers/uiBootstrapper.js"
 import PanelInitializer from "./initializers/panelInitializer.js"
 
 // Module-level variables - the single source of truth for shared application state
 // These are populated by the App class during initialization
-let pointCloud;
-let ribbon;
-let ballAndStick;
 let ensembleManager;
 let sceneManager;
 let trackMaterialProvider;
@@ -44,11 +40,6 @@ function getThreeJSContainerRect() {
  */
 class App {
     constructor() {
-
-        // Visualization objects
-        this.pointCloud = null;
-        this.ribbon = null;
-        this.ballAndStick = null;
 
         // Core managers
         this.ensembleManager = null;
@@ -149,9 +140,6 @@ class App {
     }
 
     assignThreeJSObjects(threeJSObjects) {
-        this.pointCloud = threeJSObjects.pointCloud;
-        this.ribbon = threeJSObjects.ribbon;
-        this.ballAndStick = threeJSObjects.ballAndStick;
         this.sceneManager = threeJSObjects.sceneManager;
         this.picker = threeJSObjects.picker;
         this.renderer = threeJSObjects.renderer;
@@ -159,9 +147,6 @@ class App {
         this.camera = threeJSObjects.camera;
         this.scene = threeJSObjects.scene;
         // Populate module-level variables
-        pointCloud = this.pointCloud;
-        ribbon = this.ribbon;
-        ballAndStick = this.ballAndStick;
         sceneManager = this.sceneManager;
         cameraLightingRig = this.cameraLightingRig;
         camera = this.camera;
@@ -315,9 +300,7 @@ class App {
 
     render() {
         if (this.sceneManager.isGood2Go()) {
-            this.pointCloud.renderLoopHelper();
-            this.ballAndStick.renderLoopHelper();
-            this.ribbon.renderLoopHelper();
+            this.sceneManager.renderLoopHelper();
             this.genomicNavigator.renderLoopHelper();
             this.cameraLightingRig.renderLoopHelper();
             this.sceneManager.getGroundPlane().renderLoopHelper();
@@ -329,7 +312,7 @@ class App {
 
             this.renderer.render(this.scene, this.camera);
 
-            const convexHull = SceneManager.getConvexHull(this.sceneManager.renderStyle);
+            const convexHull = this.sceneManager.getConvexHull();
 
         if (convexHull) {
                 this.scaleBarService.scaleBarAnimationLoopHelper(convexHull.mesh, this.camera);
@@ -380,9 +363,6 @@ export {
     camera,
     cameraLightingRig,
     googleEnabled,
-    pointCloud,
-    ribbon,
-    ballAndStick,
     ensembleManager,
     sceneManager,
     colorRampMaterialProvider,

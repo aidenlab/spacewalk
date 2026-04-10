@@ -1,10 +1,19 @@
-import {ensembleManager, ballAndStick, igvPanel, genomicNavigator} from "./app.js";
+import {ensembleManager, igvPanel, genomicNavigator} from "./app.js";
 
 class BallHighlighter {
 
     constructor (highlightColor) {
         this.highlightColor = highlightColor;
         this.instanceIdList = undefined
+        this.balls = undefined
+    }
+
+    /**
+     * Set the balls InstancedMesh this highlighter operates on.
+     * Called each time a new BallAndStick is created.
+     */
+    setBalls(balls) {
+        this.balls = balls
     }
 
     processHit(hit) {
@@ -32,15 +41,15 @@ class BallHighlighter {
 
     highlight() {
 
-        if (ballAndStick.balls && this.instanceIdList) {
+        if (this.balls && this.instanceIdList) {
 
-            const bufferAttribute = ballAndStick.balls.geometry.getAttribute('instanceColor')
+            const bufferAttribute = this.balls.geometry.getAttribute('instanceColor')
 
             for (const instanceId of this.instanceIdList) {
                 this.highlightColor.toArray(bufferAttribute.array, instanceId * 3)
             }
 
-            ballAndStick.balls.geometry.attributes.instanceColor.needsUpdate = true
+            this.balls.geometry.attributes.instanceColor.needsUpdate = true
 
             const genomicExtentList = ensembleManager.getCurrentGenomicExtentList()
             const interpolantWindowList = Array.from(this.instanceIdList).map(instanceId => genomicExtentList[ instanceId ])
@@ -52,9 +61,9 @@ class BallHighlighter {
 
     unhighlight() {
 
-        if (ballAndStick.balls && this.instanceIdList) {
+        if (this.balls && this.instanceIdList) {
 
-            const bufferAttribute = ballAndStick.balls.geometry.getAttribute('instanceColor')
+            const bufferAttribute = this.balls.geometry.getAttribute('instanceColor')
 
             const genomicExtentList = ensembleManager.getCurrentGenomicExtentList()
             for (const instanceId of this.instanceIdList) {
@@ -62,7 +71,7 @@ class BallHighlighter {
                 color.toArray(bufferAttribute.array, instanceId * 3)
             }
 
-            ballAndStick.balls.geometry.attributes.instanceColor.needsUpdate = true;
+            this.balls.geometry.attributes.instanceColor.needsUpdate = true;
 
             this.instanceIdList = undefined
          }

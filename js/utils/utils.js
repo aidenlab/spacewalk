@@ -1,4 +1,4 @@
-import { ribbon, ballAndStick, pointCloud, genomicNavigator } from "../app.js";
+import { sceneManager, genomicNavigator } from "../app.js";
 import {clamp} from "./mathUtils"
 
 function isWebGL2Supported() {
@@ -32,9 +32,7 @@ function unsetDataMaterialProviderCheckbox(igvPanel) {
 }
 
 function setMaterialProvider(materialProvider) {
-    ribbon.updateMaterialProvider(materialProvider)
-    ballAndStick.updateMaterialProvider(materialProvider)
-    pointCloud.updateMaterialProvider(materialProvider)
+    sceneManager.updateMaterialProvider(materialProvider)
     genomicNavigator.repaint()
 }
 
