@@ -20,7 +20,8 @@ import {
     cameraLightingRig,
     getThreeJSContainerRect,
 } from "./app.js"
-import {appleCrayonColorThreeJS, createColorPicker, updateColorPicker} from "./utils/colorUtils.js"
+import {appleCrayonColorThreeJS} from "./utils/colorUtils.js"
+import { register, updateSwatch } from "./utils/sharedColorPicker.js"
 import SettingsManager from "./settingsManager.js"
 
 const disposableSet = new Set([ 'gnomon', 'groundplane', 'ribbon', 'ball' , 'stick' ]);
@@ -31,15 +32,19 @@ class SceneManager {
         this.colorRampMaterialProvider = colorRampMaterialProvider;
         this.isLoading = false;
 
-        this.groundPlaneColorPicker = createColorPicker(
+        const saved = SettingsManager.load()
+
+        register(
             document.querySelector(`div[data-colorpicker='groundplane']`),
-            appleCrayonColorThreeJS('iron'),
+            saved?.groundPlane ? new THREE.Color(saved.groundPlane.r, saved.groundPlane.g, saved.groundPlane.b) : appleCrayonColorThreeJS('iron'),
+            () => this.getGroundPlane()?.color ?? appleCrayonColorThreeJS('iron'),
             color => this.getGroundPlane()?.setColor(color)
         )
 
-        this.gnomonColorPicker = createColorPicker(
+        register(
             document.querySelector(`div[data-colorpicker='gnomon']`),
-            appleCrayonColorThreeJS('iron'),
+            saved?.gnomon ? new THREE.Color(saved.gnomon.r, saved.gnomon.g, saved.gnomon.b) : appleCrayonColorThreeJS('iron'),
+            () => this.getGnomon()?.color ?? appleCrayonColorThreeJS('iron'),
             color => this.getGnomon()?.setColor(color)
         )
 
@@ -169,7 +174,7 @@ class SceneManager {
 
         const groundPlane = new GroundPlane(groundPlaneConfig)
         scene.add(groundPlane)
-        updateColorPicker(this.groundPlaneColorPicker, document.querySelector(`div[data-colorpicker='groundplane']`), groundPlaneConfig.color)
+        updateSwatch(document.querySelector(`div[data-colorpicker='groundplane']`), groundPlaneConfig.color)
 
         // Gnomon
         const gnomonConfig =
@@ -182,7 +187,7 @@ class SceneManager {
             };
         const gnomon = new Gnomon(gnomonConfig)
         gnomon.addToScene(scene)
-        updateColorPicker(this.gnomonColorPicker, document.querySelector(`div[data-colorpicker='gnomon']`), gnomonConfig.color)
+        updateSwatch(document.querySelector(`div[data-colorpicker='gnomon']`), gnomonConfig.color)
 
     }
 
@@ -233,8 +238,7 @@ class SceneManager {
         ribbon.dispose()
         pointCloud.dispose()
 
-        // Dispose named objects with custom cleanup (color pickers)
-        // BEFORE clearScene removes them from the scene
+        // Dispose named objects BEFORE clearScene removes them from the scene
         const gnomonInstance = this.getGnomon()
         if (gnomonInstance) {
             gnomonInstance.dispose()

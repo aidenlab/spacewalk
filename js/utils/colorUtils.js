@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import Picker from "vanilla-picker"
 import chroma from "chroma-js";
 import { lerp, clamp, random } from './mathUtils.js';
 
@@ -262,58 +261,11 @@ function compositeColors(foreRGBA, backRGB) {
     };
 }
 
-function createColorPicker(container, initialColor, callback) {
-
-    const rgb255 = threeJSColorToRGB255(initialColor);
-    
-    // Set initial background color of container
-    container.style.backgroundColor = rgb255String(rgb255);
-
-    const config =
-        {
-            parent: container,
-            popup: 'left',
-            editor: false,
-            editorFormat: 'rgb',
-            alpha: false,
-            color: [ rgb255.r, rgb255.g, rgb255.b, 1 ]
-        };
-
-    const picker = new Picker(config);
-
-    picker.onChange = ({rgbString}) => {
-
-        container.style.backgroundColor = rgbString
-
-        const [ head, g, tail ] = rgbString.split(',')
-        const [ unused, r ] = head.split('(')
-        const [ b, dev_null ] = tail.split(')')
-
-        callback(rgb255ToThreeJSColor(parseInt(r), parseInt(g), parseInt(b)))
-
-        document.dispatchEvent(new Event('spacewalk-settings-changed'))
-    }
-
-    return picker
-}
-
-function updateColorPicker(picker, container, rgb) {
-    const rgb255 = threeJSColorToRGB255(rgb)
-
-    container.style.backgroundColor = rgb255String(rgb255)
-
-    const { r, g, b } = rgb255
-    picker.setColor([ r, g, b, 1 ], true)
-
-}
-
 export {
     srgbToLinearLUT,
     linearToSrgb,
     linearizeRGB255,
     hexOrRGB255StringtoRGB255,
-    createColorPicker,
-    updateColorPicker,
     compositeColors,
     highlightColor,
     hex2RGB255,

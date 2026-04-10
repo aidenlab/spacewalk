@@ -1,19 +1,18 @@
 import * as THREE from "three"
 import {vectorMax, vectorMin} from "./utils/mathUtils.js"
-import {createColorPicker, updateColorPicker} from "./utils/colorUtils.js"
-import {appleCrayonColorThreeJS, rgb255String, threeJSColorToRGB255} from "./utils/colorUtils"
+import {appleCrayonColorThreeJS, rgb255String, threeJSColorToRGB255} from "./utils/colorUtils.js"
+import { register, updateSwatch } from "./utils/sharedColorPicker.js"
 
 class ScaleBarService {
 
-    constructor(renderContainer, isHidden) {
+    constructor(renderContainer, isHidden, initialColor) {
         this.renderContainer = renderContainer
 
-        this.color = appleCrayonColorThreeJS('iron')
-        // this.color = appleCrayonColorThreeJS('salmon')
+        this.color = initialColor ?? appleCrayonColorThreeJS('iron')
 
         this.visible = !(isHidden);
 
-        this.colorPicker = createColorPicker(document.querySelector(`div[data-colorpicker='scale-bars']`), this.color, color => this.setColor(color));
+        register(document.querySelector(`div[data-colorpicker='scale-bars']`), this.color, () => this.color, color => this.setColor(color))
     }
 
     setColor(color){
@@ -164,7 +163,7 @@ class ScaleBarService {
 
         this.setColor(new THREE.Color(r, g, b))
         this.setVisibility(visibility)
-        updateColorPicker(this.colorPicker, document.querySelector(`div[data-colorpicker='scale-bars']`), {r, g, b})
+        updateSwatch(document.querySelector(`div[data-colorpicker='scale-bars']`), new THREE.Color(r, g, b))
     }
 
     toJSON(){

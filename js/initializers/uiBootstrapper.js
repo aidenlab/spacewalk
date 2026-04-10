@@ -49,12 +49,9 @@ class UIBootstrapper {
         // Initialize scale bar service (after GUI manager, so checkbox exists)
         const savedSettings = SettingsManager.load();
         const scaleBarsHidden = savedSettings?.scaleBars ? !savedSettings.scaleBars.visible : ScaleBarService.setScaleBarsHidden();
-        uiComponents.scaleBarService = new ScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container'), scaleBarsHidden);
+        const scaleBarsColor = savedSettings?.scaleBars ? new THREE.Color(savedSettings.scaleBars.r, savedSettings.scaleBars.g, savedSettings.scaleBars.b) : undefined;
+        uiComponents.scaleBarService = new ScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container'), scaleBarsHidden, scaleBarsColor);
         uiComponents.scaleBarService.insertScaleBarDOM();
-        if (savedSettings?.scaleBars) {
-            const { r, g, b } = savedSettings.scaleBars;
-            uiComponents.scaleBarService.setColor(new THREE.Color(r, g, b));
-        }
 
         // Initialize settings manager (after scale bar service, so all settings targets exist)
         uiComponents.settingsManager = new SettingsManager();
