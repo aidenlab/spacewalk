@@ -65,8 +65,6 @@ class GenomicNavigator {
 
             igvPanel.materialProvider = colorRampMaterialProvider;
             this.repaint()
-        } else if ('DidHideCrosshairs' === type) {
-            this.repaint()
         }
 
     }

@@ -227,8 +227,12 @@ class JuiceboxPanel extends Panel {
 
     attachMouseHandlersAndEventSubscribers() {
 
-        this.browser.eventBus.subscribe('DidHideCrosshairs', sceneManager)
-        this.browser.eventBus.subscribe('DidHideCrosshairs', genomicNavigator)
+        this.browser.eventBus.subscribe('DidHideCrosshairs', {
+            receiveEvent: () => {
+                sceneManager.delegateHideCrosshairs()
+                genomicNavigator.repaint()
+            }
+        })
 
         this.browser.coordinator.addCallback('onMapLoaded', async ({ dataset, state, datasetType }) => {
             const activeTabButton = this.container.querySelector('button.nav-link.active')
