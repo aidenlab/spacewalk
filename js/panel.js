@@ -38,7 +38,6 @@ class Panel {
         });
 
         SpacewalkEventBus.globalBus.subscribe('DidSelectPanel', this)
-        SpacewalkEventBus.globalBus.subscribe('ToggleUIControl', this)
         SpacewalkEventBus.globalBus.subscribe('AppWindowDidResize', this)
         SpacewalkEventBus.globalBus.subscribe('DidEndDrag', this)
     }
@@ -47,8 +46,6 @@ class Panel {
 
         if ('DidSelectPanel' === type) {
             this.panel.style.zIndex = this.getClassName() === data ? zIndexPanelSelected : zIndexPanelUnselected;
-        } else if ("ToggleUIControl" === type && data && data.payload === this.panel.getAttribute('id')) {
-            this.isHidden ? this.present() : this.dismiss();
         } else if ('AppWindowDidResize' === type && !this.isHidden) {
             const offset = this.getOffset();
             this.panel.style.left = `${offset.left}px`;
@@ -118,6 +115,15 @@ class Panel {
     static setPanelDictionary(panels) {
         for (let panel of panels) {
             panelDictionary[ panel.getClassName() ] = panel
+        }
+    }
+
+    static toggleById(panelId) {
+        for (const panel of Object.values(panelDictionary)) {
+            if (panel.panel.getAttribute('id') === panelId) {
+                panel.isHidden ? panel.present() : panel.dismiss()
+                return
+            }
         }
     }
 

@@ -60,26 +60,13 @@ class SceneManager {
             color => this.getGnomon()?.setColor(color)
         )
 
-        SpacewalkEventBus.globalBus.subscribe('RenderStyleDidChange', this);
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
         SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this);
     }
 
     receiveEvent({ type, data }) {
 
-        if ('RenderStyleDidChange' === type) {
-
-            if (data === Ribbon.renderStyle) {
-                this.renderStyle = Ribbon.renderStyle
-                this.ballAndStick?.hide()
-                this.ribbon?.show()
-            } else if (data === BallAndStick.renderStyle) {
-                this.renderStyle = BallAndStick.renderStyle
-                this.ribbon?.hide()
-                this.ballAndStick?.show()
-            }
-
-        } else if ('DidSelectTrace' === type) {
+        if ('DidSelectTrace' === type) {
             const { trace } = data
             this.isLoading = true
             try {
