@@ -7,7 +7,8 @@ import BallAndStick from "../ballAndStick.js"
 import SceneManager from "../sceneManager.js"
 import BallHighlighter from "../ballHighlighter.js"
 import PointCloudHighlighter from "../pointCloudHighlighter.js"
-import { appleCrayonColorThreeJS, highlightColor, createColorPicker, updateColorPicker } from "../utils/colorUtils.js"
+import { appleCrayonColorThreeJS, highlightColor } from "../utils/colorUtils.js"
+import { register, updateSwatch } from "../utils/sharedColorPicker.js"
 import SettingsManager from "../settingsManager.js"
 import { getMouseXY } from '../utils/utils.js'
 
@@ -16,9 +17,8 @@ import { getMouseXY } from '../utils/utils.js'
  * and all 3D visualization objects.
  */
 class ThreeJSInitializer {
-    constructor(container, colorPickerContainer) {
+    constructor(container) {
         this.container = container;
-        this.colorPickerContainer = colorPickerContainer
         this.mouseX = null;
         this.mouseY = null;
     }
@@ -100,25 +100,18 @@ class ThreeJSInitializer {
         threeJSObjects.cameraLightingRig.setPose(position, centroid);
 
         // Set up background color picker
-        const colorHandler = color => {
-            threeJSObjects.scene.background = new THREE.Color(color);
-            threeJSObjects.renderer.render(threeJSObjects.scene, threeJSObjects.camera);
-        }
-
-        threeJSObjects.sceneBackgroundColorPicker = createColorPicker(this.colorPickerContainer, threeJSObjects.scene.background, colorHandler);
-
-        this.updateSceneBackgroundColorpicker(
-            this.container,
+        const backgroundContainer = document.querySelector(`div[data-colorpicker='background']`)
+        register(
+            backgroundContainer,
             threeJSObjects.scene.background,
-            threeJSObjects.sceneBackgroundColorPicker
-        );
+            () => threeJSObjects.scene.background,
+            color => {
+                threeJSObjects.scene.background = new THREE.Color(color);
+                threeJSObjects.renderer.render(threeJSObjects.scene, threeJSObjects.camera);
+            }
+        )
 
         return threeJSObjects;
-    }
-
-    updateSceneBackgroundColorpicker(container, backgroundColor, colorPicker) {
-        const { r, g, b } = backgroundColor;
-        updateColorPicker(colorPicker, container, { r, g, b });
     }
 
     getMouseCoordinates() {

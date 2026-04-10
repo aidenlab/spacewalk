@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color Picker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f5;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.25);
+    --text-primary: #111111;
+    --text-secondary: #666666;
+    --radius: 10px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a;
+      --surface: #252525;
+      --border: rgba(255,255,255,0.1);
+      --border-strong: rgba(255,255,255,0.22);
+      --text-primary: #eeeeee;
+      --text-secondary: #888888;
+    }
+  }
+
+  body {
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2.5rem 1rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.25rem 1.5rem;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .sel-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.1rem;
+    padding: 0.55rem 0.7rem;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .sel-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.15s ease;
+  }
+
+  .sel-hex {
+    font-size: 13px;
+    font-family: "SF Mono", "Fira Mono", monospace;
+    color: var(--text-secondary);
+    letter-spacing: 0.04em;
+  }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    letter-spacing: 0.02em;
+  }
+
+  .dot-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+  }
+
+  .dot-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    flex-shrink: 0;
+  }
+
+  .dot:hover { transform: scale(1.14); }
+
+  .dot.selected::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-primary);
+    pointer-events: none;
+  }
+
+  .var-grid {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transform-origin: center;
+    z-index: 100;
+    border-radius: 5px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 6px 28px rgba(0,0,0,0.32);
+    transition: transform 0.17s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .var-grid.open {
+    transform: translate(-50%, -50%) scale(1);
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="sel-bar">
+    <div class="sel-dot" id="sel-dot" style="background:#004a88;"></div>
+    <span class="sel-hex" id="sel-hex">#004a88</span>
+  </div>
+  <p class="hint">Tap to select &nbsp;·&nbsp; Hold to refine</p>
+  <div class="dot-grid" id="dot-grid"></div>
+</div>
+
+<script>
+const COLORS = [
+  "#000000","#1e1e1e","#3a3a3a","#545453","#6e6e6e","#878687","#888787","#a09fa0",
+  "#b8b8b8","#d0d0d0","#e8e8e8","#ffffff",
+  "#891100","#894800","#888501","#458401","#028401","#018448","#008688","#004a88",
+  "#001888","#491a88","#891e88","#891648",
+  "#ff2101","#ff8802","#fffa03","#83f902","#05f802","#03f987","#00fdff","#008cff",
+  "#002eff","#8931ff","#ff39ff","#ff2987",
+  "#ff726e","#ffce6e","#fffb6d","#cefa6e","#68f96e","#68fbd0","#68fdff","#6acfff",
+  "#6e76ff","#d278ff","#ff7aff","#ff7fd3"
+];
+
+const N = 7;
+const CELL = 18;
+
+function hexToHSL(hex) {
+  let r = parseInt(hex.slice(1,3),16)/255;
+  let g = parseInt(hex.slice(3,5),16)/255;
+  let b = parseInt(hex.slice(5,7),16)/255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h, s, l = (max+min)/2;
+  if (max === min) {
+    h = s = 0;
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g-b)/d + (g<b ? 6 : 0)) / 6; break;
+      case g: h = ((b-r)/d + 2) / 6; break;
+      case b: h = ((r-g)/d + 4) / 6; break;
+    }
+  }
+  return { h: Math.round(h*360), s: Math.round(s*100), l: Math.round(l*100) };
+}
+
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const k = n => (n + h/30) % 12;
+  const a = s * Math.min(l, 1-l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n), 1)));
+  return '#' + [f(0),f(8),f(4)]
+    .map(x => Math.round(x*255).toString(16).padStart(2,'0'))
+    .join('');
+}
+
+function lum(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return 0.299*r + 0.587*g + 0.114*b;
+}
+
+function generateGrid(hex) {
+  const { h, s, l } = hexToHSL(hex);
+  const sMin=20, sMax=100, lMin=12, lMax=78;
+  const grid = [];
+  for (let row = 0; row < N; row++) {
+    const r = [];
+    const lightness = lMax - (row/(N-1)) * (lMax-lMin);
+    for (let col = 0; col < N; col++) {
+      const saturation = sMin + (col/(N-1)) * (sMax-sMin);
+      r.push({ h, s: Math.round(saturation), l: Math.round(lightness) });
+    }
+    grid.push(r);
+  }
+  const anchorCol = Math.max(0, Math.min(N-1, Math.round((s-sMin)/(sMax-sMin)*(N-1))));
+  const anchorRow = Math.max(0, Math.min(N-1, Math.round((lMax-l)/(lMax-lMin)*(N-1))));
+  return { grid, anchorCol, anchorRow };
+}
+
+let openWrap = null;
+let selectedDot = null;
+
+function closeOpen() {
+  if (openWrap) {
+    const vg = openWrap.querySelector('.var-grid');
+    if (vg) vg.classList.remove('open');
+    openWrap = null;
+  }
+}
+
+document.addEventListener('pointerdown', e => {
+  if (openWrap && !openWrap.querySelector('.var-grid').contains(e.target)) {
+    closeOpen();
+  }
+});
+
+function applyDotBorder(dot, hex) {
+  dot.style.border = lum(hex) > 185
+    ? '0.5px solid rgba(0,0,0,0.18)'
+    : 'none';
+}
+
+function setSelected(hex, dot) {
+  const bar = document.getElementById('sel-dot');
+  bar.style.background = hex;
+  applyDotBorder(bar, hex);
+  document.getElementById('sel-hex').textContent = hex;
+  if (selectedDot && selectedDot !== dot) selectedDot.classList.remove('selected');
+  dot.classList.add('selected');
+  selectedDot = dot;
+}
+
+function buildVarGrid(wrap, hex) {
+  const existing = wrap.querySelector('.var-grid');
+  if (existing) existing.remove();
+
+  const { grid, anchorCol, anchorRow } = generateGrid(hex);
+  const canvas = document.createElement('canvas');
+  canvas.width = N * CELL;
+  canvas.height = N * CELL;
+  const ctx = canvas.getContext('2d');
+
+  for (let row = 0; row < N; row++) {
+    for (let col = 0; col < N; col++) {
+      const { h, s, l } = grid[row][col];
+      ctx.fillStyle = `hsl(${h},${s}%,${l}%)`;
+      ctx.fillRect(col*CELL, row*CELL, CELL, CELL);
+    }
+  }
+
+  const cx = anchorCol*CELL + CELL/2;
+  const cy = anchorRow*CELL + CELL/2;
+  const r  = CELL * 0.32;
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+
+  const vg = document.createElement('div');
+  vg.className = 'var-grid';
+  vg.appendChild(canvas);
+
+  canvas.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    const rect = canvas.getBoundingClientRect();
+    const col = Math.floor((e.clientX - rect.left) / CELL);
+    const row = Math.floor((e.clientY - rect.top)  / CELL);
+    if (col >= 0 && col < N && row >= 0 && row < N) {
+      const { h, s, l } = grid[row][col];
+      const chosen = hslToHex(h, s, l);
+      const dot = wrap.querySelector('.dot');
+      dot.style.background = chosen;
+      applyDotBorder(dot, chosen);
+      setSelected(chosen, dot);
+      closeOpen();
+    }
+  });
+
+  wrap.appendChild(vg);
+  requestAnimationFrame(() => requestAnimationFrame(() => vg.classList.add('open')));
+  openWrap = wrap;
+}
+
+const dotGrid = document.getElementById('dot-grid');
+
+COLORS.forEach(hex => {
+  const wrap = document.createElement('div');
+  wrap.className = 'dot-wrap';
+  const dot = document.createElement('div');
+  dot.className = 'dot';
+  dot.style.background = hex;
+  applyDotBorder(dot, hex);
+
+  let holdTimer = null;
+  let didHold = false;
+
+  dot.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    didHold = false;
+    holdTimer = setTimeout(() => {
+      didHold = true;
+      if (openWrap && openWrap !== wrap) closeOpen();
+      buildVarGrid(wrap, hex);
+    }, 380);
+  });
+
+  dot.addEventListener('pointerup', () => {
+    clearTimeout(holdTimer);
+    if (!didHold) {
+      closeOpen();
+      setSelected(hex, dot);
+    }
+  });
+
+  dot.addEventListener('pointercancel', () => clearTimeout(holdTimer));
+
+  wrap.appendChild(dot);
+  dotGrid.appendChild(wrap);
+});
+
+// pre-select ocean
+const idx = COLORS.indexOf('#004a88');
+if (idx >= 0) {
+  const dot = dotGrid.children[idx].querySelector('.dot');
+  setSelected('#004a88', dot);
+}
+</script>
+</body>
+</html>

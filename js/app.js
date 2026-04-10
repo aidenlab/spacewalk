@@ -31,7 +31,6 @@ let googleEnabled = false;
 let cameraLightingRig;
 let camera;
 let scene;
-let sceneBackgroundColorPicker;
 let scaleBarService;
 
 function getThreeJSContainerRect() {
@@ -78,8 +77,6 @@ class App {
         this.camera = null;
         this.scene = null;
         this.picker = null;
-        this.sceneBackgroundColorPicker = null;
-
         // Observers
         this.renderContainerResizeObserver = null;
 
@@ -100,8 +97,7 @@ class App {
 
         // Initialize Three.js scene, camera, and renderer
         const container = document.getElementById('spacewalk-threejs-canvas-container')
-        const colorPickerContainer = document.querySelector(`div[data-colorpicker='background']`)
-        this.threeJSInitializer = new ThreeJSInitializer(container, colorPickerContainer);
+        this.threeJSInitializer = new ThreeJSInitializer(container);
         const threeJSObjects = this.threeJSInitializer.initialize(this.colorRampMaterialProvider);
         this.assignThreeJSObjects(threeJSObjects);
 
@@ -162,8 +158,6 @@ class App {
         this.cameraLightingRig = threeJSObjects.cameraLightingRig;
         this.camera = threeJSObjects.camera;
         this.scene = threeJSObjects.scene;
-        this.sceneBackgroundColorPicker = threeJSObjects.sceneBackgroundColorPicker;
-
         // Populate module-level variables
         pointCloud = this.pointCloud;
         ribbon = this.ribbon;
@@ -172,7 +166,6 @@ class App {
         cameraLightingRig = this.cameraLightingRig;
         camera = this.camera;
         scene = this.scene;
-        sceneBackgroundColorPicker = this.sceneBackgroundColorPicker;
     }
 
     assignUIComponents(uiComponents) {
@@ -385,7 +378,6 @@ export {
     getThreeJSContainerRect,
     scene,
     camera,
-    sceneBackgroundColorPicker,
     cameraLightingRig,
     googleEnabled,
     pointCloud,
