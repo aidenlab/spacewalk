@@ -1,4 +1,3 @@
-import * as THREE from 'three'
 import { igvxhr } from 'igv-utils'
 import { createSessionWidgets } from '../widgets/sessionWidgets.js'
 import { createTrackWidgetsWithTrackRegistry } from '../widgets/trackWidgets.js'
@@ -11,7 +10,6 @@ import { createSpacewalkFileLoaders } from '../spacewalkFileLoadWidgetServices.j
 import configureContactMapLoaders from '../widgets/contactMapLoad.js'
 import { createShareWidgets, shareWidgetConfigurator } from '../share/shareWidgets.js'
 import { configureDrag } from "../utils/draggable.js"
-import ScaleBarService from "../scaleBarService.js"
 import GUIManager from "../guiManager.js"
 import SettingsManager from "../settingsManager.js"
 import { showRelease } from "../utils/release.js"
@@ -47,11 +45,7 @@ class UIBootstrapper {
         });
 
         // Initialize scale bar service (after GUI manager, so checkbox exists)
-        const savedSettings = SettingsManager.load();
-        const scaleBarsHidden = savedSettings?.scaleBars ? !savedSettings.scaleBars.visible : ScaleBarService.setScaleBarsHidden();
-        const scaleBarsColor = savedSettings?.scaleBars ? new THREE.Color(savedSettings.scaleBars.r, savedSettings.scaleBars.g, savedSettings.scaleBars.b) : undefined;
-        uiComponents.scaleBarService = new ScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container'), scaleBarsHidden, scaleBarsColor);
-        uiComponents.scaleBarService.insertScaleBarDOM();
+        this.appContext.sceneManager.initializeScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container'));
 
         // Initialize settings manager (after scale bar service, so all settings targets exist)
         uiComponents.settingsManager = new SettingsManager();

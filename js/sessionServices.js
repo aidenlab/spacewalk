@@ -14,7 +14,6 @@ import {
     sceneManager,
     liveContactMapService,
     cameraLightingRig,
-    scaleBarService
 } from './app.js'
 import { SpacewalkGlobals } from './spacewalkGlobals.js'
 import GUIManager from "./guiManager.js"
