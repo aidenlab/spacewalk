@@ -5,7 +5,8 @@ import {sceneManager} from './app.js';
 import {installShim} from './igvTrackMaterialProviderShim.js';
 import Panel from './panel.js';
 import { getPathsWithTrackRegistry, updateTrackMenusWithTrackConfigurations } from './widgets/trackWidgets.js'
-import { spacewalkConfig } from "../spacewalk-config.js";
+import genomes from '/src/resources/genomes.json'
+import trackRegistry from '/src/resources/tracks/trackRegistry.json'
 
 
 let resizeObserver
@@ -48,13 +49,15 @@ class IGVPanel extends Panel {
         });
     }
 
-    async initialize(igvConfig) {
+    async initialize(igvConfig = IGVPanel.defaultConfig) {
+
+        igvConfig = { ...igvConfig }
 
         igvConfig.listeners = {
 
             'genomechange': async ({genome, trackConfigurations}) => {
 
-                let configs = await getPathsWithTrackRegistry(genome.id, spacewalkConfig.trackRegistry)
+                let configs = await getPathsWithTrackRegistry(genome.id, trackRegistry)
 
                 if (undefined === configs) {
                     configs = trackConfigurations
@@ -71,7 +74,7 @@ class IGVPanel extends Panel {
         const root = this.panel.querySelector('#spacewalk_igv_root_container')
 
         if (undefined === igvConfig.genomeList) {
-            igvConfig.genomeList = [ ...spacewalkConfig.igvConfig.genomeList ]
+            igvConfig.genomeList = [ ...IGVPanel.defaultConfig.genomeList ]
         }
         try {
             const result = await igv.createBrowser( root, igvConfig )
@@ -369,6 +372,17 @@ class IGVPanel extends Panel {
 
         console.log(`Successfully restored ${tracksToRestore.length} tracks`);
     }
+}
+
+IGVPanel.defaultConfig = {
+    genome: 'hg19',
+    locus: 'all',
+    genomeList: genomes,
+    showTrackLabels: true,
+    showControls: false,
+    showCursorGuide: true,
+    queryParametersSupported: false,
+    tracks: []
 }
 
 export default IGVPanel

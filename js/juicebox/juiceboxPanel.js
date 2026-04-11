@@ -3,7 +3,6 @@ import SpacewalkEventBus from '../spacewalkEventBus.js'
 import Panel from '../panel.js'
 import { ensembleManager, sceneManager, genomicNavigator, liveContactMapService } from '../app.js'
 import {appleCrayonColorRGB255, rgb255String} from "../utils/colorUtils"
-import {spacewalkConfig} from "../../spacewalk-config.js"
 
 // Store reference to the singleton JuiceboxPanel instance for event handlers
 let juiceboxPanelInstance = null;
@@ -40,7 +39,7 @@ class JuiceboxPanel extends Panel {
 
     }
 
-    async initialize(container, config) {
+    async initialize(container, config = JuiceboxPanel.defaultConfig) {
 
         let session
 
@@ -62,7 +61,7 @@ class JuiceboxPanel extends Panel {
         try {
             const [ browser ] = session.browsers
             if ('{}' === browser) {
-                const { width, height} = spacewalkConfig.juiceboxConfig
+                const { width, height} = JuiceboxPanel.defaultConfig
                 session = { browsers: [ { width, height, queryParametersSupported: false } ] }
             }
             await hic.restoreSession(document.querySelector('#spacewalk_juicebox_root_container'), session)
@@ -520,6 +519,15 @@ function moveControlsToNavbar(controlsWidget, hicNavbarContainer, contactMapNavB
 function moveControlsToCardHeader(controlsWidget) {
     if (!controlsWidget?._originalParent || controlsWidget.parentElement === controlsWidget._originalParent) return
     controlsWidget._originalParent.appendChild(controlsWidget)
+}
+
+JuiceboxPanel.defaultConfig = {
+    width: 480,
+    height: 480,
+    contactMapMenu: {
+        id: 'contact-map-datalist',
+        items: 'https://aidenlab.org/juicebox/res/hicfiles.json'
+    }
 }
 
 export default JuiceboxPanel;
