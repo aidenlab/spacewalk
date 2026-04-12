@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 import { StringUtils } from 'igv-utils'
-import SpacewalkEventBus from './spacewalkEventBus.js'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import {clamp, lerp} from './utils/mathUtils.js'
 import {ensembleManager, igvPanel, scene, sceneManager} from './app.js'
@@ -10,80 +9,62 @@ import ConvexHull from "./utils/convexHull.js"
 import {getPositionArrayWithTrace} from "./utils/utils.js"
 import { removeAndDisposeFromScene } from './utils/disposalUtils.js'
 
-let ballRadiusIndex = undefined;
-let ballRadiusTable = undefined;
-
-let stickRadiusIndex = undefined;
-let stickRadiusTable = undefined;
-
 const stickTesselation = { length: 2, radial: 8 }
 
 class BallAndStick {
 
     static renderStyle = 'render-style-ball-stick'
 
-    constructor ({ pickHighlighter, stickMaterial }) {
+    constructor ({ trace, pickHighlighter, stickMaterial, isStickVisible }) {
 
-        this.pickHighlighter = pickHighlighter;
+        this.pickHighlighter = pickHighlighter
+        this.stickMaterial = stickMaterial
+        this.isStickVisible = isStickVisible
 
-        this.stickMaterial = stickMaterial;
-
-        this.isStickVisible = true;
-
-        SpacewalkEventBus.globalBus.subscribe("DidUpdateGenomicInterpolant", this);
-        SpacewalkEventBus.globalBus.subscribe("DidHideCrosshairs", this);
-     }
-
-    receiveEvent({ type, data }) {
-
-        if (this.balls && BallAndStick.renderStyle === sceneManager.renderStyle) {
-
-            if ("DidUpdateGenomicInterpolant" === type) {
-
-                const { interpolantList } = data
-
-                if (interpolantList){
-                    const interpolantWindowList = ensembleManager.getGenomicInterpolantWindowList(interpolantList)
-
-                    if (interpolantWindowList) {
-                        const instanceIdList = interpolantWindowList.map(({ index }) => index)
-                        this.pickHighlighter.configureWithInstanceIdList(instanceIdList);
-                    }
-
-                } else {
-                    this.pickHighlighter.unhighlight()
-                }
-
-            } else if ('DidHideCrosshairs' === type) {
-                this.pickHighlighter.unhighlight()
-            }
-
-        }
-
-    }
-
-    configure(trace) {
-
+        // Build geometry from trace
         const stickCurves = createStickCurves(EnsembleManager.getSingleCentroidVertices(trace, true))
-        const averageCurveDistance  = computeAverageCurveDistance(stickCurves)
+        const averageCurveDistance = computeAverageCurveDistance(stickCurves)
 
-        stickRadiusTable = generateRadiusTable(0.5e-1 * averageCurveDistance);
-        stickRadiusIndex = Math.floor( stickRadiusTable.length/2 );
-        this.sticks = this.createSticks(trace, stickRadiusTable[ stickRadiusIndex ]);
+        this.stickRadiusTable = generateRadiusTable(0.5e-1 * averageCurveDistance)
+        this.stickRadiusIndex = Math.floor(this.stickRadiusTable.length / 2)
+        this.sticks = this.createSticks(trace, this.stickRadiusTable[this.stickRadiusIndex])
 
-        ballRadiusTable = generateRadiusTable(2e-1 * averageCurveDistance);
-        ballRadiusIndex = Math.floor( ballRadiusTable.length/2 );
-        this.balls = this.createBalls(trace, igvPanel.materialProvider, ballRadiusTable[ ballRadiusIndex ]);
+        this.ballRadiusTable = generateRadiusTable(2e-1 * averageCurveDistance)
+        this.ballRadiusIndex = Math.floor(this.ballRadiusTable.length / 2)
+        this.balls = this.createBalls(trace, igvPanel.materialProvider, this.ballRadiusTable[this.ballRadiusIndex])
+
+        // Wire up the highlighter to our balls mesh
+        this.pickHighlighter.setBalls(this.balls)
 
         const positionArray = getPositionArrayWithTrace(trace)
         this.hull = new ConvexHull(positionArray)
         this.hull.mesh.name = 'ball_and_stick_convex_hull'
+    }
 
-        if (sceneManager.renderStyle === BallAndStick.renderStyle) {
-            this.show();
+    /**
+     * Handle genomic interpolant events (delegated from SceneManager)
+     */
+    handleGenomicInterpolant(data) {
+        const { interpolantList } = data
+
+        if (interpolantList) {
+            const interpolantWindowList = ensembleManager.getGenomicInterpolantWindowList(interpolantList)
+
+            if (interpolantWindowList) {
+                const instanceIdList = interpolantWindowList.map(({ index }) => index)
+                this.pickHighlighter.configureWithInstanceIdList(instanceIdList)
+            }
+
         } else {
-            this.hide();
+            this.pickHighlighter.unhighlight()
         }
+    }
+
+    /**
+     * Handle crosshairs hidden event (delegated from SceneManager)
+     */
+    handleHideCrosshairs() {
+        this.pickHighlighter.unhighlight()
     }
 
     createBalls(trace, materialProvider, ballRadius) {
@@ -109,7 +90,6 @@ class BallAndStick {
         geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(new Float32Array(colorList), 3) )
 
         const material = getColorRampMaterial('instanceColor')
-        // const material = new THREE.MeshNormalMaterial()
 
         const mesh = new THREE.InstancedMesh(geometry, material, trace.length)
 
@@ -193,8 +173,8 @@ class BallAndStick {
 
     updateBallRadius(increment) {
 
-        ballRadiusIndex = clamp(ballRadiusIndex + increment, 0, ballRadiusTable.length - 1)
-        const radius = ballRadiusTable[ ballRadiusIndex ]
+        this.ballRadiusIndex = clamp(this.ballRadiusIndex + increment, 0, this.ballRadiusTable.length - 1)
+        const radius = this.ballRadiusTable[ this.ballRadiusIndex ]
 
         const matrix = new THREE.Matrix4()
         const pp = new THREE.Vector3()
@@ -214,35 +194,26 @@ class BallAndStick {
     }
 
     updateStickRadius(increment) {
-        stickRadiusIndex = clamp(stickRadiusIndex + increment, 0, stickRadiusTable.length - 1)
-        const radius = stickRadiusTable[ stickRadiusIndex ]
-        // const geometries = this.sticks.map(curve => new THREE.TubeBufferGeometry(curve, stickTesselation.length, radius, stickTesselation.radial, false));
-        // this.sticks.geometry.copy(mergeGeometries( geometries ));
+        this.stickRadiusIndex = clamp(this.stickRadiusIndex + increment, 0, this.stickRadiusTable.length - 1)
+        const radius = this.stickRadiusTable[ this.stickRadiusIndex ]
     }
 
     updateMaterialProvider (materialProvider) {
 
-        if (this.balls) {
+        for (let i = 0; i < ensembleManager.currentTrace.length; i++) {
+            const { interpolant } = ensembleManager.currentTrace[ i ]
+            const color = materialProvider.colorForInterpolant(interpolant)
 
-            for (let i = 0; i < ensembleManager.currentTrace.length; i++) {
-                const { interpolant } = ensembleManager.currentTrace[ i ]
-                const color = materialProvider.colorForInterpolant(interpolant)
-
-                const bufferAttribute = this.balls.geometry.getAttribute('instanceColor')
-                color.toArray(bufferAttribute.array, i * 3)
-            }
-
-            this.balls.geometry.attributes.instanceColor.needsUpdate = true
-
+            const bufferAttribute = this.balls.geometry.getAttribute('instanceColor')
+            color.toArray(bufferAttribute.array, i * 3)
         }
+
+        this.balls.geometry.attributes.instanceColor.needsUpdate = true
 
     }
 
     renderLoopHelper () {
-
-        if (this.sticks) {
-            this.sticks.visible = (this.isStickVisible && sceneManager.renderStyle === BallAndStick.renderStyle)
-        }
+        this.sticks.visible = (this.isStickVisible && sceneManager.renderStyle === BallAndStick.renderStyle)
     }
 
     addToScene (scene) {
@@ -252,69 +223,29 @@ class BallAndStick {
     }
 
     dispose () {
-
-        if (this.balls) {
-            removeAndDisposeFromScene(scene, this.balls)
-            this.balls = undefined
-        }
-
-        if (this.sticks) {
-            removeAndDisposeFromScene(scene, this.sticks)
-            this.sticks = undefined
-        }
+        removeAndDisposeFromScene(scene, this.balls)
+        removeAndDisposeFromScene(scene, this.sticks)
 
         if (this.hull && this.hull.mesh) {
             removeAndDisposeFromScene(scene, this.hull.mesh)
-            this.hull.mesh = undefined
-            this.hull = undefined
         }
+
+        // Clear highlighter reference to our now-disposed balls
+        this.pickHighlighter.setBalls(undefined)
     }
 
     hide () {
-        if (undefined === this.balls) {
-            return
-        }
         this.balls.visible = false
         this.sticks.visible = false
         this.hull.mesh.visible = false
     }
 
     show () {
-        if (undefined === this.balls) {
-            return
-        }
         this.balls.visible = true
         this.sticks.visible = true
         this.hull.mesh.visible = true
     }
 
-}
-
-function getPositionArrayWithBallsInstancedMesh(mesh) {
-
-    const geometry = mesh.geometry; // Canonical sphere geometry
-    const baseVertices = geometry.attributes.position.array; // Base sphere vertices
-
-    const matrix = new THREE.Matrix4();
-    const vertex = new THREE.Vector3();
-
-    const aggregateVertices = []; // Store all transformed vertices
-    for (let i = 0; i < mesh.count; i++) {
-
-        // Get the transformation matrix for the current instance
-        mesh.getMatrixAt(i, matrix);
-
-        // Transform canonical sphere vertices
-        for (let j = 0; j < baseVertices.length; j += 3) {
-
-            vertex.set(baseVertices[j], baseVertices[j + 1], baseVertices[j + 2]);
-            vertex.applyMatrix4(matrix);
-
-            aggregateVertices.push(vertex.x, vertex.y, vertex.z);
-        }
-    }
-
-    return aggregateVertices;
 }
 
 function generateRadiusTable(defaultRadius) {

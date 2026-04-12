@@ -1,20 +1,16 @@
 import * as THREE from "three"
 import CameraLightingRig from "../cameraLightingRig.js"
 import Picker from "../picker.js"
-import PointCloud from "../pointCloud.js"
-import Ribbon from "../ribbon.js"
-import BallAndStick from "../ballAndStick.js"
 import SceneManager from "../sceneManager.js"
-import BallHighlighter from "../ballHighlighter.js"
-import PointCloudHighlighter from "../pointCloudHighlighter.js"
-import { appleCrayonColorThreeJS, highlightColor } from "../utils/colorUtils.js"
-import { register, updateSwatch } from "../utils/sharedColorPicker.js"
+import { appleCrayonColorThreeJS } from "../utils/colorUtils.js"
+import { register } from "../utils/sharedColorPicker.js"
 import SettingsManager from "../settingsManager.js"
 import { getMouseXY } from '../utils/utils.js'
 
 /**
  * Initializer class responsible for setting up the Three.js scene, camera, renderer,
- * and all 3D visualization objects.
+ * and SceneManager. Visualization objects (BallAndStick, PointCloud, Ribbon) are now
+ * created transiently by SceneManager when a trace is loaded.
  */
 class ThreeJSInitializer {
     constructor(container) {
@@ -24,29 +20,14 @@ class ThreeJSInitializer {
     }
 
     /**
-     * Initialize all Three.js objects and return them
+     * Initialize Three.js core objects and return them
      * @param {Object} colorRampMaterialProvider - The color ramp material provider
      * @returns {Object} Object containing all initialized Three.js objects
      */
     initialize(colorRampMaterialProvider) {
         const threeJSObjects = {};
 
-        // Create visualization objects
-        threeJSObjects.ribbon = new Ribbon();
-
-        const stickMaterial = new THREE.MeshPhongMaterial({ color: appleCrayonColorThreeJS('aluminum') });
-        stickMaterial.side = THREE.DoubleSide;
-
-        threeJSObjects.ballAndStick = new BallAndStick({
-            pickHighlighter: new BallHighlighter(highlightColor),
-            stickMaterial
-        });
-
-        threeJSObjects.pointCloud = new PointCloud({
-            pickHighlighter: new PointCloudHighlighter(),
-            deemphasizedColor: appleCrayonColorThreeJS('magnesium')
-        });
-
+        // Create SceneManager (owns visualization object lifecycle)
         threeJSObjects.sceneManager = new SceneManager(colorRampMaterialProvider);
 
         threeJSObjects.picker = new Picker(new THREE.Raycaster());
@@ -120,4 +101,3 @@ class ThreeJSInitializer {
 }
 
 export default ThreeJSInitializer;
-

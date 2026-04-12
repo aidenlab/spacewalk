@@ -1,10 +1,23 @@
-import {ensembleManager, igvPanel, pointCloud} from "./app.js";
+import {ensembleManager, igvPanel} from "./app.js";
 import {setGeometryColorAttribute} from "./pointCloud.js";
 
 class PointCloudHighlighter {
 
     constructor () {
         this.objects = undefined
+        this.meshList = undefined
+        this.material = undefined
+        this.deemphasizedMaterial = undefined
+    }
+
+    /**
+     * Set the point cloud context this highlighter operates on.
+     * Called each time a new PointCloud is created.
+     */
+    setPointCloudContext({ meshList, material, deemphasizedMaterial }) {
+        this.meshList = meshList
+        this.material = material
+        this.deemphasizedMaterial = deemphasizedMaterial
     }
 
     highlightWithObjectList(objectList) {
@@ -25,10 +38,10 @@ class PointCloudHighlighter {
 
     highlight() {
 
-        if (pointCloud.meshList) {
+        if (this.meshList) {
 
-            for (const mesh of pointCloud.meshList) {
-                mesh.material = pointCloud.deemphasizedMaterial
+            for (const mesh of this.meshList) {
+                mesh.material = this.deemphasizedMaterial
 
                 // Ensure deemphasized points are drawn BEFORE highlighted points
                 mesh.renderOrder = 0;
@@ -39,12 +52,12 @@ class PointCloudHighlighter {
 
             for (const mesh of this.objects) {
 
-                mesh.material = pointCloud.material
+                mesh.material = this.material
 
                 // Ensure highlighted points are drawn AFTER deemphasized points
                 mesh.renderOrder = 1;
 
-                const index = pointCloud.meshList.indexOf(mesh)
+                const index = this.meshList.indexOf(mesh)
                 const { interpolant } = ensembleManager.currentTrace[ index ]
                 const rgb = igvPanel.materialProvider.colorForInterpolant(interpolant)
 
@@ -59,13 +72,13 @@ class PointCloudHighlighter {
 
     unhighlight() {
 
-        if (pointCloud.meshList) {
+        if (this.meshList) {
 
-            for (const mesh of pointCloud.meshList) {
+            for (const mesh of this.meshList) {
 
-                mesh.material = pointCloud.material
+                mesh.material = this.material
 
-                const index = pointCloud.meshList.indexOf(mesh)
+                const index = this.meshList.indexOf(mesh)
                 const { interpolant } = ensembleManager.currentTrace[ index ]
                 const rgb = igvPanel.materialProvider.colorForInterpolant(interpolant)
 
