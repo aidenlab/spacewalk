@@ -75,6 +75,7 @@ class SceneManager {
             this.isLoading = true
             try {
                 this.setupWithTrace(trace)
+                this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : this.renderStyle)
             } finally {
                 this.isLoading = false
             }
