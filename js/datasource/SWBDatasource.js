@@ -7,6 +7,7 @@ import DataSourceBase from './dataSourceBase.js'
 import {hideGlobalSpinner, showGlobalSpinner} from "../utils/utils";
 import {createBoundingBoxWithFlatXYZList, cullDuplicateXYZ} from "../utils/mathUtils.js"
 import SpacewalkEventBus from "../spacewalkEventBus.js"
+import { updateEnsembleGroupDisplay } from "../guiManager.js"
 
 class SWBDatasource extends DataSourceBase {
 
@@ -82,7 +83,7 @@ class SWBDatasource extends DataSourceBase {
         this.isPointCloud = ('multi_point' === this.header.point_type)
         this.vertexListCount = undefined
 
-        SpacewalkEventBus.globalBus.post({ type: "DidSelectEnsembleGroup", data: ensembleGroupKey })
+        updateEnsembleGroupDisplay(ensembleGroupKey)
     }
 
     async getVertexListCount(){

@@ -1,7 +1,6 @@
 import * as THREE from "three"
 import {StringUtils} from "igv-utils"
-import SpacewalkEventBus from './spacewalkEventBus.js'
-import {ensembleManager, igvPanel, pointCloud, scene, sceneManager} from "./app.js";
+import {ensembleManager, igvPanel, scene, sceneManager} from "./app.js"
 import EnsembleManager from "./ensembleManager.js"
 import {clamp} from "./utils/mathUtils.js"
 import ConvexHull from "./utils/convexHull.js"
@@ -11,20 +10,70 @@ class PointCloud {
 
     static renderStyle = 'render-style-point-cloud'
 
-    constructor ({ pickHighlighter, deemphasizedColor }) {
-        this.pickHighlighter = pickHighlighter;
-        this.deemphasizedColor = deemphasizedColor;
+    constructor ({ trace, pickHighlighter, deemphasizedColor, pointSizeBoundRadiusPercentage, pointOpacity }) {
+        this.pickHighlighter = pickHighlighter
+        this.deemphasizedColor = deemphasizedColor
 
-        this.pointSizeBoundRadiusPercentage = undefined
-        this.pointSize = undefined
-
-        this.pointOpacity = 0.375
+        this.pointOpacity = pointOpacity ?? 0.375
         this.deemphasizedPointOpacity = 0.125/4
 
-        this.createMaterials();
+        this.createMaterials()
 
-        SpacewalkEventBus.globalBus.subscribe("DidUpdateGenomicInterpolant", this);
-        SpacewalkEventBus.globalBus.subscribe("DidLeaveGenomicNavigator", this);
+        // Scale point size to pointcloud bbox for reasonable starting point size
+        const { radius } = EnsembleManager.getTraceBounds(trace)
+
+        this.pointSizeBoundRadiusPercentage = pointSizeBoundRadiusPercentage
+        this.pointSize = undefined === this.pointSizeBoundRadiusPercentage ? Math.max(4, Math.floor(radius/16)) : this.pointSizeBoundRadiusPercentage * radius
+        document.querySelector('#spacewalk_ui_manager_pointcloud_point_size_label').innerHTML = `Point Size (${ Math.floor(this.pointSize)} nm)`
+
+        this.material.size = this.pointSize
+        this.deemphasizedMaterial.size = this.pointSize
+
+        const list = trace.map(({ xyz }) => xyz.length / 3)
+        const sum = list.reduce((total, item) => total + item)
+
+        const str = `PointCloud. trace(${ trace.length }) points(${ StringUtils.numberFormatter(sum)})`
+        console.time(str)
+
+        this.deemphasisColorAttribute = undefined
+
+        this.meshList = trace
+            .map(({ xyz, interpolant, drawUsage }) => {
+
+                const geometry = new THREE.BufferGeometry()
+
+                // xyz
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(xyz, 3 ))
+
+                // rgb
+                geometry.userData.colorAttribute = new THREE.Float32BufferAttribute(new Float32Array(xyz.length * 3), 3)
+                geometry.userData.colorAttribute.setUsage(drawUsage)
+
+                const rgb = igvPanel.materialProvider.colorForInterpolant(interpolant)
+                setGeometryColorAttribute(geometry.userData.colorAttribute.array, rgb)
+                geometry.setAttribute('color', geometry.userData.colorAttribute)
+
+                // retain a copy of deemphasis color for use during highlight/unhighlight
+                geometry.userData.deemphasisColorAttribute = new THREE.Float32BufferAttribute(new Float32Array(xyz.length * 3), 3)
+                setGeometryColorAttribute(geometry.userData.deemphasisColorAttribute.array, this.deemphasizedColor)
+
+                const mesh = new THREE.Points(geometry, this.material)
+                mesh.name = 'point_cloud'
+                return mesh
+            })
+
+        // Wire up the highlighter to our context
+        this.pickHighlighter.setPointCloudContext({
+            meshList: this.meshList,
+            material: this.material,
+            deemphasizedMaterial: this.deemphasizedMaterial
+        })
+
+        const positionArray = getPositionArray(this.meshList)
+        this.hull = new ConvexHull(positionArray)
+        this.hull.mesh.name = 'point_cloud_convex_hull'
+
+        console.timeEnd(str)
     }
 
     createMaterials() {
@@ -74,114 +123,52 @@ class PointCloud {
         this.deemphasizedMaterial.side = THREE.DoubleSide;
     }
 
-    configure(trace) {
+    /**
+     * Handle genomic interpolant events (delegated from SceneManager)
+     */
+    handleGenomicInterpolant(data) {
+        const { interpolantList } = data
 
-        // Ensure materials exist (recreate if disposed)
-        if (!this.material || !this.deemphasizedMaterial) {
-            this.createMaterials();
-        }
+        if (interpolantList) {
+            const interpolantWindowList = ensembleManager.getGenomicInterpolantWindowList(interpolantList)
 
-        // Scale point size to pointcloud bbox for reasonable starting point size
-        const { radius } = EnsembleManager.getTraceBounds(trace)
-
-        this.pointSize = undefined === this.pointSizeBoundRadiusPercentage ? Math.max(4, Math.floor(radius/16)) : this.pointSizeBoundRadiusPercentage * radius
-        document.querySelector('#spacewalk_ui_manager_pointcloud_point_size_label').innerHTML = `Point Size (${ Math.floor(this.pointSize)} nm)`
-
-        this.material.size = this.pointSize
-        this.deemphasizedMaterial.size = this.pointSize
-
-        const list = trace.map(({ xyz }) => xyz.length / 3)
-        const sum = list.reduce((total, item) => total + item)
-
-        const str = `PointCloud. trace(${ trace.length }) points(${ StringUtils.numberFormatter(sum)})`
-        console.time(str)
-
-        this.deemphasisColorAttribute = undefined
-
-        this.meshList = trace
-            .map(({ xyz, interpolant, drawUsage }) => {
-
-                const geometry = new THREE.BufferGeometry()
-
-                // xyz
-                geometry.setAttribute('position', new THREE.Float32BufferAttribute(xyz, 3 ))
-
-                // rgb
-                geometry.userData.colorAttribute = new THREE.Float32BufferAttribute(new Float32Array(xyz.length * 3), 3)
-                geometry.userData.colorAttribute.setUsage(drawUsage)
-
-                const rgb = igvPanel.materialProvider.colorForInterpolant(interpolant)
-                setGeometryColorAttribute(geometry.userData.colorAttribute.array, rgb)
-                geometry.setAttribute('color', geometry.userData.colorAttribute)
-
-                // retain a copy of deemphasis color for use during highlight/unhighlight
-                geometry.userData.deemphasisColorAttribute = new THREE.Float32BufferAttribute(new Float32Array(xyz.length * 3), 3)
-                setGeometryColorAttribute(geometry.userData.deemphasisColorAttribute.array, pointCloud.deemphasizedColor)
-
-                const mesh = new THREE.Points(geometry, this.material)
-                mesh.name = 'point_cloud'
-                return mesh
-            })
-
-        const positionArray = getPositionArray(this.meshList)
-        this.hull = new ConvexHull(positionArray)
-        this.hull.mesh.name = 'point_cloud_convex_hull'
-
-        sceneManager.renderStyle === PointCloud.renderStyle ? this.show() : this.hide()
-
-        console.timeEnd(str)
-
-    }
-
-    receiveEvent({ type, data }) {
-
-        if ("DidUpdateGenomicInterpolant" === type && this.meshList && PointCloud.renderStyle === sceneManager.renderStyle) {
-
-            const { interpolantList } = data;
-
-            if (interpolantList) {
-                const interpolantWindowList = ensembleManager.getGenomicInterpolantWindowList(interpolantList)
-
-                if (interpolantWindowList) {
-                    const objectList = interpolantWindowList.map(({ index }) => this.meshList[ index ])
-                    this.pickHighlighter.highlightWithObjectList(objectList)
-                }
-
-            } else {
-                this.pickHighlighter.unhighlight()
+            if (interpolantWindowList) {
+                const objectList = interpolantWindowList.map(({ index }) => this.meshList[ index ])
+                this.pickHighlighter.highlightWithObjectList(objectList)
             }
 
-
-        } else if ("DidLeaveGenomicNavigator" === type) {
+        } else {
             this.pickHighlighter.unhighlight()
         }
+    }
 
+    /**
+     * Handle leave genomic navigator event (delegated from SceneManager)
+     */
+    handleLeaveGenomicNavigator() {
+        this.pickHighlighter.unhighlight()
     }
 
     updateMaterialProvider (materialProvider) {
 
-        if (this.meshList) {
-            for (const mesh of this.meshList) {
+        for (const mesh of this.meshList) {
 
-                mesh.material = this.material
+            mesh.material = this.material
 
-                const index = this.meshList.indexOf(mesh)
-                const { interpolant } = ensembleManager.currentTrace[ index ]
-                const rgb = materialProvider.colorForInterpolant(interpolant)
+            const index = this.meshList.indexOf(mesh)
+            const { interpolant } = ensembleManager.currentTrace[ index ]
+            const rgb = materialProvider.colorForInterpolant(interpolant)
 
-                setGeometryColorAttribute(mesh.geometry.userData.colorAttribute.array, rgb)
-                mesh.geometry.setAttribute('color', mesh.geometry.userData.colorAttribute)
-                mesh.geometry.attributes.color.needsUpdate = true
-            }
+            setGeometryColorAttribute(mesh.geometry.userData.colorAttribute.array, rgb)
+            mesh.geometry.setAttribute('color', mesh.geometry.userData.colorAttribute)
+            mesh.geometry.attributes.color.needsUpdate = true
         }
     }
 
     addToScene (scene) {
 
-        if (this.meshList) {
-            for (let mesh of this.meshList) {
-                scene.add( mesh );
-            }
+        for (let mesh of this.meshList) {
+            scene.add( mesh );
         }
 
         // scene.add(this.hull.mesh)
@@ -189,25 +176,24 @@ class PointCloud {
 
     dispose () {
 
-        if (this.meshList) {
-            removeAndDisposeArrayFromScene(scene, this.meshList)
-            this.meshList = undefined
-        }
+        removeAndDisposeArrayFromScene(scene, this.meshList)
 
         if (this.hull && this.hull.mesh) {
             scene.remove(this.hull.mesh)
             this.hull.mesh.geometry.dispose()
             disposeMaterial(this.hull.mesh.material)
-            this.hull.mesh = undefined
-            this.hull = undefined
         }
 
         // Dispose materials
         disposeMaterial(this.material)
         disposeMaterial(this.deemphasizedMaterial)
 
-        this.material = undefined
-        this.deemphasizedMaterial = undefined
+        // Clear highlighter references to our now-disposed context
+        this.pickHighlighter.setPointCloudContext({
+            meshList: undefined,
+            material: undefined,
+            deemphasizedMaterial: undefined
+        })
     }
 
     renderLoopHelper () {
@@ -215,21 +201,17 @@ class PointCloud {
     }
 
     hide () {
-        if (this.meshList) {
-            for (let mesh of this.meshList) {
-                mesh.visible = false;
-                this.hull.mesh.visible = false;
-            }
+        for (let mesh of this.meshList) {
+            mesh.visible = false;
+            this.hull.mesh.visible = false;
         }
     }
 
     show () {
-        if (this.meshList) {
-            for (let mesh of this.meshList) {
-                mesh.visible = true;
-            }
-            this.hull.mesh.visible = true;
+        for (let mesh of this.meshList) {
+            mesh.visible = true;
         }
+        this.hull.mesh.visible = true;
     }
 
     updatePointSize(increment) {

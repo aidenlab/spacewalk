@@ -1,52 +1,33 @@
 import * as THREE from "three"
 import CameraLightingRig from "../cameraLightingRig.js"
 import Picker from "../picker.js"
-import PointCloud from "../pointCloud.js"
-import Ribbon from "../ribbon.js"
-import BallAndStick from "../ballAndStick.js"
 import SceneManager from "../sceneManager.js"
-import BallHighlighter from "../ballHighlighter.js"
-import PointCloudHighlighter from "../pointCloudHighlighter.js"
-import { appleCrayonColorThreeJS, highlightColor, createColorPicker, updateColorPicker } from "../utils/colorUtils.js"
+import { appleCrayonColorThreeJS } from "../utils/colorUtils.js"
+import { register } from "../utils/sharedColorPicker.js"
 import SettingsManager from "../settingsManager.js"
 import { getMouseXY } from '../utils/utils.js'
 
 /**
  * Initializer class responsible for setting up the Three.js scene, camera, renderer,
- * and all 3D visualization objects.
+ * and SceneManager. Visualization objects (BallAndStick, PointCloud, Ribbon) are now
+ * created transiently by SceneManager when a trace is loaded.
  */
 class ThreeJSInitializer {
-    constructor(container, colorPickerContainer) {
+    constructor(container) {
         this.container = container;
-        this.colorPickerContainer = colorPickerContainer
         this.mouseX = null;
         this.mouseY = null;
     }
 
     /**
-     * Initialize all Three.js objects and return them
+     * Initialize Three.js core objects and return them
      * @param {Object} colorRampMaterialProvider - The color ramp material provider
      * @returns {Object} Object containing all initialized Three.js objects
      */
     initialize(colorRampMaterialProvider) {
         const threeJSObjects = {};
 
-        // Create visualization objects
-        threeJSObjects.ribbon = new Ribbon();
-
-        const stickMaterial = new THREE.MeshPhongMaterial({ color: appleCrayonColorThreeJS('aluminum') });
-        stickMaterial.side = THREE.DoubleSide;
-
-        threeJSObjects.ballAndStick = new BallAndStick({
-            pickHighlighter: new BallHighlighter(highlightColor),
-            stickMaterial
-        });
-
-        threeJSObjects.pointCloud = new PointCloud({
-            pickHighlighter: new PointCloudHighlighter(),
-            deemphasizedColor: appleCrayonColorThreeJS('magnesium')
-        });
-
+        // Create SceneManager (owns visualization object lifecycle)
         threeJSObjects.sceneManager = new SceneManager(colorRampMaterialProvider);
 
         threeJSObjects.picker = new Picker(new THREE.Raycaster());
@@ -100,25 +81,18 @@ class ThreeJSInitializer {
         threeJSObjects.cameraLightingRig.setPose(position, centroid);
 
         // Set up background color picker
-        const colorHandler = color => {
-            threeJSObjects.scene.background = new THREE.Color(color);
-            threeJSObjects.renderer.render(threeJSObjects.scene, threeJSObjects.camera);
-        }
-
-        threeJSObjects.sceneBackgroundColorPicker = createColorPicker(this.colorPickerContainer, threeJSObjects.scene.background, colorHandler);
-
-        this.updateSceneBackgroundColorpicker(
-            this.container,
+        const backgroundContainer = document.querySelector(`div[data-colorpicker='background']`)
+        register(
+            backgroundContainer,
             threeJSObjects.scene.background,
-            threeJSObjects.sceneBackgroundColorPicker
-        );
+            () => threeJSObjects.scene.background,
+            color => {
+                threeJSObjects.scene.background = new THREE.Color(color);
+                threeJSObjects.renderer.render(threeJSObjects.scene, threeJSObjects.camera);
+            }
+        )
 
         return threeJSObjects;
-    }
-
-    updateSceneBackgroundColorpicker(container, backgroundColor, colorPicker) {
-        const { r, g, b } = backgroundColor;
-        updateColorPicker(colorPicker, container, { r, g, b });
     }
 
     getMouseCoordinates() {
@@ -127,4 +101,3 @@ class ThreeJSInitializer {
 }
 
 export default ThreeJSInitializer;
-

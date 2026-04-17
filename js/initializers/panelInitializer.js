@@ -4,7 +4,6 @@ import JuiceboxPanel from "../juicebox/juiceboxPanel.js"
 import LiveContactMapService from "../juicebox/liveContactMapService.js"
 import LiveDistanceMapService from "../juicebox/liveDistanceMapService.js"
 import configureContactMapLoaders from '../widgets/contactMapLoad.js'
-import { spacewalkConfig } from "../../spacewalk-config.js"
 
 /**
  * Initializer class responsible for setting up IGV and Juicebox panels
@@ -36,7 +35,7 @@ class PanelInitializer {
         panelObjects.igvPanel.materialProvider = this.appContext.colorRampMaterialProvider;
         // Populate module-level variable BEFORE initialization (event handlers may need it)
         this.appContext.populatePanelVariable('igvPanel', panelObjects.igvPanel);
-        await panelObjects.igvPanel.initialize(spacewalkConfig.igvConfig);
+        await panelObjects.igvPanel.initialize();
 
         // Initialize Juicebox Panel (mini-app)
         panelObjects.juiceboxPanel = new JuiceboxPanel({
@@ -47,8 +46,7 @@ class PanelInitializer {
         // Populate module-level variable BEFORE initialization (event handlers need it)
         this.appContext.populatePanelVariable('juiceboxPanel', panelObjects.juiceboxPanel);
         await panelObjects.juiceboxPanel.initialize(
-            document.querySelector('#spacewalk_juicebox_root_container'),
-            spacewalkConfig.juiceboxConfig
+            document.querySelector('#spacewalk_juicebox_root_container')
         );
 
         // NOW initialize live map services (these depend on panels being ready AND module-level variables populated)
@@ -72,7 +70,7 @@ class PanelInitializer {
             dataModalId: 'hic-contact-map-modal',
             encodeHostedModalId: 'hic-encode-hosted-contact-map-modal',
             dropboxButton: document.getElementById('hic-contact-map-dropdown-dropbox-button'),
-            mapMenu: spacewalkConfig.juiceboxConfig.contactMapMenu,
+            mapMenu: JuiceboxPanel.defaultConfig.contactMapMenu,
             loadHandler: (path, name, mapType) => juiceboxPanel.loadHicFile(path)
         };
 

@@ -7,17 +7,12 @@ import { getUrlParams, loadSession, uncompressSessionURL } from "./sessionServic
 import SpacewalkEventBus from "./spacewalkEventBus.js"
 import { showGlobalSpinner, hideGlobalSpinner } from './utils/utils.js'
 import { defaultColormapName } from "./utils/colorMapManager.js"
-import { spacewalkConfig } from "../spacewalk-config.js"
-import SceneManager from "./sceneManager.js"
 import ThreeJSInitializer from "./initializers/threeJSInitializer.js"
 import UIBootstrapper from "./initializers/uiBootstrapper.js"
 import PanelInitializer from "./initializers/panelInitializer.js"
 
 // Module-level variables - the single source of truth for shared application state
 // These are populated by the App class during initialization
-let pointCloud;
-let ribbon;
-let ballAndStick;
 let ensembleManager;
 let sceneManager;
 let trackMaterialProvider;
@@ -31,8 +26,6 @@ let googleEnabled = false;
 let cameraLightingRig;
 let camera;
 let scene;
-let sceneBackgroundColorPicker;
-let scaleBarService;
 
 function getThreeJSContainerRect() {
     const container = document.querySelector('#spacewalk-threejs-canvas-container');
@@ -46,11 +39,6 @@ function getThreeJSContainerRect() {
 class App {
     constructor() {
 
-        // Visualization objects
-        this.pointCloud = null;
-        this.ribbon = null;
-        this.ballAndStick = null;
-
         // Core managers
         this.ensembleManager = null;
         this.colorMapManager = null;
@@ -62,7 +50,6 @@ class App {
         // Services
         this.liveContactMapService = null;
         this.liveDistanceMapService = null;
-        this.scaleBarService = null;
 
         // Panels
         this.juiceboxPanel = null;
@@ -78,8 +65,6 @@ class App {
         this.camera = null;
         this.scene = null;
         this.picker = null;
-        this.sceneBackgroundColorPicker = null;
-
         // Observers
         this.renderContainerResizeObserver = null;
 
@@ -100,8 +85,7 @@ class App {
 
         // Initialize Three.js scene, camera, and renderer
         const container = document.getElementById('spacewalk-threejs-canvas-container')
-        const colorPickerContainer = document.querySelector(`div[data-colorpicker='background']`)
-        this.threeJSInitializer = new ThreeJSInitializer(container, colorPickerContainer);
+        this.threeJSInitializer = new ThreeJSInitializer(container);
         const threeJSObjects = this.threeJSInitializer.initialize(this.colorRampMaterialProvider);
         this.assignThreeJSObjects(threeJSObjects);
 
@@ -153,36 +137,25 @@ class App {
     }
 
     assignThreeJSObjects(threeJSObjects) {
-        this.pointCloud = threeJSObjects.pointCloud;
-        this.ribbon = threeJSObjects.ribbon;
-        this.ballAndStick = threeJSObjects.ballAndStick;
         this.sceneManager = threeJSObjects.sceneManager;
         this.picker = threeJSObjects.picker;
         this.renderer = threeJSObjects.renderer;
         this.cameraLightingRig = threeJSObjects.cameraLightingRig;
         this.camera = threeJSObjects.camera;
         this.scene = threeJSObjects.scene;
-        this.sceneBackgroundColorPicker = threeJSObjects.sceneBackgroundColorPicker;
-
         // Populate module-level variables
-        pointCloud = this.pointCloud;
-        ribbon = this.ribbon;
-        ballAndStick = this.ballAndStick;
         sceneManager = this.sceneManager;
         cameraLightingRig = this.cameraLightingRig;
         camera = this.camera;
         scene = this.scene;
-        sceneBackgroundColorPicker = this.sceneBackgroundColorPicker;
     }
 
     assignUIComponents(uiComponents) {
-        this.scaleBarService = uiComponents.scaleBarService;
         this.guiManager = uiComponents.guiManager;
         this.traceSelector = uiComponents.traceSelector;
         this.genomicNavigator = uiComponents.genomicNavigator;
 
         // Populate module-level variables
-        scaleBarService = this.scaleBarService;
         genomicNavigator = this.genomicNavigator;
     }
 
@@ -322,9 +295,7 @@ class App {
 
     render() {
         if (this.sceneManager.isGood2Go()) {
-            this.pointCloud.renderLoopHelper();
-            this.ballAndStick.renderLoopHelper();
-            this.ribbon.renderLoopHelper();
+            this.sceneManager.renderLoopHelper();
             this.genomicNavigator.renderLoopHelper();
             this.cameraLightingRig.renderLoopHelper();
             this.sceneManager.getGroundPlane().renderLoopHelper();
@@ -336,10 +307,10 @@ class App {
 
             this.renderer.render(this.scene, this.camera);
 
-            const convexHull = SceneManager.getConvexHull(this.sceneManager.renderStyle);
+            const convexHull = this.sceneManager.getConvexHull();
 
         if (convexHull) {
-                this.scaleBarService.scaleBarAnimationLoopHelper(convexHull.mesh, this.camera);
+                this.sceneManager.getScaleBarService().scaleBarAnimationLoopHelper(convexHull.mesh, this.camera);
             }
         }
     }
@@ -385,12 +356,8 @@ export {
     getThreeJSContainerRect,
     scene,
     camera,
-    sceneBackgroundColorPicker,
     cameraLightingRig,
     googleEnabled,
-    pointCloud,
-    ribbon,
-    ballAndStick,
     ensembleManager,
     sceneManager,
     colorRampMaterialProvider,
@@ -400,5 +367,4 @@ export {
     liveDistanceMapService,
     igvPanel,
     genomicNavigator,
-    scaleBarService
 }
