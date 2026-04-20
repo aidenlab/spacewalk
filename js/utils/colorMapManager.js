@@ -6,6 +6,11 @@ import { createImage, readFileAsDataURL } from './utils.js';
 import peter_kovesi from '/src/resources/colormaps/peter_kovesi/peter_kovesi.json'
 import bintu_et_al from '/resources/colormaps/bintu_et_al/bintu_et_al.png'
 import juicebox_default from '/resources/colormaps/juicebox_default/juicebox_default.png'
+import parula from '/resources/colormaps/parula/parula.png'
+import cool from '/resources/colormaps/cool/cool.png'
+import sky from '/resources/colormaps/sky/sky.png'
+import nebula from '/resources/colormaps/nebula/nebula.png'
+import jet from '/resources/colormaps/jet/jet.png'
 
 const defaultColormapName = 'peter_kovesi_rainbow_bgyr_35_85_c72_n256';
 
@@ -40,6 +45,31 @@ const colorMapRegistry = [
         id: 'hsv',
         displayName: 'HSV',
         source: { kind: 'generator', generate: () => generateHSVRamp(hsvSampleCount) }
+    },
+    {
+        id: 'parula',
+        displayName: 'Parula',
+        source: { kind: 'png', url: parula }
+    },
+    {
+        id: 'cool',
+        displayName: 'Cool',
+        source: { kind: 'png', url: cool }
+    },
+    {
+        id: 'sky',
+        displayName: 'Sky',
+        source: { kind: 'png', url: sky }
+    },
+    {
+        id: 'nebula',
+        displayName: 'Nebula',
+        source: { kind: 'png', url: nebula }
+    },
+    {
+        id: 'jet',
+        displayName: 'Jet',
+        source: { kind: 'png', url: jet }
     }
 ]
 
