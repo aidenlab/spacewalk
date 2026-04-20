@@ -2,8 +2,9 @@ import SpacewalkEventBus from './spacewalkEventBus.js'
 import { StringUtils } from 'igv-utils'
 import Ribbon from "./ribbon.js";
 import BallAndStick from "./ballAndStick.js";
-import { sceneManager, ensembleManager } from "./app.js";
+import { sceneManager, ensembleManager, colorMapManager } from "./app.js";
 import Panel from "./panel.js";
+import { spacewalkConfig } from "../spacewalk-config.js";
 
 class GUIManager {
 
@@ -55,6 +56,20 @@ class GUIManager {
             });
         }
 
+        // Circular geometry switch
+        const circularSwitch = document.getElementById('spacewalk-circular-geometry-switch');
+        if (circularSwitch) {
+            circularSwitch.checked = spacewalkConfig.isCircular === true;
+            circularSwitch.addEventListener('change', (e) => {
+                e.stopPropagation();
+                spacewalkConfig.isCircular = e.target.checked;
+                sceneManager.rebuildTraceGeometry();
+            });
+        }
+
+        // Color ramp dropdown
+        this.configureColorMapControl();
+
         // PointCloud Point Size
         const pointSizeControl = document.getElementById('spacewalk_ui_manager_pointcloud_point_size');
         pointSizeControl.querySelector('i.fa-minus-circle').addEventListener('click', () => sceneManager.pointCloud?.updatePointSize(-1));
@@ -66,7 +81,61 @@ class GUIManager {
         pointTransparencyControl.querySelector('i.fa-plus-circle').addEventListener('click', () => sceneManager.pointCloud?.updatePointTransparency(1));
 
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this);
+        SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
 
+    }
+
+    configureColorMapControl() {
+
+        if (!colorMapManager) return
+
+        const button = document.getElementById('spacewalk-color-map-button')
+        const menu = document.getElementById('spacewalk-color-map-menu')
+        if (!button || !menu) return
+
+        const maps = colorMapManager.listColorMaps()
+
+        menu.replaceChildren()
+        for (const { id, displayName, swatchDataURL } of maps) {
+            const li = document.createElement('li')
+            const item = document.createElement('button')
+            item.type = 'button'
+            item.className = 'dropdown-item spacewalk-color-map-item'
+            item.dataset.colorMapId = id
+
+            const img = document.createElement('img')
+            img.className = 'spacewalk-color-map-swatch'
+            img.src = swatchDataURL
+            img.alt = displayName
+
+            const label = document.createElement('span')
+            label.className = 'spacewalk-color-map-label'
+            label.textContent = displayName
+
+            item.append(img, label)
+            item.addEventListener('click', (e) => {
+                e.stopPropagation()
+                colorMapManager.setActiveColorMapName(id)
+            })
+
+            li.appendChild(item)
+            menu.appendChild(li)
+        }
+
+        this.updateColorMapButton(colorMapManager.getActiveColorMapName())
+    }
+
+    updateColorMapButton(activeId) {
+        const button = document.getElementById('spacewalk-color-map-button')
+        if (!button || !colorMapManager) return
+
+        const img = button.querySelector('img.spacewalk-color-map-swatch')
+        const match = colorMapManager.listColorMaps().find(({ id }) => id === activeId)
+        if (!match || !img) return
+
+        img.src = match.swatchDataURL
+        img.alt = match.displayName
+        button.title = match.displayName
     }
 
     receiveEvent({ type, data }) {
@@ -92,6 +161,8 @@ class GUIManager {
                 document.getElementById('spacewalk_ui_manager_render_styles').style.display = 'block';
             }
 
+        } else if ('DidChangeColorMap' === type) {
+            this.updateColorMapButton(data.name);
         }
     }
 

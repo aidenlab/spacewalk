@@ -17,6 +17,7 @@ let ensembleManager;
 let sceneManager;
 let trackMaterialProvider;
 let colorRampMaterialProvider;
+let colorMapManager;
 let liveContactMapService;
 let liveDistanceMapService;
 let juiceboxPanel;
@@ -131,6 +132,7 @@ class App {
 
         this.colorMapManager = new ColorMapManager();
         await this.colorMapManager.configure();
+        colorMapManager = this.colorMapManager;
 
         this.colorRampMaterialProvider = new ColorRampMaterialProvider(defaultColormapName, this.colorMapManager);
         colorRampMaterialProvider = this.colorRampMaterialProvider;
@@ -361,6 +363,7 @@ export {
     ensembleManager,
     sceneManager,
     colorRampMaterialProvider,
+    colorMapManager,
     trackMaterialProvider,
     juiceboxPanel,
     liveContactMapService,

@@ -67,6 +67,7 @@ class SceneManager {
 
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
         SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this);
+        SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
     }
 
     receiveEvent({ type, data }) {
@@ -83,6 +84,10 @@ class SceneManager {
 
         } else if ('DidLeaveGenomicNavigator' === type) {
             this.delegateLeaveGenomicNavigator()
+        } else if ('DidChangeColorMap' === type) {
+            if (igvPanel.materialProvider === this.colorRampMaterialProvider) {
+                this.updateMaterialProvider(this.colorRampMaterialProvider)
+            }
         }
 
     }
@@ -248,6 +253,38 @@ class SceneManager {
         gnomon.addToScene(scene)
         updateSwatch(document.querySelector(`div[data-colorpicker='gnomon']`), gnomonConfig.color)
 
+    }
+
+    rebuildTraceGeometry() {
+
+        if (ensembleManager.isPointCloud) return
+
+        const trace = ensembleManager.currentTrace
+        if (!trace) return
+
+        if (this.ballAndStick) {
+            this.isStickVisible = this.ballAndStick.isStickVisible
+            this.ballAndStick.dispose()
+            this.ballAndStick = null
+        }
+        if (this.ribbon) {
+            this.ribbon.dispose()
+            this.ribbon = null
+        }
+
+        this.ribbon = new Ribbon(trace)
+        this.ribbon.addToScene(scene)
+
+        this.ballAndStick = new BallAndStick({
+            trace,
+            pickHighlighter: this.ballHighlighter,
+            stickMaterial: this.stickMaterial,
+            isStickVisible: this.isStickVisible,
+            ballRadiusIndex: this.ballRadiusIndex
+        })
+        this.ballAndStick.addToScene(scene)
+
+        this.configureRenderStyle(this.renderStyle)
     }
 
     configureRenderStyle (renderStyle) {

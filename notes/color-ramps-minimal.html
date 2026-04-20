@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color Ramps</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #f5f2ec;
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 48px 32px;
+  }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: #1a1714;
+    text-align: right;
+  }
+
+  .bar {
+    height: 24px;
+    border-radius: 2px;
+  }
+  <img src="../../../Desktop/Screenshot 2026-04-20 at 4.01.28 PM.png" height="424" width="1682"/><img
+        src="../../../Desktop/Screenshot 2026-04-20 at 4.01.28 PM.png" height="424" width="1682"/></style>
+</head>
+<body>
+<div class="stack">
+
+  <div class="row">
+    <span class="label">YlOrRd</span>
+    <div class="bar" style="background: linear-gradient(to right, #ffffcc, #ffeda0, #fed976, #feb24c, #fd8d3c, #fc4e2a, #e31a1c, #b10026);"></div>
+  </div>
+
+  <div class="row">
+    <span class="label">YlGnBu</span>
+    <div class="bar" style="background: linear-gradient(to right, #ffffd9, #edf8b1, #c7e9b4, #7fcdbb, #41b6c4, #1d91c0, #225ea8, #0c2c84);"></div>
+  </div>
+
+  <div class="row">
+    <span class="label">Blues</span>
+    <div class="bar" style="background: linear-gradient(to right, #f7fbff, #deebf7, #c6dbef, #9ecae1, #6baed6, #4292c6, #2171b5, #08519c, #08306b);"></div>
+  </div>
+
+</div>
+</body>
+</html>

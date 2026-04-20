@@ -204,6 +204,27 @@ function rgb255ToThreeJSColor  (r, g, b) {
     return new THREE.Color().setRGB(r/255, g/255, b/255, THREE.SRGBColorSpace)
 }
 
+function hsvToThreeJSColor(h, s, v) {
+    const sector = h * 6
+    const i = Math.floor(sector)
+    const f = sector - i
+    const p = v * (1 - s)
+    const q = v * (1 - s * f)
+    const t = v * (1 - s * (1 - f))
+
+    let r, g, b
+    switch (i % 6) {
+        case 0: r = v; g = t; b = p; break
+        case 1: r = q; g = v; b = p; break
+        case 2: r = p; g = v; b = t; break
+        case 3: r = p; g = q; b = v; break
+        case 4: r = t; g = p; b = v; break
+        case 5: r = v; g = p; b = q; break
+    }
+
+    return new THREE.Color().setRGB(r, g, b, THREE.SRGBColorSpace)
+}
+
 function blendColorsLab(colorList, weights = null) {
     let L_sum = 0;
     let a_sum = 0;
@@ -272,6 +293,7 @@ export {
     colorString2Tokens,
     threeJSColorToRGB255,
     rgb255ToThreeJSColor,
+    hsvToThreeJSColor,
     appleCrayonColorThreeJS,
     appleCrayonColorRGB255,
     blendColorsLab };

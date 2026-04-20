@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sequential Color Ramps — Population Data</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Serif+Display:ital@0;1&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f2ec;
+    --ink: #1a1714;
+    --ink-light: #6b6560;
+    --rule: #d8d3cb;
+    --card: #fefdfa;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    padding: 48px 32px;
+  }
+
+  header {
+    max-width: 780px;
+    margin: 0 auto 52px;
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 20px;
+  }
+
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-light);
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(26px, 4vw, 38px);
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--ink-light);
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--ink-light);
+    margin-top: 12px;
+    line-height: 1.7;
+    max-width: 520px;
+  }
+
+  .grid {
+    max-width: 780px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .ramp-card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    padding: 24px 28px;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 24px;
+    align-items: start;
+    transition: border-color 0.15s;
+    cursor: default;
+    position: relative;
+  }
+
+  .ramp-card:hover {
+    border-color: var(--ink);
+    z-index: 1;
+  }
+
+  .ramp-card.recommended::before {
+    content: 'RECOMMENDED';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    background: var(--ink);
+    color: var(--card);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    padding: 4px 10px;
+  }
+
+  .ramp-visual {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ramp-bar {
+    height: 28px;
+    border-radius: 2px;
+    width: 100%;
+  }
+
+  .ramp-stops {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--ink-light);
+    letter-spacing: 0.05em;
+  }
+
+  .ramp-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 2px;
+  }
+
+  .ramp-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .ramp-desc {
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--ink-light);
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .tag {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px solid var(--rule);
+    color: var(--ink-light);
+  }
+
+  .tag.good { border-color: #b8d4b0; color: #3a6b32; background: #f0f7ee; }
+  .tag.caution { border-color: #d4c4a0; color: #7a5e20; background: #fdf8ee; }
+
+  .swatch-row {
+    display: flex;
+    gap: 3px;
+    margin-top: 4px;
+  }
+
+  .swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+  }
+
+  @media (max-width: 560px) {
+    .ramp-card {
+      grid-template-columns: 1fr;
+    }
+    body { padding: 24px 16px; }
+  }
+
+  footer {
+    max-width: 780px;
+    margin: 40px auto 0;
+    font-size: 10px;
+    color: var(--ink-light);
+    letter-spacing: 0.05em;
+    border-top: 1px solid var(--rule);
+    padding-top: 16px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Scientific Visualization / Color</div>
+  <h1>Sequential Color Ramps<br><em>for Population Data</em></h1>
+  <p class="subtitle">Single-hue and multi-hue ramps suited to continuous population density or count mapping. All options are perceptually ordered — lighter values encode lower populations, darker values encode higher.</p>
+</header>
+
+<div class="grid">
+
+  <!-- YlOrRd -->
+  <div class="ramp-card recommended">
+    <div class="ramp-visual">
+      <div class="ramp-bar" style="background: linear-gradient(to right, #ffffcc, #ffeda0, #fed976, #feb24c, #fd8d3c, #fc4e2a, #e31a1c, #b10026);"></div>
+      <div class="ramp-stops"><span>low</span><span>high</span></div>
+      <div class="swatch-row">
+        <div class="swatch" style="background:#ffffcc"></div>
+        <div class="swatch" style="background:#ffeda0"></div>
+        <div class="swatch" style="background:#fed976"></div>
+        <div class="swatch" style="background:#feb24c"></div>
+        <div class="swatch" style="background:#fd8d3c"></div>
+        <div class="swatch" style="background:#fc4e2a"></div>
+        <div class="swatch" style="background:#e31a1c"></div>
+        <div class="swatch" style="background:#b10026"></div>
+      </div>
+    </div>
+    <div class="ramp-info">
+      <div class="ramp-name">YlOrRd</div>
+      <div class="ramp-desc">Yellow → Orange → Red. The canonical ramp for population density maps — intuitive (hot = dense), high contrast at the upper end where data is most interesting. Used by the U.S. Census, UN, and nearly every major atlas.</div>
+      <div class="tags">
+        <span class="tag good">Colorblind-safe</span>
+        <span class="tag good">Print-safe</span>
+        <span class="tag good">Perceptually ordered</span>
+        <span class="tag">ColorBrewer</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Viridis -->
+  <div class="ramp-card">
+    <div class="ramp-visual">
+      <div class="ramp-bar" style="background: linear-gradient(to right, #440154, #482878, #3e4989, #31688e, #26828e, #1f9e89, #35b779, #6ece58, #b5de2b, #fde725);"></div>
+      <div class="ramp-stops"><span>low</span><span>high</span></div>
+      <div class="swatch-row">
+        <div class="swatch" style="background:#440154"></div>
+        <div class="swatch" style="background:#3e4989"></div>
+        <div class="swatch" style="background:#26828e"></div>
+        <div class="swatch" style="background:#1f9e89"></div>
+        <div class="swatch" style="background:#35b779"></div>
+        <div class="swatch" style="background:#6ece58"></div>
+        <div class="swatch" style="background:#b5de2b"></div>
+        <div class="swatch" style="background:#fde725"></div>
+      </div>
+    </div>
+    <div class="ramp-info">
+      <div class="ramp-name">Viridis</div>
+      <div class="ramp-desc">Deep purple → teal → yellow. Designed by matplotlib researchers to be perceptually uniform in both color and grayscale. Excellent for print reproduction and accessibility. Increasingly the scientific standard for sequential data.</div>
+      <div class="tags">
+        <span class="tag good">Colorblind-safe</span>
+        <span class="tag good">Grayscale-safe</span>
+        <span class="tag good">Perceptually uniform</span>
+        <span class="tag">matplotlib / D3</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plasma -->
+  <div class="ramp-card">
+    <div class="ramp-visual">
+      <div class="ramp-bar" style="background: linear-gradient(to right, #0d0887, #6001a6, #9c179e, #cc4778, #ed7953, #fdb42f, #f0f921);"></div>
+      <div class="ramp-stops"><span>low</span><span>high</span></div>
+      <div class="swatch-row">
+        <div class="swatch" style="background:#0d0887"></div>
+        <div class="swatch" style="background:#6001a6"></div>
+        <div class="swatch" style="background:#9c179e"></div>
+        <div class="swatch" style="background:#cc4778"></div>
+        <div class="swatch" style="background:#ed7953"></div>
+        <div class="swatch" style="background:#fdb42f"></div>
+        <div class="swatch" style="background:#f0f921"></div>
+      </div>
+    </div>
+    <div class="ramp-info">
+      <div class="ramp-name">Plasma</div>
+      <div class="ramp-desc">Deep blue-violet → magenta → yellow. A perceptually uniform sibling of Viridis with warmer, higher-energy tones. More dramatic contrast and visual punch — well-suited to presentations and digital displays. Slightly less common, which helps your figures stand out.</div>
+      <div class="tags">
+        <span class="tag good">Colorblind-safe</span>
+        <span class="tag good">Perceptually uniform</span>
+        <span class="tag caution">Not grayscale-safe</span>
+        <span class="tag">matplotlib / D3</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- YlGnBu -->
+  <div class="ramp-card">
+    <div class="ramp-visual">
+      <div class="ramp-bar" style="background: linear-gradient(to right, #ffffd9, #edf8b1, #c7e9b4, #7fcdbb, #41b6c4, #1d91c0, #225ea8, #0c2c84);"></div>
+      <div class="ramp-stops"><span>low</span><span>high</span></div>
+      <div class="swatch-row">
+        <div class="swatch" style="background:#ffffd9"></div>
+        <div class="swatch" style="background:#edf8b1"></div>
+        <div class="swatch" style="background:#c7e9b4"></div>
+        <div class="swatch" style="background:#7fcdbb"></div>
+        <div class="swatch" style="background:#41b6c4"></div>
+        <div class="swatch" style="background:#1d91c0"></div>
+        <div class="swatch" style="background:#225ea8"></div>
+        <div class="swatch" style="background:#0c2c84"></div>
+      </div>
+    </div>
+    <div class="ramp-info">
+      <div class="ramp-name">YlGnBu</div>
+      <div class="ramp-desc">Yellow → green → blue. A cool-toned counterpart to YlOrRd — good when overlaying on warm basemaps (terrain, satellite). Feels geographically natural and is often used for population maps in academic journals. The blue endpoint reads as "dense" without alarm-connotations of red.</div>
+      <div class="tags">
+        <span class="tag good">Colorblind-safe</span>
+        <span class="tag good">Print-safe</span>
+        <span class="tag good">Perceptually ordered</span>
+        <span class="tag">ColorBrewer</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blues -->
+  <div class="ramp-card">
+    <div class="ramp-visual">
+      <div class="ramp-bar" style="background: linear-gradient(to right, #f7fbff, #deebf7, #c6dbef, #9ecae1, #6baed6, #4292c6, #2171b5, #08519c, #08306b);"></div>
+      <div class="ramp-stops"><span>low</span><span>high</span></div>
+      <div class="swatch-row">
+        <div class="swatch" style="background:#f7fbff"></div>
+        <div class="swatch" style="background:#c6dbef"></div>
+        <div class="swatch" style="background:#9ecae1"></div>
+        <div class="swatch" style="background:#6baed6"></div>
+        <div class="swatch" style="background:#4292c6"></div>
+        <div class="swatch" style="background:#2171b5"></div>
+        <div class="swatch" style="background:#08519c"></div>
+        <div class="swatch" style="background:#08306b"></div>
+      </div>
+    </div>
+    <div class="ramp-info">
+      <div class="ramp-name">Blues</div>
+      <div class="ramp-desc">Near-white → deep navy. Single-hue, maximally clean. The low end nearly disappears into a white background, which can be elegant for sparse datasets or inset maps. Very neutral — avoids implying alarm or heat — which is appropriate when population is being presented without policy framing.</div>
+      <div class="tags">
+        <span class="tag good">Colorblind-safe</span>
+        <span class="tag good">Print-safe</span>
+        <span class="tag good">Neutral tone</span>
+        <span class="tag">ColorBrewer</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inferno -->
+  <div class="ramp-card">
+    <div class="ramp-visual">
+      <div class="ramp-bar" style="background: linear-gradient(to right, #000004, #320a5e, #781c6d, #bc3754, #ed6925, #fbb61a, #fcffa4);"></div>
+      <div class="ramp-stops"><span>low</span><span>high</span></div>
+      <div class="swatch-row">
+        <div class="swatch" style="background:#000004"></div>
+        <div class="swatch" style="background:#320a5e"></div>
+        <div class="swatch" style="background:#781c6d"></div>
+        <div class="swatch" style="background:#bc3754"></div>
+        <div class="swatch" style="background:#ed6925"></div>
+        <div class="swatch" style="background:#fbb61a"></div>
+        <div class="swatch" style="background:#fcffa4"></div>
+      </div>
+    </div>
+    <div class="ramp-info">
+      <div class="ramp-name">Inferno</div>
+      <div class="ramp-desc">Black → deep purple → orange → pale yellow. Dramatically high-contrast, ideal for dark-background maps and screen presentations. Low population values recede into black, making dense urban cores blazingly visible. A striking choice for city-scale or night-light style population maps.</div>
+      <div class="tags">
+        <span class="tag good">Colorblind-safe</span>
+        <span class="tag good">Perceptually uniform</span>
+        <span class="tag caution">Dark backgrounds only</span>
+        <span class="tag">matplotlib / D3</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Sources: ColorBrewer 2.0 (Brewer, Harrower, Sheesley), matplotlib perceptually uniform colormaps (Nunez, Cooley, Leinweber). All ramps are publicly available in D3.js, matplotlib, QGIS, and ArcGIS.
+</footer>
+
+</body>
+</html>
