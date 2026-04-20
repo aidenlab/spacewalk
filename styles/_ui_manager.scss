@@ -196,6 +196,70 @@ li#spacewalk_ui_manager_render_styles {
   }
 }
 
+#spacewalk-circular-geometry-control {
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid color.$spacewalk_tungsten;
+
+  .form-check-input {
+    cursor: pointer;
+    width: 2.5em;
+    height: 1.25em;
+    margin-top: 0;
+  }
+}
+
+#spacewalk-color-map-control {
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: 8px;
+
+  .dropdown-toggle {
+    padding: 2px 8px 2px 4px;
+    display: flex;
+    align-items: center;
+  }
+
+  img.spacewalk-color-map-swatch {
+    width: 80px;
+    height: 8px;
+    display: block;
+  }
+
+  .dropdown-menu {
+    min-width: 200px;
+  }
+
+  .spacewalk-color-map-item {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 6px 12px;
+
+    img.spacewalk-color-map-swatch {
+      width: 100%;
+      height: 10px;
+    }
+
+    .spacewalk-color-map-label {
+      font-size: .85rem;
+    }
+  }
+}
+
 .spacewalk-threejs-settings-feature {
   display: flex;
   flex-direction: row;

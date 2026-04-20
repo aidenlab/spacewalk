@@ -1,11 +1,24 @@
 
 import * as THREE from 'three'
+import SpacewalkEventBus from './spacewalkEventBus.js'
 
 class ColorRampMaterialProvider {
 
     constructor(colorMapName, colorMapManager) {
         this.colorMapName = colorMapName
         this.colorMapManager = colorMapManager
+
+        SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this)
+    }
+
+    receiveEvent({ type, data }) {
+        if ('DidChangeColorMap' === type) {
+            this.colorMapName = data.name
+        }
+    }
+
+    setColorMapName(name) {
+        this.colorMapManager?.setActiveColorMapName(name)
     }
 
     colorForInterpolant(interpolant) {
