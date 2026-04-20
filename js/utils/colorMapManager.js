@@ -1,6 +1,6 @@
 
 import SpacewalkEventBus from '../spacewalkEventBus.js'
-import { rgb255ToThreeJSColor } from "./colorUtils.js";
+import { rgb255ToThreeJSColor, hsvToThreeJSColor } from "./colorUtils.js";
 import { createImage, readFileAsDataURL } from './utils.js';
 
 import peter_kovesi from '/src/resources/colormaps/peter_kovesi/peter_kovesi.json'
@@ -8,6 +8,17 @@ import bintu_et_al from '/resources/colormaps/bintu_et_al/bintu_et_al.png'
 import juicebox_default from '/resources/colormaps/juicebox_default/juicebox_default.png'
 
 const defaultColormapName = 'peter_kovesi_rainbow_bgyr_35_85_c72_n256';
+
+const hsvSampleCount = 512
+
+function generateHSVRamp(sampleCount) {
+    const list = []
+    for (let i = 0; i < sampleCount; i++) {
+        const h = i / sampleCount
+        list.push(hsvToThreeJSColor(h, 1, 1))
+    }
+    return list
+}
 
 const colorMapRegistry = [
     {
@@ -24,6 +35,11 @@ const colorMapRegistry = [
         id: 'juicebox_default',
         displayName: 'Juicebox Default',
         source: { kind: 'png', url: juicebox_default }
+    },
+    {
+        id: 'hsv',
+        displayName: 'HSV',
+        source: { kind: 'generator', generate: () => generateHSVRamp(hsvSampleCount) }
     }
 ]
 
@@ -54,6 +70,11 @@ class ColorMapManager {
 
         if ('rgbArray' === source.kind) {
             this.dictionary[ id ] = source.data.map(([ r, g, b ]) => rgb255ToThreeJSColor(r, g, b))
+            return
+        }
+
+        if ('generator' === source.kind) {
+            this.dictionary[ id ] = source.generate()
             return
         }
 
