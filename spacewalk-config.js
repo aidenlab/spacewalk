@@ -2,7 +2,7 @@ import trackRegistry from '/src/resources/tracks/trackRegistry.json'
 const spacewalkConfig =
     {
         trackRegistry,
-        isCircular: true,
+        isCircular: false,
         urlShortener: {
             provider: 'tinyURL',
             apiKey: process.env.TINYURL_API_KEY || 'YOUR_TINYURL_API_KEY',
