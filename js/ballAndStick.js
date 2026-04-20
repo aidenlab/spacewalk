@@ -8,6 +8,7 @@ import EnsembleManager from './ensembleManager.js'
 import ConvexHull from "./utils/convexHull.js"
 import {getPositionArrayWithTrace} from "./utils/utils.js"
 import { removeAndDisposeFromScene } from './utils/disposalUtils.js'
+import { spacewalkConfig } from "../spacewalk-config.js"
 
 const stickTesselation = { length: 2, radial: 8 }
 
@@ -132,6 +133,10 @@ class BallAndStick {
         const endPoints = []
         for (let i = 0; i < vertices.length - 1; i++) {
             endPoints.push({ a: vertices[ i ], b: vertices[ i + 1 ] })
+        }
+
+        if (spacewalkConfig.isCircular && vertices.length > 2) {
+            endPoints.push({ a: vertices[ vertices.length - 1 ], b: vertices[ 0 ] })
         }
 
         for (let { a, b } of endPoints) {
@@ -283,6 +288,10 @@ function createStickCurves (vertices) {
     let curves = [];
     for (let i = 0, j = 1; j < vertices.length; ++i, ++j) {
         curves.push( new THREE.CatmullRomCurve3([ vertices[i], vertices[j] ]) );
+    }
+
+    if (spacewalkConfig.isCircular && vertices.length > 2) {
+        curves.push( new THREE.CatmullRomCurve3([ vertices[vertices.length - 1], vertices[0] ]) );
     }
 
     return curves;
