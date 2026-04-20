@@ -42,6 +42,7 @@ class SceneManager {
         this.stickMaterial.side = THREE.DoubleSide
         this.deemphasizedColor = appleCrayonColorThreeJS('magnesium')
         this.isStickVisible = true
+        this.ballRadiusIndex = undefined
         this.pointSizeBoundRadiusPercentage = undefined
         this.pointOpacity = 0.375
 
@@ -198,7 +199,8 @@ class SceneManager {
                 trace,
                 pickHighlighter: this.ballHighlighter,
                 stickMaterial: this.stickMaterial,
-                isStickVisible: this.isStickVisible
+                isStickVisible: this.isStickVisible,
+                ballRadiusIndex: this.ballRadiusIndex
             })
             this.ballAndStick.addToScene(scene)
         }
