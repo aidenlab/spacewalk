@@ -1,4 +1,5 @@
 
+import SpacewalkEventBus from '../spacewalkEventBus.js'
 import { rgb255ToThreeJSColor } from "./colorUtils.js";
 import { createImage, readFileAsDataURL } from './utils.js';
 
@@ -8,43 +9,58 @@ import juicebox_default from '/resources/colormaps/juicebox_default/juicebox_def
 
 const defaultColormapName = 'peter_kovesi_rainbow_bgyr_35_85_c72_n256';
 
+const colorMapRegistry = [
+    {
+        id: defaultColormapName,
+        displayName: 'Peter Kovesi Rainbow',
+        source: { kind: 'rgbArray', data: peter_kovesi.colors }
+    },
+    {
+        id: 'bintu_et_al',
+        displayName: 'Bintu et al.',
+        source: { kind: 'png', url: bintu_et_al }
+    },
+    {
+        id: 'juicebox_default',
+        displayName: 'Juicebox Default',
+        source: { kind: 'png', url: juicebox_default }
+    }
+]
+
 class ColorMapManager {
 
     constructor () {
         this.dictionary = {}
+        this.swatches = {}
+        this.activeColorMapName = defaultColormapName
     }
 
     async configure () {
 
-        try {
-            await this.addMap({ name: defaultColormapName, path: peter_kovesi.colors });
-        } catch (e) {
-            console.warn(e.message);
-        }
-
-        try {
-            await this.addMap({ name: 'bintu_et_al', path: bintu_et_al });
-        } catch (e) {
-            console.warn(e.message);
-        }
-
-        try {
-            await this.addMap({ name: 'juicebox_default', path: juicebox_default });
-        } catch (e) {
-            console.warn(e.message);
+        for (const descriptor of colorMapRegistry) {
+            try {
+                await this.addMap(descriptor);
+                if (this.dictionary[ descriptor.id ]) {
+                    this.swatches[ descriptor.id ] = renderSwatchDataURL(this.dictionary[ descriptor.id ])
+                }
+            } catch (e) {
+                console.warn(e.message);
+            }
         }
 
     }
 
-    async addMap({name, path}) {
+    async addMap({ id, source }) {
 
-        if (Array.isArray(path)) {
-            this.dictionary[ name ] = path.map(([ r, g, b ]) => rgb255ToThreeJSColor(r, g, b))
-        } else {
+        if ('rgbArray' === source.kind) {
+            this.dictionary[ id ] = source.data.map(([ r, g, b ]) => rgb255ToThreeJSColor(r, g, b))
+            return
+        }
+
+        if ('png' === source.kind) {
             let response;
-
             try {
-                response = await fetch(path);
+                response = await fetch(source.url);
             } catch (error) {
                 console.warn(error.message);
                 return;
@@ -54,41 +70,54 @@ class ColorMapManager {
                 console.log('ERROR: bad response status');
             }
 
-            const last = path.split('.').pop()
-            const [ suffix, discard ] = last.split('?')
-
-            if ('png' === suffix) {
-
-                let blob = undefined;
-                try {
-                    blob = await response.blob();
-                } catch (e) {
-                    console.warn(e.message);
-                }
-
-                let imageSource = undefined;
-                try {
-                    imageSource = await readFileAsDataURL(blob);
-                } catch (e) {
-                    console.warn(e.message);
-                }
-
-                let image = undefined;
-                try {
-                    image = await createImage(imageSource);
-                } catch (e) {
-                    console.warn(e.message);
-                }
-
-                this.dictionary[ name ] = rgbListWithImage(image);
-
-            } else {
-                console.error('Bogus color map format');
+            let blob = undefined;
+            try {
+                blob = await response.blob();
+            } catch (e) {
+                console.warn(e.message);
             }
 
+            let imageSource = undefined;
+            try {
+                imageSource = await readFileAsDataURL(blob);
+            } catch (e) {
+                console.warn(e.message);
+            }
+
+            let image = undefined;
+            try {
+                image = await createImage(imageSource);
+            } catch (e) {
+                console.warn(e.message);
+            }
+
+            this.dictionary[ id ] = rgbListWithImage(image);
+            return
         }
 
+        console.error(`Unknown color map source kind: ${ source.kind }`)
+    }
 
+    listColorMaps() {
+        return colorMapRegistry
+            .filter(({ id }) => this.dictionary[ id ])
+            .map(({ id, displayName }) => ({ id, displayName, swatchDataURL: this.swatches[ id ] }))
+    }
+
+    getActiveColorMapName() {
+        return this.activeColorMapName
+    }
+
+    setActiveColorMapName(name) {
+        if (!this.dictionary[ name ]) {
+            console.warn(`ColorMapManager.setActiveColorMapName: unknown color map "${ name }"`)
+            return
+        }
+        if (name === this.activeColorMapName) {
+            return
+        }
+        this.activeColorMapName = name
+        SpacewalkEventBus.globalBus.post({ type: 'DidChangeColorMap', data: { name } })
     }
 
     retrieveRGBThreeJS(colorMapName, interpolant) {
@@ -105,6 +134,28 @@ function retrieveRGB(rgbList, interpolant) {
     const frac = t - a
 
     return rgbList[ a ].clone().lerp(rgbList[ b ], frac)
+}
+
+const swatchWidth = 160
+const swatchHeight = 12
+
+function renderSwatchDataURL(rgbList) {
+    const canvas = document.createElement('canvas')
+    canvas.width = swatchWidth
+    canvas.height = swatchHeight
+    const ctx = canvas.getContext('2d')
+
+    for (let x = 0; x < swatchWidth; x++) {
+        const interpolant = swatchWidth === 1 ? 0 : x / (swatchWidth - 1)
+        const color = retrieveRGB(rgbList, interpolant)
+        const r = Math.round(color.r * 255)
+        const g = Math.round(color.g * 255)
+        const b = Math.round(color.b * 255)
+        ctx.fillStyle = `rgb(${ r }, ${ g }, ${ b })`
+        ctx.fillRect(x, 0, 1, swatchHeight)
+    }
+
+    return canvas.toDataURL('image/png')
 }
 
 function rgbListWithImage(image) {

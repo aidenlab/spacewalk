@@ -67,6 +67,7 @@ class SceneManager {
 
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
         SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this);
+        SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
     }
 
     receiveEvent({ type, data }) {
@@ -83,6 +84,10 @@ class SceneManager {
 
         } else if ('DidLeaveGenomicNavigator' === type) {
             this.delegateLeaveGenomicNavigator()
+        } else if ('DidChangeColorMap' === type) {
+            if (igvPanel.materialProvider === this.colorRampMaterialProvider) {
+                this.updateMaterialProvider(this.colorRampMaterialProvider)
+            }
         }
 
     }

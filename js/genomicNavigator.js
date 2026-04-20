@@ -50,6 +50,7 @@ class GenomicNavigator {
 
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this);
+        SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
     }
 
     receiveEvent({ type, data }) {
@@ -64,6 +65,8 @@ class GenomicNavigator {
             this.header.innerText = `${ Math.round(genomicEnd / 1e6) }Mb`
 
             igvPanel.materialProvider = colorRampMaterialProvider;
+            this.repaint()
+        } else if ("DidChangeColorMap" === type) {
             this.repaint()
         }
 
