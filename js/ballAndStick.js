@@ -15,7 +15,7 @@ class BallAndStick {
 
     static renderStyle = 'render-style-ball-stick'
 
-    constructor ({ trace, pickHighlighter, stickMaterial, isStickVisible }) {
+    constructor ({ trace, pickHighlighter, stickMaterial, isStickVisible, ballRadiusIndex }) {
 
         this.pickHighlighter = pickHighlighter
         this.stickMaterial = stickMaterial
@@ -30,7 +30,9 @@ class BallAndStick {
         this.sticks = this.createSticks(trace, this.stickRadiusTable[this.stickRadiusIndex])
 
         this.ballRadiusTable = generateRadiusTable(2e-1 * averageCurveDistance)
-        this.ballRadiusIndex = Math.floor(this.ballRadiusTable.length / 2)
+        this.ballRadiusIndex = ballRadiusIndex === undefined
+            ? Math.floor(this.ballRadiusTable.length / 2)
+            : clamp(ballRadiusIndex, 0, this.ballRadiusTable.length - 1)
         this.balls = this.createBalls(trace, igvPanel.materialProvider, this.ballRadiusTable[this.ballRadiusIndex])
 
         // Wire up the highlighter to our balls mesh
@@ -174,6 +176,7 @@ class BallAndStick {
     updateBallRadius(increment) {
 
         this.ballRadiusIndex = clamp(this.ballRadiusIndex + increment, 0, this.ballRadiusTable.length - 1)
+        sceneManager.ballRadiusIndex = this.ballRadiusIndex
         const radius = this.ballRadiusTable[ this.ballRadiusIndex ]
 
         const matrix = new THREE.Matrix4()
