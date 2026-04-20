@@ -250,6 +250,38 @@ class SceneManager {
 
     }
 
+    rebuildTraceGeometry() {
+
+        if (ensembleManager.isPointCloud) return
+
+        const trace = ensembleManager.currentTrace
+        if (!trace) return
+
+        if (this.ballAndStick) {
+            this.isStickVisible = this.ballAndStick.isStickVisible
+            this.ballAndStick.dispose()
+            this.ballAndStick = null
+        }
+        if (this.ribbon) {
+            this.ribbon.dispose()
+            this.ribbon = null
+        }
+
+        this.ribbon = new Ribbon(trace)
+        this.ribbon.addToScene(scene)
+
+        this.ballAndStick = new BallAndStick({
+            trace,
+            pickHighlighter: this.ballHighlighter,
+            stickMaterial: this.stickMaterial,
+            isStickVisible: this.isStickVisible,
+            ballRadiusIndex: this.ballRadiusIndex
+        })
+        this.ballAndStick.addToScene(scene)
+
+        this.configureRenderStyle(this.renderStyle)
+    }
+
     configureRenderStyle (renderStyle) {
 
         if (Ribbon.renderStyle === renderStyle) {

@@ -4,6 +4,7 @@ import Ribbon from "./ribbon.js";
 import BallAndStick from "./ballAndStick.js";
 import { sceneManager, ensembleManager } from "./app.js";
 import Panel from "./panel.js";
+import { spacewalkConfig } from "../spacewalk-config.js";
 
 class GUIManager {
 
@@ -52,6 +53,17 @@ class GUIManager {
                 e.stopPropagation();
                 console.log('Stick visibility toggled:', e.target.checked);
                 sceneManager.ballAndStick?.setStickVisibility(e.target.checked);
+            });
+        }
+
+        // Circular geometry switch
+        const circularSwitch = document.getElementById('spacewalk-circular-geometry-switch');
+        if (circularSwitch) {
+            circularSwitch.checked = spacewalkConfig.isCircular === true;
+            circularSwitch.addEventListener('change', (e) => {
+                e.stopPropagation();
+                spacewalkConfig.isCircular = e.target.checked;
+                sceneManager.rebuildTraceGeometry();
             });
         }
 
