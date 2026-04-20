@@ -196,6 +196,26 @@ li#spacewalk_ui_manager_render_styles {
   }
 }
 
+#spacewalk-circular-geometry-control {
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid color.$spacewalk_tungsten;
+
+  .form-check-input {
+    cursor: pointer;
+    width: 2.5em;
+    height: 1.25em;
+    margin-top: 0;
+  }
+}
+
 .spacewalk-threejs-settings-feature {
   display: flex;
   flex-direction: row;
