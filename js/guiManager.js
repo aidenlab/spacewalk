@@ -89,53 +89,63 @@ class GUIManager {
 
         if (!colorMapManager) return
 
-        const button = document.getElementById('spacewalk-color-map-button')
-        const menu = document.getElementById('spacewalk-color-map-menu')
-        if (!button || !menu) return
+        const controls = [
+            { buttonId: 'spacewalk-color-map-button',    menuId: 'spacewalk-color-map-menu' },
+            { buttonId: 'spacewalk-pc-color-map-button', menuId: 'spacewalk-pc-color-map-menu' },
+        ]
 
         const maps = colorMapManager.listColorMaps()
 
-        menu.replaceChildren()
-        for (const { id, displayName, swatchDataURL } of maps) {
-            const li = document.createElement('li')
-            const item = document.createElement('button')
-            item.type = 'button'
-            item.className = 'dropdown-item spacewalk-color-map-item'
-            item.dataset.colorMapId = id
+        for (const { menuId } of controls) {
+            const menu = document.getElementById(menuId)
+            if (!menu) continue
 
-            const img = document.createElement('img')
-            img.className = 'spacewalk-color-map-swatch'
-            img.src = swatchDataURL
-            img.alt = displayName
+            menu.replaceChildren()
+            for (const { id, displayName, swatchDataURL } of maps) {
+                const li = document.createElement('li')
+                const item = document.createElement('button')
+                item.type = 'button'
+                item.className = 'dropdown-item spacewalk-color-map-item'
+                item.dataset.colorMapId = id
 
-            const label = document.createElement('span')
-            label.className = 'spacewalk-color-map-label'
-            label.textContent = displayName
+                const img = document.createElement('img')
+                img.className = 'spacewalk-color-map-swatch'
+                img.src = swatchDataURL
+                img.alt = displayName
 
-            item.append(img, label)
-            item.addEventListener('click', (e) => {
-                e.stopPropagation()
-                colorMapManager.setActiveColorMapName(id)
-            })
+                const label = document.createElement('span')
+                label.className = 'spacewalk-color-map-label'
+                label.textContent = displayName
 
-            li.appendChild(item)
-            menu.appendChild(li)
+                item.append(img, label)
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation()
+                    colorMapManager.setActiveColorMapName(id)
+                })
+
+                li.appendChild(item)
+                menu.appendChild(li)
+            }
         }
 
         this.updateColorMapButton(colorMapManager.getActiveColorMapName())
     }
 
     updateColorMapButton(activeId) {
-        const button = document.getElementById('spacewalk-color-map-button')
-        if (!button || !colorMapManager) return
+        if (!colorMapManager) return
 
-        const img = button.querySelector('img.spacewalk-color-map-swatch')
         const match = colorMapManager.listColorMaps().find(({ id }) => id === activeId)
-        if (!match || !img) return
+        if (!match) return
 
-        img.src = match.swatchDataURL
-        img.alt = match.displayName
-        button.title = match.displayName
+        for (const buttonId of ['spacewalk-color-map-button', 'spacewalk-pc-color-map-button']) {
+            const button = document.getElementById(buttonId)
+            if (!button) continue
+            const img = button.querySelector('img.spacewalk-color-map-swatch')
+            if (!img) continue
+            img.src = match.swatchDataURL
+            img.alt = match.displayName
+            button.title = match.displayName
+        }
     }
 
     receiveEvent({ type, data }) {
