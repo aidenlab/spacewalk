@@ -192,22 +192,18 @@ class SWBDatasource extends DataSourceBase {
             }
         } else {
 
-            const group = await this.hdf5.get(`${ this.currentEnsembleGroupKey }`)
-            const keys = await group.keys
-            const keySet = new Set(keys)
+            const spatialGroup = await this.hdf5.get(`${ this.currentEnsembleGroupKey }/spatial_position`)
+            const traceKeys = (await spatialGroup.keys)
+                .filter(k => /^t_\d+$/.test(k))
+                .sort((a, b) => parseInt(a.slice(2), 10) - parseInt(b.slice(2), 10))
 
-            if (keySet.has('live_contact_map_vertices')) {
-                const liveContactMapVertexListDataset = await this.hdf5.get( `${ this.currentEnsembleGroupKey }/live_contact_map_vertices` )
-                const allTraceValues = await liveContactMapVertexListDataset.value
-                const xyzList = createCleanFlatXYZList(allTraceValues)
+            const traces = await Promise.all(traceKeys.map(async key => {
+                const ds = await spatialGroup.get(key)
+                const values = await ds.value
+                return createCleanFlatXYZList(values)
+            }))
 
-                const howmany = this.vertexListCount
-                const traceLength = this.globaleGenomicExtentList.length
-                for (let i = 0, ts = 0; i < howmany; i++, ts += traceLength) {
-                    const trace = xyzList.slice(ts, ts + traceLength)
-                    result.push(trace)
-                }
-            }
+            result.push(...traces)
         }
 
         console.timeEnd(str)
