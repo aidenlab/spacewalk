@@ -8,6 +8,17 @@ export default defineConfig({
     define: {
         'process.env.TINYURL_API_KEY': JSON.stringify(process.env.TINYURL_API_KEY)
     },
+    resolve: {
+        alias: {
+            // hic-straw's swParser uses a runtime-conditional dynamic import of
+            // the Node vs browser build of hdf5-indexed-reader. Rollup keeps
+            // both branches in the bundle and the Node variant pulls in
+            // node-fetch / node:fs. Redirect the Node variant to the browser
+            // ESM so the browser bundle resolves cleanly.
+            'hdf5-indexed-reader/dist/hdf5-indexed-reader.node.mjs':
+                'hdf5-indexed-reader/dist/hdf5-indexed-reader.esm.js'
+        }
+    },
     build: {
         target: 'es2020',
         sourcemap: true
@@ -26,6 +37,10 @@ export default defineConfig({
         },
     },
     optimizeDeps: {
+        // Skip pre-bundling hic-straw so local rebuilds of its dist propagate
+        // without having to nuke node_modules/.vite. Safe because hic-straw
+        // ships ESM. Only affects `vite` dev; prod builds re-bundle from source.
+        exclude: ['hic-straw'],
         esbuildOptions : {
             target: "es2020"
         }

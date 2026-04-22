@@ -1,6 +1,7 @@
 import { LiveContactMap } from 'hic-straw'
 import { ensembleManager, juiceboxPanel, igvPanel, liveDistanceMapService } from '../app.js'
 import SpacewalkEventBus from '../spacewalkEventBus.js'
+import SWBDatasource from '../datasource/SWBDatasource.js'
 import { ensureLiveMapVertexLists } from '../utils/liveMapUtils.js'
 import { renderContactMap, renderDistanceMap } from './liveMapRenderUtils.js'
 
@@ -140,8 +141,6 @@ class LiveContactMapService {
         juiceboxPanel.showLiveMapSpinner()
 
         try {
-            const traces = await ensureLiveMapVertexLists()
-
             const { chr, genomicStart, genomicEnd } = ensembleManager.locus
             const traceLength = ensembleManager.getLiveMapTraceLength()
             const binSize = (genomicEnd - genomicStart) / traceLength
@@ -166,9 +165,7 @@ class LiveContactMapService {
             const neighborExclusion = parseInt(this.exclusionSlider.value)
             const contactMode = this.contactModeSelect.value
 
-            // Create and initialize LiveContactMap
-            this.lcm = new LiveContactMap({
-                traces,
+            const lcmConfig = {
                 genomeId,
                 chr,
                 genomicStart,
@@ -180,7 +177,20 @@ class LiveContactMapService {
                 neighborExclusion,
                 contactMode,
                 name: 'Live Contact Map'
-            })
+            }
+
+            // SWB: hand hic-straw the already-open HDF5 handle so it can use the
+            // baked live_contact_map_vertices fast path and avoid duplicate opens.
+            // Other datasources (e.g. CNDB) continue to supply traces directly.
+            const ds = ensembleManager.datasource
+            if (ds instanceof SWBDatasource) {
+                lcmConfig.hdf5 = ds.hdf5
+                lcmConfig.ensembleGroupKey = ds.currentEnsembleGroupKey
+            } else {
+                lcmConfig.traces = await ensureLiveMapVertexLists()
+            }
+
+            this.lcm = new LiveContactMap(lcmConfig)
 
             await this.lcm.init()
 
