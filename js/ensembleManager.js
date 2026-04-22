@@ -157,19 +157,6 @@ class EnsembleManager {
         return this.datasource.getLiveMapVertexLists()
     }
 
-    getLiveMapTraceVertices(trace) {
-
-        if (this.datasource instanceof SWBDatasource && true === this.isPointCloud) {
-            return this.datasource.getLiveMapTraceVertices(trace)
-        } else {
-            return trace
-                .map(record => {
-                    const { x, y, z, isMissingData } = true === this.isPointCloud ? record.centroid : record.xyz
-                    return true === isMissingData ? { isMissingData } : { x, y, z }
-                })
-        }
-    }
-
     get isPointCloud(){
         return this.datasource.isPointCloud
     }

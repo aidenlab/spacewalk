@@ -15,7 +15,6 @@ class SWBDatasource extends DataSourceBase {
         this.hdf5 = undefined
         this.header = undefined
         this.ensembleGroupKeys = undefined
-        this.liveContactFrequencyMapVertexLists = undefined
     }
 
     async load(path, ensembleGroupKey) {
@@ -143,87 +142,6 @@ class SWBDatasource extends DataSourceBase {
 
     }
 
-    async calculateLiveMapVertexLists() {
-
-        let str = `Calculate Live Contact Frequency Map VertexLists`
-        console.time(str)
-
-        const result = []
-
-
-        if (true === this.isPointCloud) {
-            try {
-
-                for (let i = 0; i < this.vertexListCount; i++) {
-
-                    console.log(`SWDatasource: Harvest ${ true === this.isPointCloud ? 'Pointcloud' : 'Ball & Stick' } vertices at index ${i}`)
-
-                    const traceDataset = await this.hdf5.get( `${ this.currentEnsembleGroupKey }/spatial_position/t_${i}` )
-
-                    // traceValues is a flat list of N region_id, x, y, z quadruples, one after the other
-                    // in one long flat list
-                    const traceValues = await traceDataset.value
-
-                    const { genomicExtentList, regionXYZDictionary, regionIndexStrings } = createGenomicExtentList(traceValues, this.globaleGenomicExtentList)
-                    const centroidList = genomicExtentList
-                        .map((genomicExtent, index) => {
-                            const key = regionIndexStrings[ index ]
-                            return createPointCloudPayload(key, genomicExtent, regionXYZDictionary[ key ])
-                        })
-                        .map(({ centroid }) => { return { x:centroid[0], y:centroid[1], z:centroid[2] }})
-
-                    const shimmed = []
-                    const regionIndexStringSet = new Set(regionIndexStrings)
-                    for (let i=0; i < this.globaleGenomicExtentList.length; i++) {
-                        const str = `${ i }`
-                        if (regionIndexStringSet.has(str)) {
-                            const index = regionIndexStrings.indexOf(str)
-                            shimmed.push(centroidList[ index ])
-                        } else {
-                            shimmed.push({ isMissingData: true })
-                        }
-                    }
-                    result.push(shimmed)
-
-                }
-
-            } catch (error) {
-                console.error('What the heck?', error)
-            }
-        } else {
-
-            const spatialGroup = await this.hdf5.get(`${ this.currentEnsembleGroupKey }/spatial_position`)
-            const traceKeys = (await spatialGroup.keys)
-                .filter(k => /^t_\d+$/.test(k))
-                .sort((a, b) => parseInt(a.slice(2), 10) - parseInt(b.slice(2), 10))
-
-            const traces = await Promise.all(traceKeys.map(async key => {
-                const ds = await spatialGroup.get(key)
-                const values = await ds.value
-                return createCleanFlatXYZList(values)
-            }))
-
-            result.push(...traces)
-        }
-
-        console.timeEnd(str)
-
-        this.liveContactFrequencyMapVertexLists = result
-    }
-
-    getLiveMapVertexLists(){
-        return this.liveContactFrequencyMapVertexLists
-    }
-
-    getLiveMapTraceVertices(trace) {
-        // Safety check: vertex lists may not be initialized yet
-        if (!this.liveContactFrequencyMapVertexLists || 
-            this.currentTraceIndex === undefined ||
-            !this.liveContactFrequencyMapVertexLists[this.currentTraceIndex]) {
-            return null
-        }
-        return this.liveContactFrequencyMapVertexLists[ this.currentTraceIndex ]
-    }
 }
 
 function createPointCloudPayload(key, genomicExtent, rawXYZ) {
