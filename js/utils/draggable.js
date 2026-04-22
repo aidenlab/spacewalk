@@ -3,18 +3,22 @@ import {clamp} from './mathUtils.js'
 
 let dragData = undefined
 
+const TOP_CONSTRAINT_BUFFER_PX = 8
+
 function configureDrag(targetElement, dragHandleElement, container, options = {}) {
 
     const {
         topConstraint: providedTopConstraint,
+        excludeSelector,
         onDragStart,
         onDragEnd
     } = options
 
-    let topConstraint = providedTopConstraint
-    if (typeof providedTopConstraint === 'object' && providedTopConstraint !== null) {
-        const { height } = providedTopConstraint.getBoundingClientRect()
-        topConstraint = height
+    const resolveTopConstraint = () => {
+        if (typeof providedTopConstraint === 'object' && providedTopConstraint !== null) {
+            return providedTopConstraint.getBoundingClientRect().height + TOP_CONSTRAINT_BUFFER_PX
+        }
+        return providedTopConstraint
     }
 
     const target = targetElement
@@ -25,7 +29,7 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
             return
         }
 
-        const { left, top } = getConstrainedDragValue(target, container, topConstraint, event)
+        const { left, top } = getConstrainedDragValue(target, container, resolveTopConstraint(), event)
         target.style.left = left
         target.style.top  = top
 
@@ -37,7 +41,7 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
             return
         }
 
-        const { left, top } = getConstrainedDragValue(target, container, topConstraint, event)
+        const { left, top } = getConstrainedDragValue(target, container, resolveTopConstraint(), event)
         target.style.left = left
         target.style.top  = top
 
@@ -49,10 +53,15 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
         }
 
         SpacewalkEventBus.globalBus.post({ type: "DidEndRenderContainerDrag" })
+        SpacewalkEventBus.globalBus.post({ type: "DidEndDrag", data: target.getAttribute('id') })
 
     }
 
     dragHandleElement.addEventListener('mousedown', event => {
+
+        if (excludeSelector && event.target.closest(excludeSelector)) {
+            return
+        }
 
         event.stopPropagation()
 
@@ -99,7 +108,7 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
 function getConstrainedDragValue(target, container, topConstraint, { screenX, screenY }) {
 
     const { x, y, width, height } = container.getBoundingClientRect()
-    const { width:w, height:h } = target.getBoundingClientRect()
+    const { width:w } = target.getBoundingClientRect()
 
     let left = dragData.dx + screenX
     left = clamp(left, x, width - w)
@@ -107,7 +116,7 @@ function getConstrainedDragValue(target, container, topConstraint, { screenX, sc
     let top = dragData.dy + screenY
 
     const yy = topConstraint || y
-    top = clamp(top, yy, height - h)
+    top = Math.max(top, yy)
 
     return { left: `${ left }px`, top: `${ top }px` }
 }
