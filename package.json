@@ -34,7 +34,7 @@
     "chroma-js": "^3.2.0",
     "data-modal": "github:igvteam/data-modal#v1.6.0",
     "hdf5-indexed-reader": "github:jrobinso/hdf5-indexed-reader#v0.5.4",
-    "hic-straw": "github:aidenlab/hic-straw#v2.4.0",
+    "hic-straw": "github:aidenlab/hic-straw#v2.4.1",
     "igv": "github:igvteam/igv.js#master",
     "igv-utils": "github:igvteam/igv-utils#v1.5.8",
     "juicebox.js": "github:aidenlab/juicebox.js#v3.2.0",
