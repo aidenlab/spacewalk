@@ -37,6 +37,10 @@ export default defineConfig({
         },
     },
     optimizeDeps: {
+        // Skip pre-bundling hic-straw so local rebuilds of its dist propagate
+        // without having to nuke node_modules/.vite. Safe because hic-straw
+        // ships ESM. Only affects `vite` dev; prod builds re-bundle from source.
+        exclude: ['hic-straw'],
         esbuildOptions : {
             target: "es2020"
         }
