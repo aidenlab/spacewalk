@@ -19,7 +19,32 @@ class JuiceboxPanel extends Panel {
             return ch - (h * 1.05);
         };
 
-        super({ container, panel, isHidden, xFunction, yFunction });
+        const dragExcludeSelector = [
+            'canvas',
+            'button',
+            'a',
+            'input',
+            'select',
+            'textarea',
+            'label',
+            '.dropdown-menu',
+            '.dropdown-toggle',
+            '[data-bs-toggle]',
+            '.form-range',
+            '.form-select',
+            '.nav-link',
+            '.fa-times-circle'
+        ].join(', ')
+
+        super({
+            container,
+            panel,
+            isHidden,
+            xFunction,
+            yFunction,
+            dragSurface: panel,
+            dragOptions: { excludeSelector: dragExcludeSelector }
+        });
 
         // Store singleton instance for event handlers to access
         juiceboxPanelInstance = this;

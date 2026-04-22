@@ -3,12 +3,13 @@ import {configureDrag} from "./utils/draggable.js"
 
 const zIndexPanelSelected = 1124;
 const zIndexPanelUnselected = 1024;
+const NAVBAR_BUFFER_PX = 8;
 
 const panelDictionary = {}
 
 class Panel {
 
-    constructor({ container, panel, isHidden, xFunction, yFunction }) {
+    constructor({ container, panel, isHidden, xFunction, yFunction, dragSurface, dragOptions }) {
 
         this.container = container
 
@@ -20,12 +21,14 @@ class Panel {
         this.yFunction = yFunction
 
         const dragHandle = panel.querySelector('.spacewalk_card_drag_container')
-        // makeDraggable(panel, dragHandle)
+        const dragTarget = dragSurface || dragHandle
 
-        configureDrag(panel, dragHandle, container, { topConstraint: document.querySelector('.navbar') })
+        configureDrag(panel, dragTarget, container, {
+            topConstraint: document.querySelector('.navbar'),
+            ...(dragOptions || {})
+        })
 
         dragHandle.addEventListener(`mousedown`, (event) => {
-            event.stopPropagation();
             event.preventDefault();
             SpacewalkEventBus.globalBus.post({ type: "DidSelectPanel", data: this.getClassName() });
         });
@@ -79,7 +82,9 @@ class Panel {
             this.setTopLeftPercentages(false);
         }
         const left = Math.floor(this.leftPercent * width);
-        const top = Math.floor(this.topPercent * height);
+        const navbar = document.querySelector('.navbar');
+        const navbarHeight = navbar ? navbar.getBoundingClientRect().height : 0;
+        const top = Math.max(navbarHeight + NAVBAR_BUFFER_PX, Math.floor(this.topPercent * height));
         return { top, left };
     }
 
