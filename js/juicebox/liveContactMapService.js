@@ -179,13 +179,19 @@ class LiveContactMapService {
                 name: 'Live Contact Map'
             }
 
-            // SWB: hand hic-straw the already-open HDF5 handle so it can use the
-            // baked live_contact_map_vertices fast path and avoid duplicate opens.
-            // Other datasources (e.g. CNDB) continue to supply traces directly.
+            // SWB ball-and-stick: hand hic-straw the already-open HDF5 handle
+            // so it can use the baked live_contact_map_vertices fast path.
+            // SWB pointcloud: collapse each trace to per-region centroids here;
+            // hic-straw's loader is ball-and-stick-only for now. Other
+            // datasources (e.g. CNDB) supply traces directly.
             const ds = ensembleManager.datasource
             if (ds instanceof SWBDatasource) {
-                lcmConfig.hdf5 = ds.hdf5
-                lcmConfig.ensembleGroupKey = ds.currentEnsembleGroupKey
+                if (ds.isPointCloud) {
+                    lcmConfig.traces = await ds.buildPointCloudLiveMapTraces()
+                } else {
+                    lcmConfig.hdf5 = ds.hdf5
+                    lcmConfig.ensembleGroupKey = ds.currentEnsembleGroupKey
+                }
             } else {
                 lcmConfig.traces = await ensureLiveMapVertexLists()
             }
