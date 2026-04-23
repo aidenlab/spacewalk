@@ -21,7 +21,13 @@ class SWBDatasource extends DataSourceBase {
 
         SpacewalkGlobals.url = false === FileUtils.isFilePath(path) ? path : undefined
 
-        const hdf5 = await openH5File(FileUtils.isFilePath(path) ? { file:path } : { url: path })
+        // Override hdf5-indexed-reader's default fetchSize=2000/maxSize=200000.
+        // On high-latency hosts (Dropbox ~500ms RTT), those defaults produce
+        // ~100 sequential 2KB range requests just to load the embedded JSON
+        // index, turning a remote open into a ~60s wait. 64KB pages + 4MB LRU
+        // collapse it to a handful of requests.
+        const source = FileUtils.isFilePath(path) ? { file: path } : { url: path }
+        const hdf5 = await openH5File({ ...source, fetchSize: 65536, maxSize: 4_000_000 })
 
         const { sample, genomeAssembly } = await this.initialize(hdf5, ensembleGroupKey)
 
