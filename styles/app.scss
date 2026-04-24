@@ -68,6 +68,7 @@ $spacewalk-threejs-drag-container-height: 32px;
 }
 
 #spacewalk-threejs-drag-container {
+  position: relative;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -83,6 +84,29 @@ $spacewalk-threejs-drag-container-height: 32px;
   i {
     color: color.$spacewalk_steel;
     display: block;
+  }
+
+  #spacewalk-threejs-home-button {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 24px;
+    height: 24px;
+    padding: 0;
+
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    &:hover i {
+      color: black;
+    }
   }
 
 }
