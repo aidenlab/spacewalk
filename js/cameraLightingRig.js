@@ -61,7 +61,8 @@ class CameraLightingRig extends OrbitControls {
         // update the reset camera function
         this.resetCamera = () => {
             this.setPose(position, centroid)
-            this.setProjection({ fov, near, far, aspect });
+            const { width, height } = getThreeJSContainerRect()
+            this.setProjection({ fov, near, far, aspect: width / height })
         }
 
     }
