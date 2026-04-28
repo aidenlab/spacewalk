@@ -9,6 +9,7 @@ import Gnomon from './gnomon.js'
 import GUIManager from "./guiManager.js"
 import {setMaterialProvider, unsetDataMaterialProviderCheckbox} from "./utils/utils.js"
 import Ribbon from './ribbon.js'
+import Polyline from './polyline.js'
 import { clearScene } from './utils/disposalUtils.js'
 import {
     scene,
@@ -34,6 +35,7 @@ class SceneManager {
         this.ballAndStick = null
         this.pointCloud = null
         this.ribbon = null
+        this.polyline = null
 
         // Persistent state that survives across model loads
         this.ballHighlighter = new BallHighlighter(highlightColor)
@@ -102,6 +104,8 @@ class SceneManager {
             this.pointCloud.handleGenomicInterpolant(data)
         } else if (this.ribbon && Ribbon.renderStyle === this.renderStyle) {
             this.ribbon.handleGenomicInterpolant(data)
+        } else if (this.polyline && Polyline.renderStyle === this.renderStyle) {
+            this.polyline.handleGenomicInterpolant(data)
         }
     }
 
@@ -115,6 +119,9 @@ class SceneManager {
         if (this.ribbon) {
             this.ribbon.handleHideHighlights()
         }
+        if (this.polyline) {
+            this.polyline.handleHideHighlights()
+        }
     }
 
     /**
@@ -126,6 +133,9 @@ class SceneManager {
         }
         if (this.ribbon) {
             this.ribbon.handleHideHighlights()
+        }
+        if (this.polyline) {
+            this.polyline.handleHideHighlights()
         }
     }
 
@@ -200,6 +210,9 @@ class SceneManager {
             this.ribbon = new Ribbon(trace)
             this.ribbon.addToScene(scene)
 
+            this.polyline = new Polyline(trace)
+            this.polyline.addToScene(scene)
+
             this.ballAndStick = new BallAndStick({
                 trace,
                 pickHighlighter: this.ballHighlighter,
@@ -271,9 +284,16 @@ class SceneManager {
             this.ribbon.dispose()
             this.ribbon = null
         }
+        if (this.polyline) {
+            this.polyline.dispose()
+            this.polyline = null
+        }
 
         this.ribbon = new Ribbon(trace)
         this.ribbon.addToScene(scene)
+
+        this.polyline = new Polyline(trace)
+        this.polyline.addToScene(scene)
 
         this.ballAndStick = new BallAndStick({
             trace,
@@ -292,14 +312,22 @@ class SceneManager {
         if (Ribbon.renderStyle === renderStyle) {
             this.pointCloud?.hide()
             this.ballAndStick?.hide()
+            this.polyline?.hide()
             this.ribbon?.show()
+        } else if (Polyline.renderStyle === renderStyle) {
+            this.pointCloud?.hide()
+            this.ballAndStick?.hide()
+            this.ribbon?.hide()
+            this.polyline?.show()
         } else if (BallAndStick.renderStyle === renderStyle) {
             this.pointCloud?.hide()
             this.ribbon?.hide()
+            this.polyline?.hide()
             this.ballAndStick?.show()
         } else if (PointCloud.renderStyle === renderStyle) {
             this.ballAndStick?.hide()
             this.ribbon?.hide()
+            this.polyline?.hide()
             this.pointCloud?.show()
         }
 
@@ -359,6 +387,10 @@ class SceneManager {
             this.ribbon.dispose()
             this.ribbon = null
         }
+        if (this.polyline) {
+            this.polyline.dispose()
+            this.polyline = null
+        }
         if (this.pointCloud) {
             this.pointCloud.dispose()
             this.pointCloud = null
@@ -387,10 +419,12 @@ class SceneManager {
         this.pointCloud?.renderLoopHelper()
         this.ballAndStick?.renderLoopHelper()
         this.ribbon?.renderLoopHelper()
+        this.polyline?.renderLoopHelper()
     }
 
     updateMaterialProvider(materialProvider) {
         this.ribbon?.updateMaterialProvider(materialProvider)
+        this.polyline?.updateMaterialProvider(materialProvider)
         this.ballAndStick?.updateMaterialProvider(materialProvider)
         this.pointCloud?.updateMaterialProvider(materialProvider)
     }
@@ -399,6 +433,8 @@ class SceneManager {
         switch (this.renderStyle) {
             case Ribbon.renderStyle:
                 return this.ribbon?.hull
+            case Polyline.renderStyle:
+                return this.polyline?.hull
             case PointCloud.renderStyle:
                 return this.pointCloud?.hull
             case BallAndStick.renderStyle:

@@ -3,6 +3,7 @@ import {colorRampMaterialProvider, igvPanel, sceneManager} from './app.js'
 import {fitToContainer, getMouseXY} from "./utils/utils"
 import {appleCrayonColorRGB255, rgb255, rgb255String, threeJSColorToRGB255} from "./utils/colorUtils"
 import Ribbon from "./ribbon"
+import Polyline from "./polyline.js"
 
 let rgbTexture;
 let alphaTexture;
@@ -89,7 +90,7 @@ class GenomicNavigator {
                     update.call(igvPanel.browser.cursorGuide, interpolantList[0])
                 }
 
-                if (sceneManager.renderStyle === Ribbon.renderStyle) {
+                if (sceneManager.renderStyle === Ribbon.renderStyle || sceneManager.renderStyle === Polyline.renderStyle) {
                     this.highlightFromInterpolant(interpolantList)
                 }
             } else {

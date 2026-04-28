@@ -1,6 +1,7 @@
 import SpacewalkEventBus from './spacewalkEventBus.js'
 import { StringUtils } from 'igv-utils'
 import Ribbon from "./ribbon.js";
+import Polyline from "./polyline.js";
 import BallAndStick from "./ballAndStick.js";
 import { sceneManager, ensembleManager, colorMapManager } from "./app.js";
 import Panel from "./panel.js";
@@ -40,6 +41,8 @@ class GUIManager {
         configureRenderStyleControl(document.getElementById('spacewalk-render-style-ball-stick'), BallAndStick.renderStyle);
 
         configureRenderStyleControl(document.getElementById('spacewalk-render-style-ribbon'), Ribbon.renderStyle);
+
+        configureRenderStyleControl(document.getElementById('spacewalk-render-style-polyline'), Polyline.renderStyle);
 
         // Ball radius
         const ballRadiusControl = document.getElementById('spacewalk-ball-radius-control');
@@ -183,6 +186,11 @@ class GUIManager {
             if (ribbonRadio) {
                 ribbonRadio.checked = true;
             }
+        } else if (renderStyle === Polyline.renderStyle) {
+            const polylineRadio = document.getElementById('spacewalk-render-style-polyline');
+            if (polylineRadio) {
+                polylineRadio.checked = true;
+            }
         } else if (renderStyle === BallAndStick.renderStyle) {
             const ballStickRadio = document.getElementById('spacewalk-render-style-ball-stick');
             if (ballStickRadio) {
@@ -201,7 +209,9 @@ class GUIManager {
             return BallAndStick.renderStyle
         }
 
-        return id === 'spacewalk-render-style-ball-stick' ? BallAndStick.renderStyle : Ribbon.renderStyle;
+        if (id === 'spacewalk-render-style-ball-stick') return BallAndStick.renderStyle;
+        if (id === 'spacewalk-render-style-polyline') return Polyline.renderStyle;
+        return Ribbon.renderStyle;
     }
 
 }
