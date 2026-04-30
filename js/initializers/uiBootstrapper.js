@@ -63,6 +63,9 @@ class UIBootstrapper {
         // Initialize drag functionality
         this.initializeDragControls(container);
 
+        // Initialize home (reset view) button
+        this.initializeHomeButton();
+
         // Initialize share widgets
         createShareWidgets(shareWidgetConfigurator(spacewalkConfig.urlShortener));
 
@@ -172,6 +175,18 @@ class UIBootstrapper {
             container,
             navbarConstraint
         );
+    }
+
+    initializeHomeButton() {
+        const button = document.getElementById('spacewalk-threejs-home-button');
+
+        // Prevent the drag container from starting a drag when the button is pressed
+        button.addEventListener('pointerdown', e => e.stopPropagation());
+        button.addEventListener('mousedown', e => e.stopPropagation());
+
+        button.addEventListener('click', () => {
+            this.appContext.cameraLightingRig?.resetCamera?.();
+        });
     }
 
     initializeFullscreenMode(traceContainer) {

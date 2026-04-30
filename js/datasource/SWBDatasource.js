@@ -148,11 +148,11 @@ class SWBDatasource extends DataSourceBase {
 
     }
 
-    // Build per-trace vertex lists for a pointcloud ensemble by collapsing each
-    // trace's flat [region_id, x, y, z] quadruples into per-region centroids.
-    // Ball-and-stick ensembles bypass this path: liveContactMapService hands
-    // the raw HDF5 handle to hic-straw, which reads the bake or t_* datasets
-    // directly. Pointcloud bake is future work; until then this remains here.
+    // Fallback for pointcloud .sw files exported before swtool wrote the
+    // live_contact_map_vertices bake. Collapses each trace's flat
+    // [region_id, x, y, z] quadruples into per-region centroids so the live
+    // contact map can still render. Files exported by current swtool include
+    // the bake and bypass this path entirely.
     async buildPointCloudLiveMapTraces() {
         const traces = []
         const count = await this.getVertexListCount()
@@ -183,6 +183,13 @@ class SWBDatasource extends DataSourceBase {
             traces.push(shimmed)
         }
         return traces
+    }
+
+    async hasLiveVertexBake() {
+        const group = await this.hdf5.get(this.currentEnsembleGroupKey)
+        if (!group) return false
+        const keys = await group.keys
+        return keys.includes('live_contact_map_vertices')
     }
 
 }
