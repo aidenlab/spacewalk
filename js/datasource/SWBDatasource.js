@@ -148,43 +148,6 @@ class SWBDatasource extends DataSourceBase {
 
     }
 
-    // Build per-trace vertex lists for a pointcloud ensemble by collapsing each
-    // trace's flat [region_id, x, y, z] quadruples into per-region centroids.
-    // Ball-and-stick ensembles bypass this path: liveContactMapService hands
-    // the raw HDF5 handle to hic-straw, which reads the bake or t_* datasets
-    // directly. Pointcloud bake is future work; until then this remains here.
-    async buildPointCloudLiveMapTraces() {
-        const traces = []
-        const count = await this.getVertexListCount()
-        for (let i = 0; i < count; i++) {
-            const ds = await this.hdf5.get(`${this.currentEnsembleGroupKey}/spatial_position/t_${i}`)
-            const traceValues = await ds.value
-
-            const { genomicExtentList, regionXYZDictionary, regionIndexStrings } =
-                createGenomicExtentList(traceValues, this.globaleGenomicExtentList)
-
-            const centroids = genomicExtentList
-                .map((ge, index) => {
-                    const key = regionIndexStrings[index]
-                    return createPointCloudPayload(key, ge, regionXYZDictionary[key])
-                })
-                .map(({ centroid }) => ({ x: centroid[0], y: centroid[1], z: centroid[2] }))
-
-            const present = new Set(regionIndexStrings)
-            const shimmed = []
-            for (let r = 0; r < this.globaleGenomicExtentList.length; r++) {
-                const key = `${r}`
-                if (present.has(key)) {
-                    shimmed.push(centroids[regionIndexStrings.indexOf(key)])
-                } else {
-                    shimmed.push({ isMissingData: true })
-                }
-            }
-            traces.push(shimmed)
-        }
-        return traces
-    }
-
 }
 
 function createPointCloudPayload(key, genomicExtent, rawXYZ) {
