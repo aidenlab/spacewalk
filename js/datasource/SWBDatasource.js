@@ -148,6 +148,50 @@ class SWBDatasource extends DataSourceBase {
 
     }
 
+    // Fallback for pointcloud .sw files exported before swtool wrote the
+    // live_contact_map_vertices bake. Collapses each trace's flat
+    // [region_id, x, y, z] quadruples into per-region centroids so the live
+    // contact map can still render. Files exported by current swtool include
+    // the bake and bypass this path entirely.
+    async buildPointCloudLiveMapTraces() {
+        const traces = []
+        const count = await this.getVertexListCount()
+        for (let i = 0; i < count; i++) {
+            const ds = await this.hdf5.get(`${this.currentEnsembleGroupKey}/spatial_position/t_${i}`)
+            const traceValues = await ds.value
+
+            const { genomicExtentList, regionXYZDictionary, regionIndexStrings } =
+                createGenomicExtentList(traceValues, this.globaleGenomicExtentList)
+
+            const centroids = genomicExtentList
+                .map((ge, index) => {
+                    const key = regionIndexStrings[index]
+                    return createPointCloudPayload(key, ge, regionXYZDictionary[key])
+                })
+                .map(({ centroid }) => ({ x: centroid[0], y: centroid[1], z: centroid[2] }))
+
+            const present = new Set(regionIndexStrings)
+            const shimmed = []
+            for (let r = 0; r < this.globaleGenomicExtentList.length; r++) {
+                const key = `${r}`
+                if (present.has(key)) {
+                    shimmed.push(centroids[regionIndexStrings.indexOf(key)])
+                } else {
+                    shimmed.push({ isMissingData: true })
+                }
+            }
+            traces.push(shimmed)
+        }
+        return traces
+    }
+
+    async hasLiveVertexBake() {
+        const group = await this.hdf5.get(this.currentEnsembleGroupKey)
+        if (!group) return false
+        const keys = await group.keys
+        return keys.includes('live_contact_map_vertices')
+    }
+
 }
 
 function createPointCloudPayload(key, genomicExtent, rawXYZ) {
