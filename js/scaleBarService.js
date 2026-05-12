@@ -3,16 +3,22 @@ import {vectorMax, vectorMin} from "./utils/mathUtils.js"
 import {appleCrayonColorThreeJS, rgb255String, threeJSColorToRGB255} from "./utils/colorUtils.js"
 import { register, updateSwatch } from "./utils/sharedColorPicker.js"
 
+const REFERENCE_RULER_TARGET_PX = 128
+
 class ScaleBarService {
 
-    constructor(renderContainer, isHidden, initialColor) {
+    constructor(renderContainer, isHidden, initialColor, referenceRulerHidden, referenceRulerInitialColor) {
         this.renderContainer = renderContainer
 
         this.color = initialColor ?? appleCrayonColorThreeJS('iron')
 
         this.visible = !(isHidden);
 
+        this.referenceRulerColor = referenceRulerInitialColor ?? appleCrayonColorThreeJS('iron')
+        this.referenceRulerVisible = !(referenceRulerHidden);
+
         register(document.querySelector(`div[data-colorpicker='scale-bars']`), this.color, () => this.color, color => this.setColor(color))
+        register(document.querySelector(`div[data-colorpicker='reference-ruler']`), this.referenceRulerColor, () => this.referenceRulerColor, color => this.setReferenceRulerColor(color))
     }
 
     setColor(color){
@@ -82,15 +88,73 @@ class ScaleBarService {
 
     scaleBarAnimationLoopHelper(convexHullMesh, camera){
 
-        if (!this.visible) return
-
-        this.horizontalContainer.style.display = 'block'
-        this.verticalContainer.style.display = 'block'
+        if (!this.visible && !this.referenceRulerVisible) return
 
         const scaleBarBounds = ScaleBarService.calculateScaleBarBounds(convexHullMesh, camera, this.renderContainer)
 
-        this.updateScaleBars(scaleBarBounds)
+        if (this.visible) {
+            this.horizontalContainer.style.display = 'block'
+            this.verticalContainer.style.display = 'block'
+            this.updateScaleBars(scaleBarBounds)
+        }
 
+        if (this.referenceRulerVisible) {
+            this.referenceRulerContainer.style.display = 'block'
+            if (isFinite(scaleBarBounds.width) && scaleBarBounds.width > 0 &&
+                isFinite(scaleBarBounds.widthNM) && scaleBarBounds.widthNM > 0) {
+                const nmPerPixel = scaleBarBounds.widthNM / scaleBarBounds.width
+                this.updateReferenceRuler(nmPerPixel)
+            }
+        }
+
+    }
+
+    setReferenceRulerColor(color){
+        const { r, g, b } = color
+        this.referenceRulerColor.setRGB(r, g, b)
+        const colorString = rgb255String(threeJSColorToRGB255(this.referenceRulerColor))
+        const bar = document.getElementById('reference-ruler-bar')
+        const label = document.getElementById('reference-ruler-label')
+        if (bar) bar.style.backgroundColor = colorString
+        if (label) label.style.color = colorString
+    }
+
+    updateReferenceRuler(nmPerPixel) {
+        const rawNM = REFERENCE_RULER_TARGET_PX * nmPerPixel
+        const label = this.referenceRulerContainer.querySelector('#reference-ruler-label')
+        label.textContent = ScaleBarService.formatNMLabel(rawNM)
+    }
+
+    insertReferenceRulerDOM() {
+
+        const w = REFERENCE_RULER_TARGET_PX
+        const colorString = rgb255String(threeJSColorToRGB255(this.referenceRulerColor))
+        const html =
+            `<div id="spacewalk-reference-ruler-container" style="position: absolute; left: 20px; bottom: 20px; user-select: none; display: none; width: ${w}px;">
+              <div id="reference-ruler-bar" style="width: ${w}px; height: 5px; background-color: ${colorString};"></div>
+              <div id="reference-ruler-label" style="width: ${w}px; text-align: center; font-family: 'HelveticaNeue-Light', 'Helvetica Neue'; font-size: 18px; font-weight: 300; letter-spacing: 0.75px; color: ${colorString}; margin-top: 4px;"></div>
+            </div>`
+
+        const fragment = document.createRange().createContextualFragment(html)
+        this.referenceRulerContainer = fragment.firstChild
+        this.renderContainer.appendChild(this.referenceRulerContainer)
+    }
+
+    toggleReferenceRuler() {
+        const isVisible = !this.referenceRulerVisible
+        this.setReferenceRulerVisibility(isVisible ? 'visible' : 'hidden')
+    }
+
+    setReferenceRulerVisibility(visibilityString) {
+        if ('visible' === visibilityString) {
+            this.referenceRulerVisible = true
+            this.referenceRulerContainer.style.display = 'block'
+        } else {
+            this.referenceRulerVisible = false
+            this.referenceRulerContainer.style.display = 'none'
+        }
+        const input = document.getElementById('spacewalk_ui_manager_reference_ruler')
+        if (input) input.checked = this.referenceRulerVisible
     }
 
     insertScaleBarDOM() {
@@ -166,9 +230,20 @@ class ScaleBarService {
         updateSwatch(document.querySelector(`div[data-colorpicker='scale-bars']`), new THREE.Color(r, g, b))
     }
 
+    setReferenceRulerState({ r, g, b, visibility }) {
+        this.setReferenceRulerColor(new THREE.Color(r, g, b))
+        this.setReferenceRulerVisibility(visibility)
+        updateSwatch(document.querySelector(`div[data-colorpicker='reference-ruler']`), new THREE.Color(r, g, b))
+    }
+
     toJSON(){
         const { r, g, b } = this.color
         return { r, g, b, visibility: this.visible ? 'visible' : 'hidden' }
+    }
+
+    referenceRulerToJSON(){
+        const { r, g, b } = this.referenceRulerColor
+        return { r, g, b, visibility: this.referenceRulerVisible ? 'visible' : 'hidden' }
     }
 
     static setSVGElementColor(elementID, color){
@@ -230,6 +305,14 @@ class ScaleBarService {
 
         return { north, south, east, west, width, height, widthNM, heightNM }
 
+    }
+
+    static formatNMLabel(nm) {
+        if (!isFinite(nm) || nm <= 0) return '0 nm'
+        if (nm >= 1000) return `${(nm / 1000).toFixed(2)} μm`
+        if (nm >= 100) return `${Math.round(nm)} nm`
+        if (nm >= 10) return `${nm.toFixed(1)} nm`
+        return `${nm.toFixed(2)} nm`
     }
 
     static setRulerWidgetVisibilityStatus(status) {
