@@ -32,12 +32,22 @@ class SettingsManager {
             this.save()
         })
 
+        // Reference Ruler toggle
+        document.getElementById('spacewalk_ui_manager_reference_ruler').addEventListener('change', e => {
+            e.stopPropagation()
+            sceneManager.getScaleBarService().toggleReferenceRuler()
+            this.save()
+        })
+
         // Apply saved settings to checkboxes
         const saved = SettingsManager.load()
         if (saved) {
             document.getElementById('spacewalk_ui_manager_gnomon').checked = saved.gnomon.visible
             document.getElementById('spacewalk_ui_manager_groundplane').checked = saved.groundPlane.visible
             document.getElementById('spacewalk_ui_manager_scale_bars').checked = saved.scaleBars.visible
+            if (saved.referenceRuler) {
+                document.getElementById('spacewalk_ui_manager_reference_ruler').checked = saved.referenceRuler.visible
+            }
         }
 
         // Save settings when any color picker changes
@@ -72,6 +82,9 @@ class SettingsManager {
         if (scaleBarService) {
             const { r, g, b } = scaleBarService.color
             settings.scaleBars = { visible: scaleBarService.visible, r, g, b }
+
+            const refColor = scaleBarService.referenceRulerColor
+            settings.referenceRuler = { visible: scaleBarService.referenceRulerVisible, r: refColor.r, g: refColor.g, b: refColor.b }
         }
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
