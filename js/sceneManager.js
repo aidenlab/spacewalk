@@ -314,8 +314,11 @@ class SceneManager {
         const saved = SettingsManager.load()
         const scaleBarsHidden = saved?.scaleBars ? !saved.scaleBars.visible : ScaleBarService.setScaleBarsHidden()
         const scaleBarsColor = saved?.scaleBars ? new THREE.Color(saved.scaleBars.r, saved.scaleBars.g, saved.scaleBars.b) : undefined
-        this.scaleBarService = new ScaleBarService(renderContainer, scaleBarsHidden, scaleBarsColor)
+        const referenceRulerHidden = saved?.referenceRuler ? !saved.referenceRuler.visible : true
+        const referenceRulerColor = saved?.referenceRuler ? new THREE.Color(saved.referenceRuler.r, saved.referenceRuler.g, saved.referenceRuler.b) : undefined
+        this.scaleBarService = new ScaleBarService(renderContainer, scaleBarsHidden, scaleBarsColor, referenceRulerHidden, referenceRulerColor)
         this.scaleBarService.insertScaleBarDOM()
+        this.scaleBarService.insertReferenceRulerDOM()
     }
 
     getScaleBarService() {
