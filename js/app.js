@@ -10,6 +10,7 @@ import { defaultColormapName } from "./utils/colorMapManager.js"
 import ThreeJSInitializer from "./initializers/threeJSInitializer.js"
 import UIBootstrapper from "./initializers/uiBootstrapper.js"
 import PanelInitializer from "./initializers/panelInitializer.js"
+import { downloadBallAndStickSVG } from "./utils/svgExporter.js"
 
 // Module-level variables - the single source of truth for shared application state
 // These are populated by the App class during initialization
@@ -121,6 +122,20 @@ class App {
 
         // Start the render loop
         this.startRenderLoop();
+
+        // SVG export — exposed as window.exportSVG() for console use and bound to the print button.
+        const doExportSVG = (filename = 'spacewalk.svg') => {
+            const ballAndStick = this.sceneManager?.ballAndStick;
+            if (!ballAndStick) {
+                console.warn('exportSVG: no ball-and-stick scene loaded');
+                return;
+            }
+            const canvas = this.renderer.domElement;
+            const trace = this.ensembleManager.currentTrace;
+            downloadBallAndStickSVG({ scene: this.scene, camera: this.camera, ballAndStick, canvas, trace }, filename);
+        };
+        window.exportSVG = doExportSVG;
+        document.getElementById('spacewalk-print-button')?.addEventListener('click', () => doExportSVG());
     }
 
     async initializeCoreManagers() {
