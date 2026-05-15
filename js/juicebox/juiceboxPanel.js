@@ -464,6 +464,12 @@ function tabAssessment(browser, activeTabButton, panel) {
 
     const resolutionWidget    = hicNavbarContainer?.querySelector('.hic-resolution-selector-container')
     const normalizationWidget = hicNavbarContainer?.querySelector('.hic-normalization-selector-container')
+    const colorScaleWidget    = hicNavbarContainer?.querySelector('.hic-colorscale-widget-container')
+    // Threshold steppers (the +/- icons next to the colorscale numeric input).
+    // The color swatches and numeric input live in the same container and must remain visible on Live tabs.
+    const colorScaleThresholdButtons = colorScaleWidget
+        ? colorScaleWidget.querySelectorAll('i.fa-minus, i.fa-plus')
+        : []
 
     // Hide all canvas containers
     if (hicContainer) hicContainer.style.display = 'none'
@@ -485,6 +491,7 @@ function tabAssessment(browser, activeTabButton, panel) {
             if (contactMapNavBar) contactMapNavBar.style.display = ''
             if (resolutionWidget) resolutionWidget.style.display = ''
             if (normalizationWidget) normalizationWidget.style.display = ''
+            colorScaleThresholdButtons.forEach(btn => { btn.style.display = '' })
             moveControlsToCardHeader(controlsWidget)
             moveControlsToCardHeader(distanceControlsWidget)
             controlsWidget.style.display = 'none'
@@ -507,6 +514,7 @@ function tabAssessment(browser, activeTabButton, panel) {
             if (contactMapNavBar) contactMapNavBar.style.display = 'none'
             if (resolutionWidget) resolutionWidget.style.display = 'none'
             if (normalizationWidget) normalizationWidget.style.display = 'none'
+            colorScaleThresholdButtons.forEach(btn => { btn.style.display = 'none' })
             moveControlsToNavbar(controlsWidget, hicNavbarContainer, contactMapNavBar)
             moveControlsToCardHeader(distanceControlsWidget)
             controlsWidget.style.display = ''
@@ -529,6 +537,7 @@ function tabAssessment(browser, activeTabButton, panel) {
             if (contactMapNavBar) contactMapNavBar.style.display = 'none'
             if (resolutionWidget) resolutionWidget.style.display = 'none'
             if (normalizationWidget) normalizationWidget.style.display = 'none'
+            colorScaleThresholdButtons.forEach(btn => { btn.style.display = 'none' })
             moveControlsToCardHeader(controlsWidget)
             moveControlsToNavbar(distanceControlsWidget, hicNavbarContainer, contactMapNavBar)
             controlsWidget.style.display = 'none'
