@@ -69,15 +69,12 @@ but does not block this work.
 - `:8` — delete `const defaultDistanceThreshold = 200`; `:289` — remove it from the
   `export` statement.
 - `calculateLiveMaps()`:
-  - Capture `const isFreshCalculate = (this.lcm === null)` **before** `this.lcm` is
-    reassigned. `receiveEvent` nulls `this.lcm` on every `DidLoadEnsembleFile`, so
-    `this.lcm === null` reliably means "first Calculate for this ensemble."
-  - Include `distanceThreshold` in `lcmConfig` **only when not fresh** — i.e. preserve the
-    user's current slider value on a contact-mode recalculate. On a fresh calculate, omit
-    it so hic-straw derives the data-driven default. (Mirrors the `preserveThreshold`
-    logic added to hic-straw's `examples/live-contact-map.html`.)
+  - **Never include `distanceThreshold` in `lcmConfig`.** Every Calculate re-derives, so
+    pressing Calculate resets the threshold to the data-driven default — a simpler and
+    more predictable policy than preserving the user's slider value on a recalculate.
+    This also covers the contact-mode-change path (which also invokes `calculateLiveMaps`).
   - After `await this.lcm.init()` — next to the existing `this.thresholdSlider.max = ...`
-    at `:213` — sync the slider to the value the library is actually using:
+    at `:213` — sync the slider to the freshly derived value:
     `this.thresholdSlider.value = Math.round(this.lcm.distanceThreshold)` and update
     `this.thresholdDisplay`. Note `this.lcm.distanceThreshold` is `undefined` until
     `init()` resolves; this sync must come after the `await`.

@@ -69,10 +69,9 @@ class LiveContactMapService {
 
     receiveEvent({ type, data }) {
         if ('DidLoadEnsembleFile' === type) {
-            // lcm = null is the "fresh calculate" signal: the next calculateLiveMaps()
-            // omits distanceThreshold so hic-straw derives a data-driven default.
-            // The threshold slider is left as-is — it has no meaningful value until
-            // the first Calculate derives one and syncs it.
+            // Null out lcm so the slider/mode change handlers' `if (!this.lcm) return`
+            // guards disable them until the user clicks Calculate. The threshold slider
+            // itself is left as-is — Calculate always re-derives and syncs it.
             this.lcm = null
             this.contactModeSelect.value = 'frequency'
         }
@@ -106,13 +105,6 @@ class LiveContactMapService {
 
         juiceboxPanel.showLiveMapSpinner()
 
-        // Captured before this.lcm is reassigned below. receiveEvent() nulls
-        // this.lcm on every ensemble load, so null === "first Calculate for this
-        // ensemble" → let hic-straw derive a data-driven default threshold.
-        // Non-null === a recalculate (contact-mode switch) → preserve the user's
-        // current threshold.
-        const isFreshCalculate = this.lcm === null
-
         try {
             const { chr, genomicStart, genomicEnd } = ensembleManager.locus
             const traceLength = ensembleManager.getLiveMapTraceLength()
@@ -136,6 +128,9 @@ class LiveContactMapService {
 
             const contactMode = this.contactModeSelect.value
 
+            // distanceThreshold is intentionally omitted: every Calculate re-derives
+            // it from the distance distribution, so pressing Calculate resets the
+            // threshold to the data-driven default. The slider is synced post-init().
             const lcmConfig = {
                 genomeId,
                 chr,
@@ -146,12 +141,6 @@ class LiveContactMapService {
                 chromosomes,
                 contactMode,
                 name: 'Live Contact Map'
-            }
-
-            // Fresh calculate: omit distanceThreshold so hic-straw derives a
-            // data-driven default. Recalculate: preserve the user's slider value.
-            if (!isFreshCalculate) {
-                lcmConfig.distanceThreshold = parseInt(this.thresholdSlider.value)
             }
 
             // SWB: hand hic-straw the already-open HDF5 handle so it can use
@@ -184,10 +173,9 @@ class LiveContactMapService {
                 locus: `${locusStr} ${locusStr}`
             })
 
-            // Size the threshold slider to the data and sync it to the threshold
-            // the library is actually using — a data-driven default on a fresh
-            // calculate, or the user's preserved value on a recalculate.
-            // this.lcm.distanceThreshold is only defined after init() resolves.
+            // Size the threshold slider to the data and sync it to the freshly
+            // derived default. this.lcm.distanceThreshold is only defined after
+            // init() resolves.
             this.thresholdSlider.max = Math.ceil(this.lcm.maxDistance * 2)
             this.thresholdSlider.value = Math.round(this.lcm.distanceThreshold)
             this.thresholdDisplay.textContent = this.thresholdSlider.value
