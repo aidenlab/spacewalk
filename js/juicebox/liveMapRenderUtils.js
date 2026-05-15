@@ -103,10 +103,9 @@ function renderContactMap(ctx, lcm, colorConfig) {
         fillScaledPixel(data, size, y, x, scale, fg.r, fg.g, fg.b, alpha, bg.r, bg.g, bg.b)
     }
 
-    // Diagonal
-    for (let i = 0; i < N; i++) {
-        fillScaledPixel(data, size, i, i, scale, 40, 40, 40, 255, bg.r, bg.g, bg.b)
-    }
+    // The main diagonal is painted by the loop above: LiveContactMap emits a
+    // self-contact record (counts = 1) for every diagonal bin, so it renders as
+    // a bright reference diagonal like a real Hi-C map.
 
     ctx.putImageData(imageData, 0, 0)
 }

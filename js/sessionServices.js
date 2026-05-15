@@ -3,7 +3,6 @@ import hic from 'juicebox.js'
 import {BGZip} from 'igv-utils'
 import Panel from './panel.js'
 import SpacewalkEventBus from './spacewalkEventBus.js'
-import {defaultDistanceThreshold} from './juicebox/liveContactMapService.js'
 import { shortenURL } from "./share/shareHelper.js"
 import {
     scene,
@@ -12,7 +11,6 @@ import {
     juiceboxPanel,
     ensembleManager,
     sceneManager,
-    liveContactMapService,
     cameraLightingRig,
 } from './app.js'
 import { SpacewalkGlobals } from './spacewalkGlobals.js'
@@ -96,7 +94,6 @@ async function loadSpacewalkSession (session) {
         groundPlaneVisibility,
         rulerColor,
         rulerVisibility,
-        contactFrequencyMapDistanceThreshold,
         panelVisibility,
         cameraLightingRig,
         backgroundColor
@@ -122,7 +119,6 @@ async function loadSpacewalkSession (session) {
         //     scene.background = new THREE.Color(r, g, b)
         // }
 
-        liveContactMapService.setState(contactFrequencyMapDistanceThreshold || defaultDistanceThreshold)
         Panel.setState(panelVisibility)
 
         const data = ensembleManager.createEventBusPayload()
@@ -227,8 +223,6 @@ function spacewalkToJSON () {
         // spacewalk.backgroundColor = sceneManager.toJSON()
 
         spacewalk.cameraLightingRig = cameraLightingRig.getState()
-
-        spacewalk.contactFrequencyMapDistanceThreshold = liveContactMapService.distanceThreshold
 
         return spacewalk
     } else {
