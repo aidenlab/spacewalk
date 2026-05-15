@@ -37,7 +37,7 @@
     "hic-straw": "github:aidenlab/hic-straw#v3.0.1",
     "igv": "github:igvteam/igv.js#master",
     "igv-utils": "github:igvteam/igv-utils#v1.5.8",
-    "juicebox.js": "github:aidenlab/juicebox.js#v3.3.0",
+    "juicebox.js": "github:aidenlab/juicebox.js#v3.4.1",
     "quickhull3d": "^3.1.2",
     "three": "^0.184.0",
     "vanilla-picker": "^2.12.3"
