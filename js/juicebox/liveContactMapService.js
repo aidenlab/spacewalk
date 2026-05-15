@@ -15,7 +15,6 @@ class LiveContactMapService {
         // Slider controls
         this.thresholdSlider = document.getElementById('live-map-threshold-slider')
         this.thresholdDisplay = document.getElementById('live-map-threshold-value')
-        this.contactModeSelect = document.getElementById('live-map-contact-mode')
         this.thresholdUpBtn   = document.getElementById('live-map-threshold-up')
         this.thresholdDownBtn = document.getElementById('live-map-threshold-down')
 
@@ -55,25 +54,15 @@ class LiveContactMapService {
             this.thresholdSlider.dispatchEvent(new Event('change'))
         })
 
-        // Contact mode: full rebuild required
-        this.contactModeSelect.addEventListener('change', () => {
-            if (!this.lcm) return
-            juiceboxPanel.showLiveMapSpinner()
-            setTimeout(() => {
-                this.calculateLiveMaps()
-            }, 0)
-        })
-
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this)
     }
 
     receiveEvent({ type, data }) {
         if ('DidLoadEnsembleFile' === type) {
-            // Null out lcm so the slider/mode change handlers' `if (!this.lcm) return`
-            // guards disable them until the user clicks Calculate. The threshold slider
+            // Null out lcm so the slider change handler's `if (!this.lcm) return`
+            // guard disables it until the user clicks Calculate. The threshold slider
             // itself is left as-is — Calculate always re-derives and syncs it.
             this.lcm = null
-            this.contactModeSelect.value = 'frequency'
         }
     }
 
@@ -126,8 +115,6 @@ class LiveContactMapService {
                 chromosomes.forEach((c, idx) => { c.index = idx })
             }
 
-            const contactMode = this.contactModeSelect.value
-
             // distanceThreshold is intentionally omitted: every Calculate re-derives
             // it from the distance distribution, so pressing Calculate resets the
             // threshold to the data-driven default. The slider is synced post-init().
@@ -139,7 +126,7 @@ class LiveContactMapService {
                 binSize,
                 traceLength,
                 chromosomes,
-                contactMode,
+                contactMode: 'frequency',
                 name: 'Live Contact Map'
             }
 
