@@ -462,6 +462,15 @@ function tabAssessment(browser, activeTabButton, panel) {
     const controlsWidget = document.getElementById('hic-live-map-controls-widget')
     const distanceControlsWidget = document.getElementById('hic-live-distance-map-controls-widget')
 
+    const resolutionWidget    = hicNavbarContainer?.querySelector('.hic-resolution-selector-container')
+    const normalizationWidget = hicNavbarContainer?.querySelector('.hic-normalization-selector-container')
+    const colorScaleWidget    = hicNavbarContainer?.querySelector('.hic-colorscale-widget-container')
+    // Threshold steppers (the +/- icons next to the colorscale numeric input).
+    // The color swatches and numeric input live in the same container and must remain visible on Live tabs.
+    const colorScaleThresholdButtons = colorScaleWidget
+        ? colorScaleWidget.querySelectorAll('i.fa-minus, i.fa-plus')
+        : []
+
     // Hide all canvas containers
     if (hicContainer) hicContainer.style.display = 'none'
     if (liveContactContainer) liveContactContainer.style.display = 'none'
@@ -480,6 +489,9 @@ function tabAssessment(browser, activeTabButton, panel) {
             }
             // Show navbar dataset row, restore controls to card-header
             if (contactMapNavBar) contactMapNavBar.style.display = ''
+            if (resolutionWidget) resolutionWidget.style.display = ''
+            if (normalizationWidget) normalizationWidget.style.display = ''
+            colorScaleThresholdButtons.forEach(btn => { btn.style.display = '' })
             moveControlsToCardHeader(controlsWidget)
             moveControlsToCardHeader(distanceControlsWidget)
             controlsWidget.style.display = 'none'
@@ -500,6 +512,9 @@ function tabAssessment(browser, activeTabButton, panel) {
             }
             // Hide navbar dataset row, move contact controls into navbar
             if (contactMapNavBar) contactMapNavBar.style.display = 'none'
+            if (resolutionWidget) resolutionWidget.style.display = 'none'
+            if (normalizationWidget) normalizationWidget.style.display = 'none'
+            colorScaleThresholdButtons.forEach(btn => { btn.style.display = 'none' })
             moveControlsToNavbar(controlsWidget, hicNavbarContainer, contactMapNavBar)
             moveControlsToCardHeader(distanceControlsWidget)
             controlsWidget.style.display = ''
@@ -520,6 +535,9 @@ function tabAssessment(browser, activeTabButton, panel) {
             }
             // Hide navbar dataset row, move distance controls into navbar
             if (contactMapNavBar) contactMapNavBar.style.display = 'none'
+            if (resolutionWidget) resolutionWidget.style.display = 'none'
+            if (normalizationWidget) normalizationWidget.style.display = 'none'
+            colorScaleThresholdButtons.forEach(btn => { btn.style.display = 'none' })
             moveControlsToCardHeader(controlsWidget)
             moveControlsToNavbar(distanceControlsWidget, hicNavbarContainer, contactMapNavBar)
             controlsWidget.style.display = 'none'
