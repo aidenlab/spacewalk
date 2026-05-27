@@ -1,5 +1,5 @@
 import {FileUtils, URIUtils} from 'igv-utils'
-import {ensembleManager, sceneManager} from './app.js'
+import {ensembleManager, ensembleIngestionController} from './app.js'
 import SpacewalkEventBus from './spacewalkEventBus.js'
 
 let traceURLlModal
@@ -132,7 +132,7 @@ function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroup
         modal.hide()
 
         try {
-            await sceneManager.ingestEnsembleGroup(selectElement.value)
+            await ensembleIngestionController.ingestEnsembleGroup(selectElement.value)
 
             const data = ensembleManager.createEventBusPayload()
 

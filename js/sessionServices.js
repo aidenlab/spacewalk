@@ -12,6 +12,7 @@ import {
     ensembleManager,
     sceneManager,
     cameraLightingRig,
+    ensembleIngestionController,
 } from './app.js'
 import { SpacewalkGlobals } from './spacewalkGlobals.js'
 import GUIManager from "./guiManager.js"
@@ -102,7 +103,7 @@ async function loadSpacewalkSession (session) {
     GUIManager.updateRenderStyleWidgetState(renderStyle)
 
     try {
-        await sceneManager.ingestEnsemblePath(url, traceKey, ensembleGroupKey)
+        await ensembleIngestionController.ingestEnsemblePath(url, traceKey, ensembleGroupKey)
 
         // TODO: Gnomon, ground plane, scale bars, and background color are now
         // managed by SettingsManager (localStorage). Session values are ignored

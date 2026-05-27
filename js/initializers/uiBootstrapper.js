@@ -131,7 +131,7 @@ class UIBootstrapper {
         const fileLoader = {
             load: async fileOrPath => {
                 try {
-                    await this.appContext.sceneManager.ingestEnsemblePath(fileOrPath, '0', undefined);
+                    await this.appContext.ensembleIngestionController.ingestEnsemblePath(fileOrPath, '0', undefined);
                     const data = this.appContext.ensembleManager.createEventBusPayload();
                     SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
                 } catch (error) {
