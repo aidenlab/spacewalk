@@ -22,7 +22,6 @@ import { register, updateSwatch } from "./utils/sharedColorPicker.js"
 import SettingsManager from "./settingsManager.js"
 import BallHighlighter from "./ballHighlighter.js"
 import PointCloudHighlighter from "./pointCloudHighlighter.js"
-import ScaleBarService from "./scaleBarService.js"
 
 class SceneManager {
 
@@ -45,9 +44,6 @@ class SceneManager {
         this.ballRadiusIndex = undefined
         this.pointSizeBoundRadiusPercentage = undefined
         this.pointOpacity = 0.375
-
-        // ScaleBarService — owned here alongside Gnomon and GroundPlane
-        this.scaleBarService = null
 
         const saved = SettingsManager.load()
 
@@ -308,21 +304,6 @@ class SceneManager {
 
     getHemisphereLight(){
         return scene.getObjectByName('hemisphereLight')
-    }
-
-    initializeScaleBarService(renderContainer) {
-        const saved = SettingsManager.load()
-        const scaleBarsHidden = saved?.scaleBars ? !saved.scaleBars.visible : ScaleBarService.setScaleBarsHidden()
-        const scaleBarsColor = saved?.scaleBars ? new THREE.Color(saved.scaleBars.r, saved.scaleBars.g, saved.scaleBars.b) : undefined
-        const referenceRulerHidden = saved?.referenceRuler ? !saved.referenceRuler.visible : true
-        const referenceRulerColor = saved?.referenceRuler ? new THREE.Color(saved.referenceRuler.r, saved.referenceRuler.g, saved.referenceRuler.b) : undefined
-        this.scaleBarService = new ScaleBarService(renderContainer, scaleBarsHidden, scaleBarsColor, referenceRulerHidden, referenceRulerColor)
-        this.scaleBarService.insertScaleBarDOM()
-        this.scaleBarService.insertReferenceRulerDOM()
-    }
-
-    getScaleBarService() {
-        return this.scaleBarService
     }
 
     getGnomon(){

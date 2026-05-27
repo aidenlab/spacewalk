@@ -27,6 +27,7 @@ let googleEnabled = false;
 let cameraLightingRig;
 let camera;
 let scene;
+let scaleBarService;
 
 function getThreeJSContainerRect() {
     const container = document.querySelector('#spacewalk-threejs-canvas-container');
@@ -51,6 +52,7 @@ class App {
         // Services
         this.liveContactMapService = null;
         this.liveDistanceMapService = null;
+        this.scaleBarService = null;
 
         // Panels
         this.juiceboxPanel = null;
@@ -312,9 +314,14 @@ class App {
             const convexHull = this.sceneManager.getConvexHull();
 
         if (convexHull) {
-                this.sceneManager.getScaleBarService().scaleBarAnimationLoopHelper(convexHull.mesh, this.camera);
+                this.scaleBarService.scaleBarAnimationLoopHelper(convexHull.mesh, this.camera);
             }
         }
+    }
+
+    assignScaleBarService(service) {
+        this.scaleBarService = service
+        scaleBarService = service
     }
 
     startRenderLoop() {
@@ -368,6 +375,7 @@ export {
     juiceboxPanel,
     liveContactMapService,
     liveDistanceMapService,
+    scaleBarService,
     igvPanel,
     genomicNavigator,
 }
