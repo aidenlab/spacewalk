@@ -16,18 +16,6 @@ class DataSourceBase {
         // Subclasses override for resource cleanup
     }
 
-    consumeLines(lines, regex) {
-        console.warn('Warning: Dataset - base class method called consumeLines()')
-    }
-
-    consumeLine(line, regex) {
-        console.warn('Warning: Dataset - base class method called consumeLine()')
-    }
-
-    postprocess() {
-        console.warn('Warning: Dataset - base class method called postprocess()')
-    }
-
     async createTrace(i){
         console.warn('Warning: Dataset - base class method called createTrace()')
         return []

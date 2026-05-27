@@ -7,7 +7,7 @@ nav_order: 4
 
 # Legacy Spacewalk Text Format
 
-The legacy text-based format (`.swt`) is now deprecated. Use the [swt2sw](https://github.com/turner/swt2sw) tool to migrate to the new `.sw` format.
+The legacy text-based format (`.swt`) is no longer supported by Spacewalk. Use the [swt2sw](https://github.com/turner/swt2sw) tool to convert legacy `.swt` files to the `.sw` HDF5 format before loading.
 
 ## Format Specification
 
