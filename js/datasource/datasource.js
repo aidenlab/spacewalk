@@ -189,23 +189,6 @@ class Datasource extends DataSourceBase {
         return trace
     }
 
-    getLiveMapVertexLists() {
-        const values = Object.values(this.dictionary)
-        return values.map(traceDictionary => {
-            return this.getLiveMapVertices(traceDictionary.vertexDictionary)
-        })
-    }
-
-    getLiveMapVertices(vertexDictionary) {
-
-        return Object.values(vertexDictionary)
-            .map(row => {
-                const { x, y, z, isMissingData } = true === this.isPointCloud ? row.centroid : row
-                return true === isMissingData ? { isMissingData } : { x, y, z }
-            })
-
-    }
-
 }
 
 function computeCentroid(vertices) {

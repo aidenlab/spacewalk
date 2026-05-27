@@ -149,10 +149,6 @@ class EnsembleManager {
         }
     }
 
-    getLiveMapVertexLists() {
-        return this.datasource.getLiveMapVertexLists()
-    }
-
     get isPointCloud(){
         return this.datasource.isPointCloud
     }

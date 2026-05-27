@@ -1,8 +1,6 @@
 import { LiveContactMap } from 'hic-straw'
 import { ensembleManager, juiceboxPanel, igvPanel, liveDistanceMapService } from '../app.js'
 import SpacewalkEventBus from '../spacewalkEventBus.js'
-import SWBDatasource from '../datasource/SWBDatasource.js'
-import { ensureLiveMapVertexLists } from '../utils/liveMapUtils.js'
 import { renderContactMap, renderDistanceMap } from './liveMapRenderUtils.js'
 
 class LiveContactMapService {
@@ -130,22 +128,17 @@ class LiveContactMapService {
                 name: 'Live Contact Map'
             }
 
-            // SWB: hand hic-straw the already-open HDF5 handle so it can use
-            // the baked live_contact_map_vertices fast path. Pointcloud bakes
+            // Hand hic-straw the already-open HDF5 handle so it can use the
+            // baked live_contact_map_vertices fast path. Pointcloud bakes
             // store per-region centroids in the same (traceCount, traceLength,
             // 3) shape as ball-and-stick. Legacy pointcloud files exported
             // before the bake existed fall back to runtime centroid collapse.
-            // Other datasources (e.g. CNDB) supply traces directly.
             const ds = ensembleManager.datasource
-            if (ds instanceof SWBDatasource) {
-                if (ds.isPointCloud && !(await ds.hasLiveVertexBake())) {
-                    lcmConfig.traces = await ds.buildPointCloudLiveMapTraces()
-                } else {
-                    lcmConfig.hdf5 = ds.hdf5
-                    lcmConfig.ensembleGroupKey = ds.currentEnsembleGroupKey
-                }
+            if (ds.isPointCloud && !(await ds.hasLiveVertexBake())) {
+                lcmConfig.traces = await ds.buildPointCloudLiveMapTraces()
             } else {
-                lcmConfig.traces = await ensureLiveMapVertexLists()
+                lcmConfig.hdf5 = ds.hdf5
+                lcmConfig.ensembleGroupKey = ds.currentEnsembleGroupKey
             }
 
             this.lcm = new LiveContactMap(lcmConfig)

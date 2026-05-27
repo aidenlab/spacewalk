@@ -14,7 +14,7 @@ https://aidenlab.org/spacewalk/?file=https://example.com/data.sw
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `file` | Yes | — | URL to a .sw/.swb/.cndb/.swt file |
+| `file` | Yes | — | URL to a .sw/.swb/.swt file |
 | `traceKey` | No | `'0'` | Trace index to display initially |
 | `ensembleGroupKey` | No | — | Ensemble group to load |
 
@@ -108,7 +108,7 @@ spacewalkWindow.postMessage(
 |-------|------|-------------|
 | `type` | `string` | Must be `'spacewalk-load'` |
 | `bytes` | `Uint8Array` | Raw file bytes |
-| `filename` | `string` | Filename with extension (`.sw`, `.swb`, `.cndb`, `.swt`). The extension determines which parser/datasource Spacewalk uses. |
+| `filename` | `string` | Filename with extension (`.sw`, `.swb`, `.swt`). The extension determines which parser/datasource Spacewalk uses. |
 
 ### Spacewalk Receiving Side
 
