@@ -14,8 +14,7 @@ class EnsembleManager {
     async loadURL(url, traceKey, ensembleGroupKey) {
 
         const extension = FileUtils.getExtension(url)
-        const swbSet = new Set(['swb', 'sw'])
-        if (swbSet.has(extension)) {
+        if ('sw' === extension) {
             const datasource = new SWBDatasource()
             await this.loadSWB(url, datasource, parseInt(traceKey), ensembleGroupKey)
         } else if ('swt' === extension) {
