@@ -135,6 +135,7 @@ class UIBootstrapper {
                     const data = this.appContext.ensembleManager.createEventBusPayload();
                     SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
                 } catch (error) {
+                    if (error.userNotified) return
                     console.error('Failed to load file:', error)
                 }
             }
