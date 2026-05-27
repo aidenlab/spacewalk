@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import { igvxhr } from 'igv-utils'
 import { createSessionWidgets } from '../widgets/sessionWidgets.js'
 import { createTrackWidgetsWithTrackRegistry } from '../widgets/trackWidgets.js'
@@ -12,6 +13,7 @@ import { createShareWidgets, shareWidgetConfigurator } from '../share/shareWidge
 import { configureDrag } from "../utils/draggable.js"
 import GUIManager from "../guiManager.js"
 import SettingsManager from "../settingsManager.js"
+import ScaleBarService from "../scaleBarService.js"
 import { showRelease } from "../utils/release.js"
 import { spacewalkConfig } from "../../spacewalk-config.js"
 
@@ -45,7 +47,7 @@ class UIBootstrapper {
         });
 
         // Initialize scale bar service (after GUI manager, so checkbox exists)
-        this.appContext.sceneManager.initializeScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container'));
+        this.appContext.assignScaleBarService(this.buildScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container')));
 
         // Initialize settings manager (after scale bar service, so all settings targets exist)
         uiComponents.settingsManager = new SettingsManager();
@@ -73,6 +75,18 @@ class UIBootstrapper {
         document.querySelector('.navbar').style.display = '';
 
         return uiComponents;
+    }
+
+    buildScaleBarService(renderContainer) {
+        const saved = SettingsManager.load()
+        const scaleBarsHidden = saved?.scaleBars ? !saved.scaleBars.visible : ScaleBarService.setScaleBarsHidden()
+        const scaleBarsColor = saved?.scaleBars ? new THREE.Color(saved.scaleBars.r, saved.scaleBars.g, saved.scaleBars.b) : undefined
+        const referenceRulerHidden = saved?.referenceRuler ? !saved.referenceRuler.visible : true
+        const referenceRulerColor = saved?.referenceRuler ? new THREE.Color(saved.referenceRuler.r, saved.referenceRuler.g, saved.referenceRuler.b) : undefined
+        const service = new ScaleBarService(renderContainer, scaleBarsHidden, scaleBarsColor, referenceRulerHidden, referenceRulerColor)
+        service.insertScaleBarDOM()
+        service.insertReferenceRulerDOM()
+        return service
     }
 
     async initializeReleaseInfo() {

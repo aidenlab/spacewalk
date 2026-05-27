@@ -1,4 +1,4 @@
-import { scene, sceneManager } from './app.js'
+import { scene, sceneManager, scaleBarService } from './app.js'
 
 const STORAGE_KEY = 'spacewalk-settings'
 
@@ -28,14 +28,14 @@ class SettingsManager {
         // Scale Bars toggle
         document.getElementById('spacewalk_ui_manager_scale_bars').addEventListener('change', e => {
             e.stopPropagation()
-            sceneManager.getScaleBarService().toggle()
+            scaleBarService.toggle()
             this.save()
         })
 
         // Reference Ruler toggle
         document.getElementById('spacewalk_ui_manager_reference_ruler').addEventListener('change', e => {
             e.stopPropagation()
-            sceneManager.getScaleBarService().toggleReferenceRuler()
+            scaleBarService.toggleReferenceRuler()
             this.save()
         })
 
@@ -78,7 +78,6 @@ class SettingsManager {
         }
 
         // Scale Bars
-        const scaleBarService = sceneManager.getScaleBarService()
         if (scaleBarService) {
             const { r, g, b } = scaleBarService.color
             settings.scaleBars = { visible: scaleBarService.visible, r, g, b }
