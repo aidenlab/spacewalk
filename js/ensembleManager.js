@@ -2,7 +2,6 @@ import * as THREE from "three"
 import {FileUtils} from "igv-utils"
 import { includes } from "./utils/mathUtils.js"
 import {hideGlobalSpinner, showGlobalSpinner} from "./utils/utils.js"
-import Parser from './datasource/parser.js'
 import Datasource from './datasource/datasource.js'
 import SWBDatasource from "./datasource/SWBDatasource.js"
 
@@ -15,10 +14,9 @@ class EnsembleManager {
 
         const extension = FileUtils.getExtension(url)
         if ('sw' === extension) {
-            const datasource = new SWBDatasource()
-            await this.loadSWB(url, datasource, parseInt(traceKey), ensembleGroupKey)
+            await this.loadDatasource(url, new SWBDatasource(), parseInt(traceKey), ensembleGroupKey)
         } else if ('swt' === extension) {
-            await this.load(url, new Parser(), new Datasource(), parseInt(traceKey))
+            await this.loadDatasource(url, new Datasource(), parseInt(traceKey))
         }
 
     }
@@ -40,34 +38,13 @@ class EnsembleManager {
         hideGlobalSpinner()
     }
 
-    async loadSWB(path, datasource, index, ensembleGroupKey) {
+    async loadDatasource(path, datasource, index, ensembleGroupKey) {
 
         showGlobalSpinner()
         const { sample, genomeAssembly } = await datasource.load(path, ensembleGroupKey)
         hideGlobalSpinner()
 
         this.sample = sample
-        this.genomeAssembly = genomeAssembly
-
-        if (this.datasource) {
-            this.datasource.dispose()
-        }
-        this.datasource = datasource
-
-        const initialIndex = index || 0
-        this.currentTrace = await this.createTrace(initialIndex)
-        this.currentIndex = initialIndex
-
-    }
-
-    async load(fileOrPath, parser, datasource, index, ensembleGroupKey) {
-
-        showGlobalSpinner()
-        const { sample, genomeAssembly } = await parser.parse(fileOrPath, datasource)
-        hideGlobalSpinner()
-
-        this.sample = sample
-
         this.genomeAssembly = genomeAssembly
 
         if (this.datasource) {

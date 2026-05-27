@@ -1,11 +1,35 @@
 import * as THREE from "three"
+import { FileUtils, igvxhr } from 'igv-utils'
 import DataSourceBase from './dataSourceBase.js'
+import { hideGlobalSpinner, showGlobalSpinner } from "../utils/utils.js"
+import { SpacewalkGlobals } from "../spacewalkGlobals.js"
 
 class Datasource extends DataSourceBase {
 
     constructor() {
         super()
         this.dictionary = {}
+    }
+
+    async load(path) {
+
+        SpacewalkGlobals.url = false === FileUtils.isFilePath(path) ? path : undefined
+
+        showGlobalSpinner()
+        const string = await igvxhr.loadString(path)
+        hideGlobalSpinner()
+
+        const lines = string.split('\n').filter(line => "" !== line)
+        const regex = /\s+/
+
+        const { sample, genomeAssembly } = getSampleNameAndGenome(lines, regex)
+
+        // discard header row: chromosome  start  end  x  y  z
+        lines.shift()
+
+        this.consumeLines(lines, regex)
+
+        return { sample, genomeAssembly }
     }
 
     consumeLines(lines, regex) {
@@ -199,6 +223,24 @@ function computeCentroid(vertices) {
 
     return { x: x/vertices.length, y: y/vertices.length, z: z/vertices.length }
 
+}
+
+function getSampleNameAndGenome(lines, regex) {
+
+    const line = lines.shift()
+
+    const parts = line.split('##').pop().split(regex)
+
+    // discard format=sw1
+    parts.shift()
+
+    // capture cellLine (ex: name=IM90)
+    const sample = parts.shift().split('=').pop()
+
+    // capture genome (ex: genome=hg19)
+    const genomeAssembly = parts.shift().split('=').pop()
+
+    return { sample, genomeAssembly }
 }
 
 export default Datasource
