@@ -171,7 +171,6 @@ function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroup
         }
     }
 
-    SpacewalkEventBus.globalBus.subscribe('DidLoadCNDBFile', loadEventHandler)
     SpacewalkEventBus.globalBus.subscribe('DidLoadSWBEnsembleGroup', loadEventHandler)
 
     return modal
