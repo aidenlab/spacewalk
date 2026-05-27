@@ -4,8 +4,6 @@ import SpacewalkEventBus from './spacewalkEventBus.js'
 import {getCameraPoseAlongAxis} from './cameraLightingRig.js'
 import BallAndStick from "./ballAndStick.js"
 import PointCloud from "./pointCloud.js"
-import GUIManager from "./guiManager.js"
-import {setMaterialProvider, unsetDataMaterialProviderCheckbox} from "./utils/utils.js"
 import Ribbon from './ribbon.js'
 import { clearScene } from './utils/disposalUtils.js'
 import {
@@ -104,59 +102,6 @@ class SceneManager {
         if (this.ribbon) {
             this.ribbon.handleHideHighlights()
         }
-    }
-
-    async ingestEnsemblePath(url, traceKey, ensembleGroupKey) {
-
-        this.isLoading = true
-
-        try {
-            await ensembleManager.loadURL(url, traceKey, ensembleGroupKey)
-
-            this.setupWithTrace(ensembleManager.currentTrace)
-            this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
-
-            unsetDataMaterialProviderCheckbox(igvPanel)
-            setMaterialProvider(this.colorRampMaterialProvider)
-
-            if (ensembleManager.genomeAssembly !== igvPanel.browser.genome.id) {
-                console.log(`Genome swap from ${ igvPanel.browser.genome.id } to ${ ensembleManager.genomeAssembly }. Call igv_browser.loadGenome`)
-                await igvPanel.browser.loadGenome(ensembleManager.genomeAssembly)
-            }
-
-            await igvPanel.locusDidChange(ensembleManager.locus)
-        } catch (error) {
-            console.error('Error loading ensemble:', error)
-            this.purgeScene()
-            throw error
-        } finally {
-            this.isLoading = false
-        }
-
-    }
-
-    async ingestEnsembleGroup(ensembleGroupKey) {
-
-        this.isLoading = true
-
-        try {
-            await ensembleManager.loadEnsembleGroup(ensembleGroupKey)
-
-            this.setupWithTrace(ensembleManager.currentTrace)
-            this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
-
-            unsetDataMaterialProviderCheckbox(igvPanel)
-            setMaterialProvider(this.colorRampMaterialProvider)
-
-            await igvPanel.locusDidChange(ensembleManager.locus)
-        } catch (error) {
-            console.error('Error loading ensemble group:', error)
-            this.purgeScene()
-            throw error
-        } finally {
-            this.isLoading = false
-        }
-
     }
 
     setupWithTrace(trace) {

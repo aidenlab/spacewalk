@@ -10,6 +10,7 @@ import { defaultColormapName } from "./utils/colorMapManager.js"
 import ThreeJSInitializer from "./initializers/threeJSInitializer.js"
 import UIBootstrapper from "./initializers/uiBootstrapper.js"
 import PanelInitializer from "./initializers/panelInitializer.js"
+import EnsembleIngestionController from "./ensembleIngestionController.js"
 
 // Module-level variables - the single source of truth for shared application state
 // These are populated by the App class during initialization
@@ -29,6 +30,7 @@ let camera;
 let scene;
 let scaleBarService;
 let sceneFixtures;
+let ensembleIngestionController;
 
 function getThreeJSContainerRect() {
     const container = document.querySelector('#spacewalk-threejs-canvas-container');
@@ -55,6 +57,7 @@ class App {
         this.liveDistanceMapService = null;
         this.scaleBarService = null;
         this.sceneFixtures = null;
+        this.ensembleIngestionController = null;
 
         // Panels
         this.juiceboxPanel = null;
@@ -188,6 +191,16 @@ class App {
         // Populate module-level variables
         liveContactMapService = this.liveContactMapService;
         liveDistanceMapService = this.liveDistanceMapService;
+
+        // EnsembleIngestionController needs igvPanel, so construct it here
+        // (after panels are populated).
+        this.ensembleIngestionController = new EnsembleIngestionController({
+            ensembleManager: this.ensembleManager,
+            sceneManager: this.sceneManager,
+            igvPanel: this.igvPanel,
+            colorRampMaterialProvider: this.colorRampMaterialProvider,
+        });
+        ensembleIngestionController = this.ensembleIngestionController;
     }
 
     async consumeURLParams(params) {
@@ -197,7 +210,7 @@ class App {
             const traceKey = params.traceKey || '0';
             const ensembleGroupKey = params.ensembleGroupKey || undefined;
             try {
-                await this.sceneManager.ingestEnsemblePath(fileURL, traceKey, ensembleGroupKey);
+                await this.ensembleIngestionController.ingestEnsemblePath(fileURL, traceKey, ensembleGroupKey);
                 const data = ensembleManager.createEventBusPayload();
                 SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
             } catch (error) {
@@ -254,7 +267,7 @@ class App {
 
             const file = new File([bytes], filename);
             try {
-                await this.sceneManager.ingestEnsemblePath(file, '0', undefined);
+                await this.ensembleIngestionController.ingestEnsemblePath(file, '0', undefined);
                 const payload = ensembleManager.createEventBusPayload();
                 SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data: payload });
             } catch (error) {
@@ -291,7 +304,7 @@ class App {
             }
 
             try {
-                await this.sceneManager.ingestEnsemblePath(file, '0', undefined)
+                await this.ensembleIngestionController.ingestEnsemblePath(file, '0', undefined)
                 const payload = ensembleManager.createEventBusPayload()
                 SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data: payload })
             } catch (error) {
@@ -381,6 +394,7 @@ export {
     liveDistanceMapService,
     scaleBarService,
     sceneFixtures,
+    ensembleIngestionController,
     igvPanel,
     genomicNavigator,
 }
