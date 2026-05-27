@@ -5,8 +5,6 @@ import {hideGlobalSpinner, showGlobalSpinner} from "./utils/utils.js"
 import Parser from './datasource/parser.js'
 import Datasource from './datasource/datasource.js'
 import SWBDatasource from "./datasource/SWBDatasource.js"
-import CNDBParser from "./datasource/CNDBParser.js"
-import CNDBDatasource from "./datasource/CNDBDatasource.js"
 
 class EnsembleManager {
 
@@ -20,8 +18,6 @@ class EnsembleManager {
         if (swbSet.has(extension)) {
             const datasource = new SWBDatasource()
             await this.loadSWB(url, datasource, parseInt(traceKey), ensembleGroupKey)
-        } else if ('cndb' === extension) {
-            await this.load(url, new CNDBParser(), new CNDBDatasource(), parseInt(traceKey))
         } else if ('swt' === extension) {
             await this.load(url, new Parser(), new Datasource(), parseInt(traceKey))
         }
