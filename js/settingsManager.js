@@ -1,4 +1,4 @@
-import { scene, sceneManager, scaleBarService } from './app.js'
+import { scene, scaleBarService, sceneFixtures } from './app.js'
 
 const STORAGE_KEY = 'spacewalk-settings'
 
@@ -14,14 +14,14 @@ class SettingsManager {
         // Ground Plane toggle
         document.getElementById('spacewalk_ui_manager_groundplane').addEventListener('change', e => {
             e.stopPropagation()
-            sceneManager.getGroundPlane().toggle()
+            sceneFixtures.getGroundPlane().toggle()
             this.save()
         })
 
         // Gnomon toggle
         document.getElementById('spacewalk_ui_manager_gnomon').addEventListener('change', e => {
             e.stopPropagation()
-            sceneManager.getGnomon().toggle()
+            sceneFixtures.getGnomon().toggle()
             this.save()
         })
 
@@ -64,14 +64,14 @@ class SettingsManager {
         }
 
         // Gnomon
-        const gnomon = sceneManager.getGnomon()
+        const gnomon = sceneFixtures.getGnomon()
         if (gnomon) {
             const { r, g, b } = gnomon.color
             settings.gnomon = { visible: gnomon.group.visible, r, g, b }
         }
 
         // Ground Plane
-        const groundPlane = sceneManager.getGroundPlane()
+        const groundPlane = sceneFixtures.getGroundPlane()
         if (groundPlane) {
             const { r, g, b } = groundPlane.color
             settings.groundPlane = { visible: groundPlane.visible, r, g, b }
