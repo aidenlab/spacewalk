@@ -42,11 +42,6 @@ class DataSourceBase {
         console.warn('Warning: Dataset - base class method called getTraceCount()')
         return undefined
     }
-
-    getLiveMapVertexLists(){
-        console.warn('Warning: Dataset - base class method called getLiveContactFrequencyMapVertexLists()')
-        return []
-    }
 }
 
 export default DataSourceBase
