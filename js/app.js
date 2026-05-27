@@ -28,6 +28,7 @@ let cameraLightingRig;
 let camera;
 let scene;
 let scaleBarService;
+let sceneFixtures;
 
 function getThreeJSContainerRect() {
     const container = document.querySelector('#spacewalk-threejs-canvas-container');
@@ -53,6 +54,7 @@ class App {
         this.liveContactMapService = null;
         this.liveDistanceMapService = null;
         this.scaleBarService = null;
+        this.sceneFixtures = null;
 
         // Panels
         this.juiceboxPanel = null;
@@ -147,11 +149,13 @@ class App {
         this.cameraLightingRig = threeJSObjects.cameraLightingRig;
         this.camera = threeJSObjects.camera;
         this.scene = threeJSObjects.scene;
+        this.sceneFixtures = threeJSObjects.sceneFixtures;
         // Populate module-level variables
         sceneManager = this.sceneManager;
         cameraLightingRig = this.cameraLightingRig;
         camera = this.camera;
         scene = this.scene;
+        sceneFixtures = this.sceneFixtures;
     }
 
     assignUIComponents(uiComponents) {
@@ -302,8 +306,8 @@ class App {
             this.sceneManager.renderLoopHelper();
             this.genomicNavigator.renderLoopHelper();
             this.cameraLightingRig.renderLoopHelper();
-            this.sceneManager.getGroundPlane().renderLoopHelper();
-            this.sceneManager.getGnomon().renderLoopHelper();
+            this.sceneFixtures.getGroundPlane().renderLoopHelper();
+            this.sceneFixtures.getGnomon().renderLoopHelper();
 
             // Get mouse coordinates from ThreeJS initializer
             const { x, y } = this.threeJSInitializer.getMouseCoordinates();
@@ -376,6 +380,7 @@ export {
     liveContactMapService,
     liveDistanceMapService,
     scaleBarService,
+    sceneFixtures,
     igvPanel,
     genomicNavigator,
 }

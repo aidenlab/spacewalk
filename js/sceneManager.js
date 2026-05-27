@@ -4,8 +4,6 @@ import SpacewalkEventBus from './spacewalkEventBus.js'
 import {getCameraPoseAlongAxis} from './cameraLightingRig.js'
 import BallAndStick from "./ballAndStick.js"
 import PointCloud from "./pointCloud.js"
-import GroundPlane from './groundPlane.js'
-import Gnomon from './gnomon.js'
 import GUIManager from "./guiManager.js"
 import {setMaterialProvider, unsetDataMaterialProviderCheckbox} from "./utils/utils.js"
 import Ribbon from './ribbon.js'
@@ -15,11 +13,10 @@ import {
     ensembleManager,
     igvPanel,
     cameraLightingRig,
+    sceneFixtures,
     getThreeJSContainerRect,
 } from "./app.js"
 import {appleCrayonColorThreeJS, highlightColor} from "./utils/colorUtils.js"
-import { register, updateSwatch } from "./utils/sharedColorPicker.js"
-import SettingsManager from "./settingsManager.js"
 import BallHighlighter from "./ballHighlighter.js"
 import PointCloudHighlighter from "./pointCloudHighlighter.js"
 
@@ -44,22 +41,6 @@ class SceneManager {
         this.ballRadiusIndex = undefined
         this.pointSizeBoundRadiusPercentage = undefined
         this.pointOpacity = 0.375
-
-        const saved = SettingsManager.load()
-
-        register(
-            document.querySelector(`div[data-colorpicker='groundplane']`),
-            saved?.groundPlane ? new THREE.Color(saved.groundPlane.r, saved.groundPlane.g, saved.groundPlane.b) : appleCrayonColorThreeJS('iron'),
-            () => this.getGroundPlane()?.color ?? appleCrayonColorThreeJS('iron'),
-            color => this.getGroundPlane()?.setColor(color)
-        )
-
-        register(
-            document.querySelector(`div[data-colorpicker='gnomon']`),
-            saved?.gnomon ? new THREE.Color(saved.gnomon.r, saved.gnomon.g, saved.gnomon.b) : appleCrayonColorThreeJS('iron'),
-            () => this.getGnomon()?.color ?? appleCrayonColorThreeJS('iron'),
-            color => this.getGnomon()?.setColor(color)
-        )
 
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
         SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this);
@@ -216,39 +197,7 @@ class SceneManager {
         const { width, height } = getThreeJSContainerRect();
         cameraLightingRig.configure(fov, width/height, position, center, boundingDiameter)
 
-        scene.add(createHemisphereLight())
-
-        // Apply saved settings if available
-        const saved = SettingsManager.load()
-
-        // GroundPlane
-        const groundPlaneConfig =
-            {
-            size: boundingDiameter,
-            divisions: 16,
-            position: new THREE.Vector3(center.x, min.y, center.z),
-            color: saved?.groundPlane ? new THREE.Color(saved.groundPlane.r, saved.groundPlane.g, saved.groundPlane.b) : appleCrayonColorThreeJS('iron'),
-            opacity: 0.25,
-            isHidden: saved?.groundPlane ? !saved.groundPlane.visible : GroundPlane.setGroundPlaneHidden()
-            };
-
-        const groundPlane = new GroundPlane(groundPlaneConfig)
-        scene.add(groundPlane)
-        updateSwatch(document.querySelector(`div[data-colorpicker='groundplane']`), groundPlaneConfig.color)
-
-        // Gnomon
-        const gnomonConfig =
-            {
-                min,
-                max,
-                boundingDiameter,
-                color: saved?.gnomon ? new THREE.Color(saved.gnomon.r, saved.gnomon.g, saved.gnomon.b) : appleCrayonColorThreeJS('iron'),
-                isHidden: saved?.gnomon ? !saved.gnomon.visible : Gnomon.setGnomonHidden()
-            };
-        const gnomon = new Gnomon(gnomonConfig)
-        gnomon.addToScene(scene)
-        updateSwatch(document.querySelector(`div[data-colorpicker='gnomon']`), gnomonConfig.color)
-
+        sceneFixtures.setupForBounds({ min, max, center, boundingDiameter })
     }
 
     rebuildTraceGeometry() {
@@ -302,25 +251,13 @@ class SceneManager {
         this.renderStyle = renderStyle
     }
 
-    getHemisphereLight(){
-        return scene.getObjectByName('hemisphereLight')
-    }
-
-    getGnomon(){
-        return scene.getObjectByName('gnomon')
-    }
-
-    getGroundPlane(){
-        return scene.getObjectByName('groundplane')
-    }
-
     toJSON() {
         const { r, g, b } = scene.background
         return  { r, g, b }
     }
 
     isGood2Go() {
-        return !this.isLoading && scene && this.getGnomon() && this.getGroundPlane()
+        return !this.isLoading && scene && sceneFixtures.getGnomon() && sceneFixtures.getGroundPlane()
      }
 
     purgeScene() {
@@ -348,16 +285,8 @@ class SceneManager {
             this.pointCloud = null
         }
 
-        // Dispose named objects BEFORE clearScene removes them from the scene
-        const gnomonInstance = this.getGnomon()
-        if (gnomonInstance) {
-            gnomonInstance.dispose()
-        }
-
-        const groundPlaneInstance = this.getGroundPlane()
-        if (groundPlaneInstance) {
-            groundPlaneInstance.dispose()
-        }
+        // Dispose fixtures BEFORE clearScene removes them from the scene
+        sceneFixtures.dispose()
 
         // Clear remaining scene objects (hemisphere light, etc.)
         clearScene(scene)
@@ -393,14 +322,5 @@ class SceneManager {
     }
 
 }
-
-function createHemisphereLight() {
-    // Update due to r155 changes to illumination: Multiply light intensities by PI to get same brightness as previous threejs release.
-    // See: https://discourse.threejs.org/t/updates-to-lighting-in-three-js-r155/53733
-    const light = new THREE.HemisphereLight( appleCrayonColorThreeJS('snow'), appleCrayonColorThreeJS('tin'), Math.PI )
-    light.name = 'hemisphereLight'
-    return light
-}
-
 
 export default SceneManager;
