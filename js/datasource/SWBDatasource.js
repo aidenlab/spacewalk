@@ -3,13 +3,12 @@ import {openH5File} from 'hdf5-indexed-reader'
 import {FileUtils} from 'igv-utils'
 import { igvPanel } from '../app.js'
 import { SpacewalkGlobals } from '../spacewalkGlobals.js'
-import DataSourceBase from './dataSourceBase.js'
 import {hideGlobalSpinner, showGlobalSpinner} from "../utils/utils";
 import {createBoundingBoxWithFlatXYZList, cullDuplicateXYZ} from "../utils/mathUtils.js"
 import SpacewalkEventBus from "../spacewalkEventBus.js"
 import { updateEnsembleGroupDisplay } from "../guiManager.js"
 
-class SWBDatasource extends DataSourceBase {
+class SWBDatasource {
 
     dispose() {
         this.hdf5 = undefined
