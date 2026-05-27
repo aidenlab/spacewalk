@@ -2,7 +2,6 @@ import * as THREE from "three"
 import {FileUtils} from "igv-utils"
 import { includes } from "./utils/mathUtils.js"
 import {hideGlobalSpinner, showGlobalSpinner} from "./utils/utils.js"
-import Datasource from './datasource/datasource.js'
 import SWBDatasource from "./datasource/SWBDatasource.js"
 
 class EnsembleManager {
@@ -15,8 +14,6 @@ class EnsembleManager {
         const extension = FileUtils.getExtension(url)
         if ('sw' === extension) {
             await this.loadDatasource(url, new SWBDatasource(), parseInt(traceKey), ensembleGroupKey)
-        } else if ('swt' === extension) {
-            await this.loadDatasource(url, new Datasource(), parseInt(traceKey))
         }
 
     }
