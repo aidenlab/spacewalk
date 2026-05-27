@@ -14,6 +14,10 @@ class EnsembleManager {
         const extension = FileUtils.getExtension(url)
         if ('sw' === extension) {
             await this.loadDatasource(url, new SWBDatasource(), parseInt(traceKey), ensembleGroupKey)
+        } else if ('swt' === extension) {
+            const message = 'Spacewalk no longer reads .swt files. Please convert your file to the .sw HDF5 format using swt2sw (https://github.com/turner/swt2sw) and try again.'
+            console.warn(message)
+            alert(message)
         }
 
     }
