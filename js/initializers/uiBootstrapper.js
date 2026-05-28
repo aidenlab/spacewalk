@@ -42,7 +42,10 @@ class UIBootstrapper {
         const settingsButton = document.querySelector('#spacewalk-threejs-settings-button-container');
         uiComponents.guiManager = new GUIManager({
             settingsButton,
-            panel: document.querySelector('#spacewalk_ui_manager_panel')
+            panel: document.querySelector('#spacewalk_ui_manager_panel'),
+            sceneManager: this.appContext.sceneManager,
+            ensembleManager: this.appContext.ensembleManager,
+            colorMapManager: this.appContext.colorMapManager
         });
 
         // Initialize scale bar service (after GUI manager, so checkbox exists)
