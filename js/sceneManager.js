@@ -31,7 +31,7 @@ class SceneManager {
 
         // Persistent state that survives across model loads
         this.ballHighlighter = new BallHighlighter(highlightColor)
-        this.pointCloudHighlighter = new PointCloudHighlighter()
+        this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
         this.stickMaterial = new THREE.MeshPhongMaterial({ color: appleCrayonColorThreeJS('aluminum') })
         this.stickMaterial.side = THREE.DoubleSide
         this.deemphasizedColor = appleCrayonColorThreeJS('magnesium')
