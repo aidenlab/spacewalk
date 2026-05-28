@@ -128,7 +128,10 @@ class SceneManager {
                 pickHighlighter: this.ballHighlighter,
                 stickMaterial: this.stickMaterial,
                 isStickVisible: this.isStickVisible,
-                ballRadiusIndex: this.ballRadiusIndex
+                ballRadiusIndex: this.ballRadiusIndex,
+                ensembleManager,
+                igvPanel,
+                sceneManager: this
             })
             this.ballAndStick.addToScene(scene)
         }
