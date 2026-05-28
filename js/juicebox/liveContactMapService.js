@@ -1,11 +1,15 @@
 import { LiveContactMap } from 'hic-straw'
-import { ensembleManager, juiceboxPanel, igvPanel, liveDistanceMapService } from '../app.js'
 import SpacewalkEventBus from '../spacewalkEventBus.js'
 import { renderContactMap, renderDistanceMap } from './liveMapRenderUtils.js'
 
 class LiveContactMapService {
 
-    constructor() {
+    constructor({ ensembleManager, juiceboxPanel, igvPanel, liveDistanceMapService }) {
+
+        this.ensembleManager = ensembleManager
+        this.juiceboxPanel = juiceboxPanel
+        this.igvPanel = igvPanel
+        this.liveDistanceMapService = liveDistanceMapService
 
         // Shared LiveContactMap instance (serves both contact and distance tabs)
         this.lcm = null
@@ -32,11 +36,11 @@ class LiveContactMapService {
 
         this.thresholdSlider.addEventListener('change', () => {
             if (!this.lcm) return
-            juiceboxPanel.showLiveMapSpinner()
+            this.juiceboxPanel.showLiveMapSpinner()
             setTimeout(() => {
                 this.lcm.setDistanceThreshold(parseInt(this.thresholdSlider.value))
                 this.repaintContactMap()
-                juiceboxPanel.hideLiveMapSpinner()
+                this.juiceboxPanel.hideLiveMapSpinner()
             }, 0)
         })
 
@@ -69,7 +73,7 @@ class LiveContactMapService {
      * Falls back to defaults if the browser is not available.
      */
     getColorConfig() {
-        const browser = juiceboxPanel?.browser
+        const browser = this.juiceboxPanel?.browser
         const cmv = browser?.contactMatrixView
 
         const foreground = cmv?.colorScale
@@ -85,22 +89,22 @@ class LiveContactMapService {
 
     async calculateLiveMaps() {
 
-        if (!ensembleManager || !ensembleManager.locus) {
+        if (!this.ensembleManager || !this.ensembleManager.locus) {
             console.warn('Cannot calculate live maps: no ensemble loaded')
             return
         }
 
-        juiceboxPanel.showLiveMapSpinner()
+        this.juiceboxPanel.showLiveMapSpinner()
 
         try {
-            const { chr, genomicStart, genomicEnd } = ensembleManager.locus
-            const traceLength = ensembleManager.getLiveMapTraceLength()
+            const { chr, genomicStart, genomicEnd } = this.ensembleManager.locus
+            const traceLength = this.ensembleManager.getLiveMapTraceLength()
             const binSize = (genomicEnd - genomicStart) / traceLength
 
-            const genomeId = igvPanel.browser.genome.id
+            const genomeId = this.igvPanel.browser.genome.id
 
             // Get chromosomes from IGV genome for LiveContactMap
-            const chromosomes = Array.from(igvPanel.browser.genome.chromosomes.values()).map((c, idx) => ({
+            const chromosomes = Array.from(this.igvPanel.browser.genome.chromosomes.values()).map((c, idx) => ({
                 index: idx,
                 name: c.name,
                 size: c.size || c.bpLength
@@ -133,7 +137,7 @@ class LiveContactMapService {
             // store per-region centroids in the same (traceCount, traceLength,
             // 3) shape as ball-and-stick. Legacy pointcloud files exported
             // before the bake existed fall back to runtime centroid collapse.
-            const ds = ensembleManager.datasource
+            const ds = this.ensembleManager.datasource
             if (ds.isPointCloud && !(await ds.hasLiveVertexBake())) {
                 lcmConfig.traces = await ds.buildPointCloudLiveMapTraces()
             } else {
@@ -147,7 +151,7 @@ class LiveContactMapService {
 
             // Register live map with Juicebox so locus input, scrollbars, and rulers get populated
             const locusStr = `${chr}:${genomicStart}-${genomicEnd}`
-            await juiceboxPanel.browser.loadLiveContactMap({
+            await this.juiceboxPanel.browser.loadLiveContactMap({
                 liveContactMap: this.lcm,
                 name: 'Live Contact Map',
                 locus: `${locusStr} ${locusStr}`
@@ -161,7 +165,7 @@ class LiveContactMapService {
             this.thresholdDisplay.textContent = this.thresholdSlider.value
 
             // Ensure canvases are sized
-            juiceboxPanel.updateLiveMapCanvasSizes(juiceboxPanel.browser.contactMatrixView)
+            this.juiceboxPanel.updateLiveMapCanvasSizes(this.juiceboxPanel.browser.contactMatrixView)
 
             const colorConfig = this.getColorConfig()
 
@@ -169,15 +173,15 @@ class LiveContactMapService {
             this.repaintContactMap()
 
             // Render distance map from the same LiveContactMap instance
-            if (liveDistanceMapService) {
-                liveDistanceMapService.renderFromLiveContactMap(this.lcm, colorConfig)
+            if (this.liveDistanceMapService) {
+                this.liveDistanceMapService.renderFromLiveContactMap(this.lcm, colorConfig)
             }
 
         } catch (err) {
             console.error('Error calculating live maps:', err)
             alert(`Error calculating live maps: ${err.message}`)
         } finally {
-            juiceboxPanel.hideLiveMapSpinner()
+            this.juiceboxPanel.hideLiveMapSpinner()
         }
     }
 
@@ -189,7 +193,7 @@ class LiveContactMapService {
     repaintContactMap(colorOverride) {
         if (!this.lcm) return
 
-        const ctx = juiceboxPanel?.browser?.contactMatrixView?.ctx_live_contact
+        const ctx = this.juiceboxPanel?.browser?.contactMatrixView?.ctx_live_contact
         if (!ctx) {
             console.warn('Live contact canvas context not available')
             return
@@ -207,7 +211,7 @@ class LiveContactMapService {
     repaintDistanceMap(colorOverride) {
         if (!this.lcm) return
 
-        const ctx = juiceboxPanel?.browser?.contactMatrixView?.ctx_live_distance
+        const ctx = this.juiceboxPanel?.browser?.contactMatrixView?.ctx_live_distance
         if (!ctx) {
             console.warn('Live distance canvas context not available')
             return

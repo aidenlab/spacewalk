@@ -1,10 +1,10 @@
-import { juiceboxPanel } from '../app.js'
 import SpacewalkEventBus from '../spacewalkEventBus.js'
 import { renderDistanceMap } from './liveMapRenderUtils.js'
 
 class LiveDistanceMapService {
 
-    constructor() {
+    constructor({ juiceboxPanel }) {
+        this.juiceboxPanel = juiceboxPanel
         this.lcm = null
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this)
     }
@@ -14,7 +14,7 @@ class LiveDistanceMapService {
             this.lcm = null
 
             // Clear distance canvas
-            const ctx = juiceboxPanel?.browser?.contactMatrixView?.ctx_live_distance
+            const ctx = this.juiceboxPanel?.browser?.contactMatrixView?.ctx_live_distance
             if (ctx) {
                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
             }
@@ -32,7 +32,7 @@ class LiveDistanceMapService {
 
         this.lcm = lcm
 
-        const ctx = juiceboxPanel?.browser?.contactMatrixView?.ctx_live_distance
+        const ctx = this.juiceboxPanel?.browser?.contactMatrixView?.ctx_live_distance
         if (!ctx) {
             console.warn('Live distance canvas context not available')
             return
