@@ -6,14 +6,6 @@ import BallAndStick from "./ballAndStick.js"
 import PointCloud from "./pointCloud.js"
 import Ribbon from './ribbon.js'
 import { clearScene } from './utils/disposalUtils.js'
-import {
-    scene,
-    ensembleManager,
-    igvPanel,
-    genomicNavigator,
-    cameraLightingRig,
-    sceneFixtures,
-} from "./app.js"
 import { getThreeJSContainerRect } from "./utils/threeJSContainer.js"
 import {appleCrayonColorThreeJS, highlightColor} from "./utils/colorUtils.js"
 import BallHighlighter from "./ballHighlighter.js"
@@ -21,8 +13,13 @@ import PointCloudHighlighter from "./pointCloudHighlighter.js"
 
 class SceneManager {
 
-    constructor(colorRampMaterialProvider) {
+    constructor({ colorRampMaterialProvider, scene, ensembleManager, cameraLightingRig, sceneFixtures }) {
         this.colorRampMaterialProvider = colorRampMaterialProvider;
+        this.scene = scene;
+        this.ensembleManager = ensembleManager;
+        this.cameraLightingRig = cameraLightingRig;
+        this.sceneFixtures = sceneFixtures;
+        this.igvPanel = null;
         this.isLoading = false;
 
         // Transient visualization objects — null when no model loaded
@@ -48,6 +45,10 @@ class SceneManager {
         SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
     }
 
+    wireDependencies({ igvPanel }) {
+        this.igvPanel = igvPanel
+    }
+
     createHighlighters({ ensembleManager, igvPanel, genomicNavigator }) {
         this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel, genomicNavigator })
         this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
@@ -60,7 +61,7 @@ class SceneManager {
             this.isLoading = true
             try {
                 this.setupWithTrace(trace)
-                this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : this.renderStyle)
+                this.configureRenderStyle(true === this.ensembleManager.isPointCloud ? PointCloud.renderStyle : this.renderStyle)
             } finally {
                 this.isLoading = false
             }
@@ -68,7 +69,7 @@ class SceneManager {
         } else if ('DidLeaveGenomicNavigator' === type) {
             this.delegateLeaveGenomicNavigator()
         } else if ('DidChangeColorMap' === type) {
-            if (igvPanel.materialProvider === this.colorRampMaterialProvider) {
+            if (this.igvPanel.materialProvider === this.colorRampMaterialProvider) {
                 this.updateMaterialProvider(this.colorRampMaterialProvider)
             }
         }
@@ -113,6 +114,8 @@ class SceneManager {
     }
 
     setupWithTrace(trace) {
+
+        const { scene, ensembleManager, igvPanel, cameraLightingRig, sceneFixtures } = this
 
         this.background = scene.background
         this.purgeScene()
@@ -160,6 +163,8 @@ class SceneManager {
 
     rebuildTraceGeometry() {
 
+        const { scene, ensembleManager, igvPanel } = this
+
         if (ensembleManager.isPointCloud) return
 
         const trace = ensembleManager.currentTrace
@@ -175,7 +180,7 @@ class SceneManager {
             this.ribbon = null
         }
 
-        this.ribbon = new Ribbon(trace)
+        this.ribbon = new Ribbon(trace, { ensembleManager, igvPanel })
         this.ribbon.addToScene(scene)
 
         this.ballAndStick = new BallAndStick({
@@ -183,7 +188,10 @@ class SceneManager {
             pickHighlighter: this.ballHighlighter,
             stickMaterial: this.stickMaterial,
             isStickVisible: this.isStickVisible,
-            ballRadiusIndex: this.ballRadiusIndex
+            ballRadiusIndex: this.ballRadiusIndex,
+            ensembleManager,
+            igvPanel,
+            sceneManager: this
         })
         this.ballAndStick.addToScene(scene)
 
@@ -210,12 +218,12 @@ class SceneManager {
     }
 
     toJSON() {
-        const { r, g, b } = scene.background
+        const { r, g, b } = this.scene.background
         return  { r, g, b }
     }
 
     isGood2Go() {
-        return !this.isLoading && scene && sceneFixtures.getGnomon() && sceneFixtures.getGroundPlane()
+        return !this.isLoading && this.scene && this.sceneFixtures.getGnomon() && this.sceneFixtures.getGroundPlane()
      }
 
     purgeScene() {
@@ -244,10 +252,10 @@ class SceneManager {
         }
 
         // Dispose fixtures BEFORE clearScene removes them from the scene
-        sceneFixtures.dispose()
+        this.sceneFixtures.dispose()
 
         // Clear remaining scene objects (hemisphere light, etc.)
-        clearScene(scene)
+        clearScene(this.scene)
 
     }
 

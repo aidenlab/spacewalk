@@ -25,11 +25,8 @@ class ThreeJSInitializer {
      * @param {Object} colorRampMaterialProvider - The color ramp material provider
      * @returns {Object} Object containing all initialized Three.js objects
      */
-    initialize(colorRampMaterialProvider) {
+    initialize({ colorRampMaterialProvider, ensembleManager }) {
         const threeJSObjects = {};
-
-        // Create SceneManager (owns visualization object lifecycle)
-        threeJSObjects.sceneManager = new SceneManager(colorRampMaterialProvider);
 
         threeJSObjects.picker = new Picker(new THREE.Raycaster());
 
@@ -83,6 +80,16 @@ class ThreeJSInitializer {
 
         // Create scene fixtures (registers Gnomon + GroundPlane color pickers)
         threeJSObjects.sceneFixtures = new SceneFixtures(threeJSObjects.scene);
+
+        // Create SceneManager last — depends on scene, ensembleManager,
+        // cameraLightingRig, and sceneFixtures
+        threeJSObjects.sceneManager = new SceneManager({
+            colorRampMaterialProvider,
+            scene: threeJSObjects.scene,
+            ensembleManager,
+            cameraLightingRig: threeJSObjects.cameraLightingRig,
+            sceneFixtures: threeJSObjects.sceneFixtures
+        });
 
         // Set up background color picker
         const backgroundContainer = document.querySelector(`div[data-colorpicker='background']`)

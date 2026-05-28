@@ -12,29 +12,10 @@ import UIBootstrapper from "./initializers/uiBootstrapper.js"
 import PanelInitializer from "./initializers/panelInitializer.js"
 import EnsembleIngestionController from "./ensembleIngestionController.js"
 
-// Module-level variables - the single source of truth for shared application state
-// These are populated by the App class during initialization
-let ensembleManager;
-let sceneManager;
-let trackMaterialProvider;
-let colorRampMaterialProvider;
-let colorMapManager;
-let liveContactMapService;
-let liveDistanceMapService;
-let juiceboxPanel;
-let igvPanel;
-let genomicNavigator;
-let googleEnabled = false;
-let cameraLightingRig;
-let camera;
-let scene;
-let scaleBarService;
-let sceneFixtures;
-let ensembleIngestionController;
-
 /**
- * Main application class that orchestrates Spacewalk initialization and manages application state.
- * Populates module-level variables for backward compatibility with existing code.
+ * Main application class that orchestrates Spacewalk initialization.
+ * All shared state lives on the App instance and is passed to consumers
+ * via constructor injection.
  */
 class App {
     constructor() {
@@ -90,7 +71,10 @@ class App {
         // Initialize Three.js scene, camera, and renderer
         const container = document.getElementById('spacewalk-threejs-canvas-container')
         this.threeJSInitializer = new ThreeJSInitializer(container);
-        const threeJSObjects = this.threeJSInitializer.initialize(this.colorRampMaterialProvider);
+        const threeJSObjects = this.threeJSInitializer.initialize({
+            colorRampMaterialProvider: this.colorRampMaterialProvider,
+            ensembleManager: this.ensembleManager
+        });
         this.assignThreeJSObjects(threeJSObjects);
 
         // Enable drag-and-drop of .sw files onto the 3D viewer
@@ -128,17 +112,13 @@ class App {
 
     async initializeCoreManagers() {
         this.ensembleManager = new EnsembleManager();
-        ensembleManager = this.ensembleManager;
 
         this.trackMaterialProvider = new TrackMaterialProvider(appleCrayonColorRGB255('snow'), appleCrayonColorRGB255('blueberry'), this.ensembleManager);
-        trackMaterialProvider = this.trackMaterialProvider;
 
         this.colorMapManager = new ColorMapManager();
         await this.colorMapManager.configure();
-        colorMapManager = this.colorMapManager;
 
         this.colorRampMaterialProvider = new ColorRampMaterialProvider(defaultColormapName, this.colorMapManager);
-        colorRampMaterialProvider = this.colorRampMaterialProvider;
     }
 
     assignThreeJSObjects(threeJSObjects) {
@@ -149,34 +129,21 @@ class App {
         this.camera = threeJSObjects.camera;
         this.scene = threeJSObjects.scene;
         this.sceneFixtures = threeJSObjects.sceneFixtures;
-        // Populate module-level variables
-        sceneManager = this.sceneManager;
-        cameraLightingRig = this.cameraLightingRig;
-        camera = this.camera;
-        scene = this.scene;
-        sceneFixtures = this.sceneFixtures;
     }
 
     assignUIComponents(uiComponents) {
         this.guiManager = uiComponents.guiManager;
         this.traceSelector = uiComponents.traceSelector;
         this.genomicNavigator = uiComponents.genomicNavigator;
-
-        // Populate module-level variables
-        genomicNavigator = this.genomicNavigator;
     }
 
     /**
-     * Early population of panel variables (called during panel initialization for timing)
+     * Panel assignment hook called during panel initialization so dependent
+     * services (e.g. live map services) can resolve panels via appContext
+     * before assignPanelObjects runs.
      */
     populatePanelVariable(name, value) {
         this[name] = value;
-        // Populate module-level variable immediately
-        if (name === 'igvPanel') {
-            igvPanel = value;
-        } else if (name === 'juiceboxPanel') {
-            juiceboxPanel = value;
-        }
     }
 
     assignPanelObjects(panelObjects) {
@@ -184,12 +151,11 @@ class App {
         this.liveContactMapService = panelObjects.liveContactMapService;
         this.liveDistanceMapService = panelObjects.liveDistanceMapService;
 
-        // Populate module-level variables
-        liveContactMapService = this.liveContactMapService;
-        liveDistanceMapService = this.liveDistanceMapService;
+        // Wire deferred dependencies now that panels and navigator exist.
+        this.sceneManager.wireDependencies({
+            igvPanel: this.igvPanel,
+        });
 
-        // EnsembleIngestionController needs igvPanel, so construct it here
-        // (after panels are populated).
         this.sceneManager.createHighlighters({
             ensembleManager: this.ensembleManager,
             igvPanel: this.igvPanel,
@@ -368,7 +334,6 @@ class App {
 
     assignScaleBarService(service) {
         this.scaleBarService = service
-        scaleBarService = service
     }
 
     startRenderLoop() {
@@ -407,23 +372,3 @@ function extractFileParam(href) {
 }
 
 export default App
-
-export {
-    scene,
-    camera,
-    cameraLightingRig,
-    googleEnabled,
-    ensembleManager,
-    sceneManager,
-    colorRampMaterialProvider,
-    colorMapManager,
-    trackMaterialProvider,
-    juiceboxPanel,
-    liveContactMapService,
-    liveDistanceMapService,
-    scaleBarService,
-    sceneFixtures,
-    ensembleIngestionController,
-    igvPanel,
-    genomicNavigator,
-}
