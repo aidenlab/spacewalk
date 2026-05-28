@@ -206,7 +206,7 @@ class App {
             const ensembleGroupKey = params.ensembleGroupKey || undefined;
             try {
                 await this.ensembleIngestionController.ingestEnsemblePath(fileURL, traceKey, ensembleGroupKey);
-                const data = ensembleManager.createEventBusPayload();
+                const data = this.ensembleManager.createEventBusPayload();
                 SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
             } catch (error) {
                 console.error('Failed to load file from URL params:', error)
@@ -263,7 +263,7 @@ class App {
             const file = new File([bytes], filename);
             try {
                 await this.ensembleIngestionController.ingestEnsemblePath(file, '0', undefined);
-                const payload = ensembleManager.createEventBusPayload();
+                const payload = this.ensembleManager.createEventBusPayload();
                 SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data: payload });
             } catch (error) {
                 console.error('Failed to load file from postMessage:', error)
@@ -300,7 +300,7 @@ class App {
 
             try {
                 await this.ensembleIngestionController.ingestEnsemblePath(file, '0', undefined)
-                const payload = ensembleManager.createEventBusPayload()
+                const payload = this.ensembleManager.createEventBusPayload()
                 SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data: payload })
             } catch (error) {
                 console.error('Failed to load dropped file:', error)
