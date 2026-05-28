@@ -116,7 +116,9 @@ class SceneManager {
                 pickHighlighter: this.pointCloudHighlighter,
                 deemphasizedColor: this.deemphasizedColor,
                 pointSizeBoundRadiusPercentage: this.pointSizeBoundRadiusPercentage,
-                pointOpacity: this.pointOpacity
+                pointOpacity: this.pointOpacity,
+                ensembleManager,
+                igvPanel
             })
             this.pointCloud.addToScene(scene)
         } else {
