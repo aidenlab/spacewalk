@@ -30,9 +30,11 @@ class SceneManager {
         this.pointCloud = null
         this.ribbon = null
 
-        // Persistent state that survives across model loads
-        this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel, genomicNavigator })
-        this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
+        // Persistent state that survives across model loads.
+        // Highlighters are created later via createHighlighters() once igvPanel
+        // and genomicNavigator exist — they aren't constructed at app boot.
+        this.ballHighlighter = null
+        this.pointCloudHighlighter = null
         this.stickMaterial = new THREE.MeshPhongMaterial({ color: appleCrayonColorThreeJS('aluminum') })
         this.stickMaterial.side = THREE.DoubleSide
         this.deemphasizedColor = appleCrayonColorThreeJS('magnesium')
@@ -44,6 +46,11 @@ class SceneManager {
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
         SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this);
         SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
+    }
+
+    createHighlighters({ ensembleManager, igvPanel, genomicNavigator }) {
+        this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel, genomicNavigator })
+        this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
     }
 
     receiveEvent({ type, data }) {

@@ -195,6 +195,12 @@ class App {
 
         // EnsembleIngestionController needs igvPanel, so construct it here
         // (after panels are populated).
+        this.sceneManager.createHighlighters({
+            ensembleManager: this.ensembleManager,
+            igvPanel: this.igvPanel,
+            genomicNavigator: this.genomicNavigator,
+        });
+
         this.ensembleIngestionController = new EnsembleIngestionController({
             ensembleManager: this.ensembleManager,
             sceneManager: this.sceneManager,
