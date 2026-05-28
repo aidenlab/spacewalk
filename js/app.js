@@ -32,11 +32,6 @@ let scaleBarService;
 let sceneFixtures;
 let ensembleIngestionController;
 
-function getThreeJSContainerRect() {
-    const container = document.querySelector('#spacewalk-threejs-canvas-container');
-    return container.getBoundingClientRect();
-}
-
 /**
  * Main application class that orchestrates Spacewalk initialization and manages application state.
  * Populates module-level variables for backward compatibility with existing code.
@@ -208,6 +203,10 @@ class App {
 
         this.genomicNavigator.wireDependencies({
             igvPanel: this.igvPanel,
+        });
+
+        this.cameraLightingRig.wireDependencies({
+            sceneFixtures: this.sceneFixtures,
         });
 
         this.ensembleIngestionController = new EnsembleIngestionController({
@@ -406,7 +405,6 @@ function extractFileParam(href) {
 export default App
 
 export {
-    getThreeJSContainerRect,
     scene,
     camera,
     cameraLightingRig,
