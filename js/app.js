@@ -201,6 +201,11 @@ class App {
             genomicNavigator: this.genomicNavigator,
         });
 
+        this.picker.wireDependencies({
+            sceneManager: this.sceneManager,
+            genomicNavigator: this.genomicNavigator,
+        });
+
         this.ensembleIngestionController = new EnsembleIngestionController({
             ensembleManager: this.ensembleManager,
             sceneManager: this.sceneManager,
