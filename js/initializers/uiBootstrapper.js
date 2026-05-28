@@ -60,7 +60,13 @@ class UIBootstrapper {
 
         // Initialize trace selector and navigator
         uiComponents.traceSelector = new TraceSelector(document.querySelector('#spacewalk_trace_select_input'), this.appContext.ensembleManager);
-        uiComponents.genomicNavigator = new GenomicNavigator(document.querySelector('#spacewalk-trace-navigator-container'), highlightColor, this.appContext.ensembleManager);
+        uiComponents.genomicNavigator = new GenomicNavigator(
+            document.querySelector('#spacewalk-trace-navigator-container'),
+            highlightColor,
+            this.appContext.ensembleManager,
+            this.appContext.sceneManager,
+            this.appContext.colorRampMaterialProvider
+        );
 
         // Initialize file loaders
         this.initializeFileLoaders();

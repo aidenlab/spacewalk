@@ -206,6 +206,10 @@ class App {
             genomicNavigator: this.genomicNavigator,
         });
 
+        this.genomicNavigator.wireDependencies({
+            igvPanel: this.igvPanel,
+        });
+
         this.ensembleIngestionController = new EnsembleIngestionController({
             ensembleManager: this.ensembleManager,
             sceneManager: this.sceneManager,
