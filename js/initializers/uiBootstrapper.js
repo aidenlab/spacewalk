@@ -6,7 +6,6 @@ import SpacewalkEventBus from "../spacewalkEventBus.js"
 import TraceSelector from '../traceSelector.js'
 import GenomicNavigator from '../genomicNavigator.js'
 import { highlightColor } from "../utils/colorUtils.js"
-import { toJSON, loadSession } from "../sessionServices.js"
 import { createSpacewalkFileLoaders } from '../spacewalkFileLoadWidgetServices.js'
 import configureContactMapLoaders from '../widgets/contactMapLoad.js'
 import { createShareWidgets, shareWidgetConfigurator } from '../share/shareWidgets.js'
@@ -69,7 +68,10 @@ class UIBootstrapper {
         this.initializeHomeButton();
 
         // Initialize share widgets
-        createShareWidgets(shareWidgetConfigurator(spacewalkConfig.urlShortener));
+        createShareWidgets(
+            shareWidgetConfigurator(spacewalkConfig.urlShortener),
+            () => this.appContext.sessionService
+        );
 
         // Show navbar
         document.querySelector('.navbar').style.display = '';
@@ -168,9 +170,9 @@ class UIBootstrapper {
             async config => {
                 const urlOrFile = config.url || config.file;
                 const json = await igvxhr.loadJson(urlOrFile);
-                await loadSession(json);
+                await this.appContext.sessionService.loadSession(json);
             },
-            () => toJSON()
+            () => this.appContext.sessionService.toJSON()
         );
     }
 

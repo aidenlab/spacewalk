@@ -3,7 +3,7 @@ import ColorMapManager from "./utils/colorMapManager.js"
 import TrackMaterialProvider from "./trackMaterialProvider.js"
 import ColorRampMaterialProvider from "./colorRampMaterialProvider.js"
 import { appleCrayonColorRGB255 } from "./utils/colorUtils.js"
-import { getUrlParams, loadSession, uncompressSessionURL } from "./sessionServices.js"
+import { SessionService, getUrlParams, uncompressSessionURL } from "./sessionServices.js"
 import SpacewalkEventBus from "./spacewalkEventBus.js"
 import { showGlobalSpinner, hideGlobalSpinner } from './utils/utils.js'
 import { defaultColormapName } from "./utils/colorMapManager.js"
@@ -58,6 +58,7 @@ class App {
         this.scaleBarService = null;
         this.sceneFixtures = null;
         this.ensembleIngestionController = null;
+        this.sessionService = null;
 
         // Panels
         this.juiceboxPanel = null;
@@ -194,13 +195,30 @@ class App {
 
         // EnsembleIngestionController needs igvPanel, so construct it here
         // (after panels are populated).
+        this.sceneManager.createHighlighters({
+            ensembleManager: this.ensembleManager,
+            igvPanel: this.igvPanel,
+            genomicNavigator: this.genomicNavigator,
+        });
+
         this.ensembleIngestionController = new EnsembleIngestionController({
             ensembleManager: this.ensembleManager,
             sceneManager: this.sceneManager,
             igvPanel: this.igvPanel,
             colorRampMaterialProvider: this.colorRampMaterialProvider,
+            genomicNavigator: this.genomicNavigator,
         });
         ensembleIngestionController = this.ensembleIngestionController;
+
+        this.sessionService = new SessionService({
+            ensembleManager: this.ensembleManager,
+            sceneManager: this.sceneManager,
+            igvPanel: this.igvPanel,
+            juiceboxPanel: this.juiceboxPanel,
+            trackMaterialProvider: this.trackMaterialProvider,
+            cameraLightingRig: this.cameraLightingRig,
+            ensembleIngestionController: this.ensembleIngestionController,
+        });
     }
 
     async consumeURLParams(params) {
@@ -246,7 +264,7 @@ class App {
         const result = 0 === Object.keys(acc).length ? undefined : acc;
 
     if (result) {
-            await loadSession(result);
+            await this.sessionService.loadSession(result);
         }
     }
 

@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { StringUtils } from 'igv-utils'
 import { rgb255String, threeJSColorToRGB255 } from "./utils/colorUtils.js"
 import {disposeThreeJSGroup} from "./utils/utils.js"
-import {scene} from "./app.js"
 
 class Gnomon extends THREE.AxesHelper {
 
@@ -90,13 +89,15 @@ class Gnomon extends THREE.AxesHelper {
     }
 
     addToScene (scene) {
+        this.scene = scene
         scene.add( this.group )
     }
 
     dispose () {
         super.dispose()
-        disposeThreeJSGroup(this.group, scene)
+        disposeThreeJSGroup(this.group, this.scene)
         this.group = undefined
+        this.scene = undefined
     }
 
     toggle() {

@@ -1,4 +1,3 @@
-import { sceneManager, genomicNavigator } from "../app.js";
 import {clamp} from "./mathUtils"
 
 function isWebGL2Supported() {
@@ -29,11 +28,6 @@ function unsetDataMaterialProviderCheckbox(igvPanel) {
         }
     }
     igvPanel.clearMaterialProviderSessionState();
-}
-
-function setMaterialProvider(materialProvider) {
-    sceneManager.updateMaterialProvider(materialProvider)
-    genomicNavigator.repaint()
 }
 
 function fitToContainer(canvas, devicePixelRatio) {
@@ -164,7 +158,6 @@ export {
     showGlobalSpinner,
     hideGlobalSpinner,
     unsetDataMaterialProviderCheckbox,
-    setMaterialProvider,
     createImage,
     transferRGBAMatrixToLiveMapCanvas,
     readFileAsDataURL,

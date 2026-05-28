@@ -10,6 +10,7 @@ import {
     scene,
     ensembleManager,
     igvPanel,
+    genomicNavigator,
     cameraLightingRig,
     sceneFixtures,
     getThreeJSContainerRect,
@@ -29,9 +30,11 @@ class SceneManager {
         this.pointCloud = null
         this.ribbon = null
 
-        // Persistent state that survives across model loads
-        this.ballHighlighter = new BallHighlighter(highlightColor)
-        this.pointCloudHighlighter = new PointCloudHighlighter()
+        // Persistent state that survives across model loads.
+        // Highlighters are created later via createHighlighters() once igvPanel
+        // and genomicNavigator exist — they aren't constructed at app boot.
+        this.ballHighlighter = null
+        this.pointCloudHighlighter = null
         this.stickMaterial = new THREE.MeshPhongMaterial({ color: appleCrayonColorThreeJS('aluminum') })
         this.stickMaterial.side = THREE.DoubleSide
         this.deemphasizedColor = appleCrayonColorThreeJS('magnesium')
@@ -43,6 +46,11 @@ class SceneManager {
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
         SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this);
         SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
+    }
+
+    createHighlighters({ ensembleManager, igvPanel, genomicNavigator }) {
+        this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel, genomicNavigator })
+        this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
     }
 
     receiveEvent({ type, data }) {
@@ -115,11 +123,13 @@ class SceneManager {
                 pickHighlighter: this.pointCloudHighlighter,
                 deemphasizedColor: this.deemphasizedColor,
                 pointSizeBoundRadiusPercentage: this.pointSizeBoundRadiusPercentage,
-                pointOpacity: this.pointOpacity
+                pointOpacity: this.pointOpacity,
+                ensembleManager,
+                igvPanel
             })
             this.pointCloud.addToScene(scene)
         } else {
-            this.ribbon = new Ribbon(trace)
+            this.ribbon = new Ribbon(trace, { ensembleManager, igvPanel })
             this.ribbon.addToScene(scene)
 
             this.ballAndStick = new BallAndStick({
@@ -127,7 +137,10 @@ class SceneManager {
                 pickHighlighter: this.ballHighlighter,
                 stickMaterial: this.stickMaterial,
                 isStickVisible: this.isStickVisible,
-                ballRadiusIndex: this.ballRadiusIndex
+                ballRadiusIndex: this.ballRadiusIndex,
+                ensembleManager,
+                igvPanel,
+                sceneManager: this
             })
             this.ballAndStick.addToScene(scene)
         }
