@@ -49,7 +49,11 @@ class UIBootstrapper {
         this.appContext.assignScaleBarService(this.buildScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container')));
 
         // Initialize settings manager (after scale bar service, so all settings targets exist)
-        uiComponents.settingsManager = new SettingsManager();
+        uiComponents.settingsManager = new SettingsManager({
+            scene: this.appContext.scene,
+            scaleBarService: this.appContext.scaleBarService,
+            sceneFixtures: this.appContext.sceneFixtures
+        });
 
         // Initialize trace selector and navigator
         uiComponents.traceSelector = new TraceSelector(document.querySelector('#spacewalk_trace_select_input'), this.appContext.ensembleManager);
