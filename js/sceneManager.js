@@ -4,30 +4,22 @@ import SpacewalkEventBus from './spacewalkEventBus.js'
 import {getCameraPoseAlongAxis} from './cameraLightingRig.js'
 import BallAndStick from "./ballAndStick.js"
 import PointCloud from "./pointCloud.js"
-import GroundPlane from './groundPlane.js'
-import Gnomon from './gnomon.js'
-import GUIManager from "./guiManager.js"
-import {setMaterialProvider, unsetDataMaterialProviderCheckbox} from "./utils/utils.js"
 import Ribbon from './ribbon.js'
 import { clearScene } from './utils/disposalUtils.js'
-import {
-    scene,
-    ensembleManager,
-    igvPanel,
-    cameraLightingRig,
-    getThreeJSContainerRect,
-} from "./app.js"
+import { getThreeJSContainerRect } from "./utils/threeJSContainer.js"
 import {appleCrayonColorThreeJS, highlightColor} from "./utils/colorUtils.js"
-import { register, updateSwatch } from "./utils/sharedColorPicker.js"
-import SettingsManager from "./settingsManager.js"
 import BallHighlighter from "./ballHighlighter.js"
 import PointCloudHighlighter from "./pointCloudHighlighter.js"
-import ScaleBarService from "./scaleBarService.js"
 
 class SceneManager {
 
-    constructor(colorRampMaterialProvider) {
+    constructor({ colorRampMaterialProvider, scene, ensembleManager, cameraLightingRig, sceneFixtures }) {
         this.colorRampMaterialProvider = colorRampMaterialProvider;
+        this.scene = scene;
+        this.ensembleManager = ensembleManager;
+        this.cameraLightingRig = cameraLightingRig;
+        this.sceneFixtures = sceneFixtures;
+        this.igvPanel = null;
         this.isLoading = false;
 
         // Transient visualization objects — null when no model loaded
@@ -35,9 +27,11 @@ class SceneManager {
         this.pointCloud = null
         this.ribbon = null
 
-        // Persistent state that survives across model loads
-        this.ballHighlighter = new BallHighlighter(highlightColor)
-        this.pointCloudHighlighter = new PointCloudHighlighter()
+        // Persistent state that survives across model loads.
+        // Highlighters are created later via createHighlighters() once igvPanel
+        // and genomicNavigator exist — they aren't constructed at app boot.
+        this.ballHighlighter = null
+        this.pointCloudHighlighter = null
         this.stickMaterial = new THREE.MeshPhongMaterial({ color: appleCrayonColorThreeJS('aluminum') })
         this.stickMaterial.side = THREE.DoubleSide
         this.deemphasizedColor = appleCrayonColorThreeJS('magnesium')
@@ -46,28 +40,18 @@ class SceneManager {
         this.pointSizeBoundRadiusPercentage = undefined
         this.pointOpacity = 0.375
 
-        // ScaleBarService — owned here alongside Gnomon and GroundPlane
-        this.scaleBarService = null
-
-        const saved = SettingsManager.load()
-
-        register(
-            document.querySelector(`div[data-colorpicker='groundplane']`),
-            saved?.groundPlane ? new THREE.Color(saved.groundPlane.r, saved.groundPlane.g, saved.groundPlane.b) : appleCrayonColorThreeJS('iron'),
-            () => this.getGroundPlane()?.color ?? appleCrayonColorThreeJS('iron'),
-            color => this.getGroundPlane()?.setColor(color)
-        )
-
-        register(
-            document.querySelector(`div[data-colorpicker='gnomon']`),
-            saved?.gnomon ? new THREE.Color(saved.gnomon.r, saved.gnomon.g, saved.gnomon.b) : appleCrayonColorThreeJS('iron'),
-            () => this.getGnomon()?.color ?? appleCrayonColorThreeJS('iron'),
-            color => this.getGnomon()?.setColor(color)
-        )
-
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
         SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this);
         SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
+    }
+
+    wireDependencies({ igvPanel }) {
+        this.igvPanel = igvPanel
+    }
+
+    createHighlighters({ ensembleManager, igvPanel, genomicNavigator }) {
+        this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel, genomicNavigator })
+        this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
     }
 
     receiveEvent({ type, data }) {
@@ -77,7 +61,7 @@ class SceneManager {
             this.isLoading = true
             try {
                 this.setupWithTrace(trace)
-                this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : this.renderStyle)
+                this.configureRenderStyle(true === this.ensembleManager.isPointCloud ? PointCloud.renderStyle : this.renderStyle)
             } finally {
                 this.isLoading = false
             }
@@ -85,7 +69,7 @@ class SceneManager {
         } else if ('DidLeaveGenomicNavigator' === type) {
             this.delegateLeaveGenomicNavigator()
         } else if ('DidChangeColorMap' === type) {
-            if (igvPanel.materialProvider === this.colorRampMaterialProvider) {
+            if (this.igvPanel.materialProvider === this.colorRampMaterialProvider) {
                 this.updateMaterialProvider(this.colorRampMaterialProvider)
             }
         }
@@ -129,60 +113,9 @@ class SceneManager {
         }
     }
 
-    async ingestEnsemblePath(url, traceKey, ensembleGroupKey) {
-
-        this.isLoading = true
-
-        try {
-            await ensembleManager.loadURL(url, traceKey, ensembleGroupKey)
-
-            this.setupWithTrace(ensembleManager.currentTrace)
-            this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
-
-            unsetDataMaterialProviderCheckbox(igvPanel)
-            setMaterialProvider(this.colorRampMaterialProvider)
-
-            if (ensembleManager.genomeAssembly !== igvPanel.browser.genome.id) {
-                console.log(`Genome swap from ${ igvPanel.browser.genome.id } to ${ ensembleManager.genomeAssembly }. Call igv_browser.loadGenome`)
-                await igvPanel.browser.loadGenome(ensembleManager.genomeAssembly)
-            }
-
-            await igvPanel.locusDidChange(ensembleManager.locus)
-        } catch (error) {
-            console.error('Error loading ensemble:', error)
-            this.purgeScene()
-            throw error
-        } finally {
-            this.isLoading = false
-        }
-
-    }
-
-    async ingestEnsembleGroup(ensembleGroupKey) {
-
-        this.isLoading = true
-
-        try {
-            await ensembleManager.loadEnsembleGroup(ensembleGroupKey)
-
-            this.setupWithTrace(ensembleManager.currentTrace)
-            this.configureRenderStyle(true === ensembleManager.isPointCloud ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
-
-            unsetDataMaterialProviderCheckbox(igvPanel)
-            setMaterialProvider(this.colorRampMaterialProvider)
-
-            await igvPanel.locusDidChange(ensembleManager.locus)
-        } catch (error) {
-            console.error('Error loading ensemble group:', error)
-            this.purgeScene()
-            throw error
-        } finally {
-            this.isLoading = false
-        }
-
-    }
-
     setupWithTrace(trace) {
+
+        const { scene, ensembleManager, igvPanel, cameraLightingRig, sceneFixtures } = this
 
         this.background = scene.background
         this.purgeScene()
@@ -193,11 +126,13 @@ class SceneManager {
                 pickHighlighter: this.pointCloudHighlighter,
                 deemphasizedColor: this.deemphasizedColor,
                 pointSizeBoundRadiusPercentage: this.pointSizeBoundRadiusPercentage,
-                pointOpacity: this.pointOpacity
+                pointOpacity: this.pointOpacity,
+                ensembleManager,
+                igvPanel
             })
             this.pointCloud.addToScene(scene)
         } else {
-            this.ribbon = new Ribbon(trace)
+            this.ribbon = new Ribbon(trace, { ensembleManager, igvPanel })
             this.ribbon.addToScene(scene)
 
             this.ballAndStick = new BallAndStick({
@@ -205,7 +140,10 @@ class SceneManager {
                 pickHighlighter: this.ballHighlighter,
                 stickMaterial: this.stickMaterial,
                 isStickVisible: this.isStickVisible,
-                ballRadiusIndex: this.ballRadiusIndex
+                ballRadiusIndex: this.ballRadiusIndex,
+                ensembleManager,
+                igvPanel,
+                sceneManager: this
             })
             this.ballAndStick.addToScene(scene)
         }
@@ -220,42 +158,12 @@ class SceneManager {
         const { width, height } = getThreeJSContainerRect();
         cameraLightingRig.configure(fov, width/height, position, center, boundingDiameter)
 
-        scene.add(createHemisphereLight())
-
-        // Apply saved settings if available
-        const saved = SettingsManager.load()
-
-        // GroundPlane
-        const groundPlaneConfig =
-            {
-            size: boundingDiameter,
-            divisions: 16,
-            position: new THREE.Vector3(center.x, min.y, center.z),
-            color: saved?.groundPlane ? new THREE.Color(saved.groundPlane.r, saved.groundPlane.g, saved.groundPlane.b) : appleCrayonColorThreeJS('iron'),
-            opacity: 0.25,
-            isHidden: saved?.groundPlane ? !saved.groundPlane.visible : GroundPlane.setGroundPlaneHidden()
-            };
-
-        const groundPlane = new GroundPlane(groundPlaneConfig)
-        scene.add(groundPlane)
-        updateSwatch(document.querySelector(`div[data-colorpicker='groundplane']`), groundPlaneConfig.color)
-
-        // Gnomon
-        const gnomonConfig =
-            {
-                min,
-                max,
-                boundingDiameter,
-                color: saved?.gnomon ? new THREE.Color(saved.gnomon.r, saved.gnomon.g, saved.gnomon.b) : appleCrayonColorThreeJS('iron'),
-                isHidden: saved?.gnomon ? !saved.gnomon.visible : Gnomon.setGnomonHidden()
-            };
-        const gnomon = new Gnomon(gnomonConfig)
-        gnomon.addToScene(scene)
-        updateSwatch(document.querySelector(`div[data-colorpicker='gnomon']`), gnomonConfig.color)
-
+        sceneFixtures.setupForBounds({ min, max, center, boundingDiameter })
     }
 
     rebuildTraceGeometry() {
+
+        const { scene, ensembleManager, igvPanel } = this
 
         if (ensembleManager.isPointCloud) return
 
@@ -272,7 +180,7 @@ class SceneManager {
             this.ribbon = null
         }
 
-        this.ribbon = new Ribbon(trace)
+        this.ribbon = new Ribbon(trace, { ensembleManager, igvPanel })
         this.ribbon.addToScene(scene)
 
         this.ballAndStick = new BallAndStick({
@@ -280,7 +188,10 @@ class SceneManager {
             pickHighlighter: this.ballHighlighter,
             stickMaterial: this.stickMaterial,
             isStickVisible: this.isStickVisible,
-            ballRadiusIndex: this.ballRadiusIndex
+            ballRadiusIndex: this.ballRadiusIndex,
+            ensembleManager,
+            igvPanel,
+            sceneManager: this
         })
         this.ballAndStick.addToScene(scene)
 
@@ -306,40 +217,13 @@ class SceneManager {
         this.renderStyle = renderStyle
     }
 
-    getHemisphereLight(){
-        return scene.getObjectByName('hemisphereLight')
-    }
-
-    initializeScaleBarService(renderContainer) {
-        const saved = SettingsManager.load()
-        const scaleBarsHidden = saved?.scaleBars ? !saved.scaleBars.visible : ScaleBarService.setScaleBarsHidden()
-        const scaleBarsColor = saved?.scaleBars ? new THREE.Color(saved.scaleBars.r, saved.scaleBars.g, saved.scaleBars.b) : undefined
-        const referenceRulerHidden = saved?.referenceRuler ? !saved.referenceRuler.visible : true
-        const referenceRulerColor = saved?.referenceRuler ? new THREE.Color(saved.referenceRuler.r, saved.referenceRuler.g, saved.referenceRuler.b) : undefined
-        this.scaleBarService = new ScaleBarService(renderContainer, scaleBarsHidden, scaleBarsColor, referenceRulerHidden, referenceRulerColor)
-        this.scaleBarService.insertScaleBarDOM()
-        this.scaleBarService.insertReferenceRulerDOM()
-    }
-
-    getScaleBarService() {
-        return this.scaleBarService
-    }
-
-    getGnomon(){
-        return scene.getObjectByName('gnomon')
-    }
-
-    getGroundPlane(){
-        return scene.getObjectByName('groundplane')
-    }
-
     toJSON() {
-        const { r, g, b } = scene.background
+        const { r, g, b } = this.scene.background
         return  { r, g, b }
     }
 
     isGood2Go() {
-        return !this.isLoading && scene && this.getGnomon() && this.getGroundPlane()
+        return !this.isLoading && this.scene && this.sceneFixtures.getGnomon() && this.sceneFixtures.getGroundPlane()
      }
 
     purgeScene() {
@@ -367,19 +251,11 @@ class SceneManager {
             this.pointCloud = null
         }
 
-        // Dispose named objects BEFORE clearScene removes them from the scene
-        const gnomonInstance = this.getGnomon()
-        if (gnomonInstance) {
-            gnomonInstance.dispose()
-        }
-
-        const groundPlaneInstance = this.getGroundPlane()
-        if (groundPlaneInstance) {
-            groundPlaneInstance.dispose()
-        }
+        // Dispose fixtures BEFORE clearScene removes them from the scene
+        this.sceneFixtures.dispose()
 
         // Clear remaining scene objects (hemisphere light, etc.)
-        clearScene(scene)
+        clearScene(this.scene)
 
     }
 
@@ -412,14 +288,5 @@ class SceneManager {
     }
 
 }
-
-function createHemisphereLight() {
-    // Update due to r155 changes to illumination: Multiply light intensities by PI to get same brightness as previous threejs release.
-    // See: https://discourse.threejs.org/t/updates-to-lighting-in-three-js-r155/53733
-    const light = new THREE.HemisphereLight( appleCrayonColorThreeJS('snow'), appleCrayonColorThreeJS('tin'), Math.PI )
-    light.name = 'hemisphereLight'
-    return light
-}
-
 
 export default SceneManager;

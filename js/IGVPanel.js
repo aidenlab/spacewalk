@@ -1,7 +1,5 @@
 import igv from 'igv'
 import SpacewalkEventBus from './spacewalkEventBus.js'
-import {setMaterialProvider} from './utils/utils.js';
-import {sceneManager} from './app.js';
 import {installShim} from './igvTrackMaterialProviderShim.js';
 import Panel from './panel.js';
 import { getPathsWithTrackRegistry, updateTrackMenusWithTrackConfigurations } from './widgets/trackWidgets.js'
@@ -14,7 +12,7 @@ let resizeTimeout
 const RESIZE_DEBOUNCE_DELAY = 200
 class IGVPanel extends Panel {
 
-    constructor ({ container, panel, isHidden, colorRampMaterialProvider, trackMaterialProvider, ensembleManager, genomicNavigator }) {
+    constructor ({ container, panel, isHidden, colorRampMaterialProvider, trackMaterialProvider, ensembleManager, genomicNavigator, sceneManager }) {
 
         const xFunction = (wc, wp) => {
             return (wc - wp)/2;
@@ -30,6 +28,7 @@ class IGVPanel extends Panel {
         this.trackMaterialProvider = trackMaterialProvider;
         this.ensembleManager = ensembleManager;
         this.genomicNavigator = genomicNavigator;
+        this.sceneManager = sceneManager;
 
         /** Map of trackId (name|index) -> true for material provider checkbox state. Single source of truth. */
         this.materialProviderCheckedTracks = new Map();
@@ -187,7 +186,7 @@ class IGVPanel extends Panel {
                 return;
             }
 
-            sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolant ] })
+            this.sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolant ] })
             this.genomicNavigator.highlightFromInterpolant([ interpolant ])
 
         })
@@ -213,8 +212,8 @@ class IGVPanel extends Panel {
             this.materialProvider = this.trackMaterialProvider;
         }
 
-        // Always call setMaterialProvider to trigger repaint with updated colors
-        setMaterialProvider(this.trackMaterialProvider);
+        this.sceneManager.updateMaterialProvider(this.trackMaterialProvider);
+        this.genomicNavigator.repaint();
         console.log(`Active tracks: ${this.trackMaterialProvider.getTrackNames().join(', ')}`);
     }
 
@@ -229,12 +228,14 @@ class IGVPanel extends Panel {
         // If no tracks remain, switch back to color ramp provider
         if (this.trackMaterialProvider.getTrackNames().length === 0) {
             this.materialProvider = this.colorRampMaterialProvider;
-            setMaterialProvider(this.colorRampMaterialProvider);
+            this.sceneManager.updateMaterialProvider(this.colorRampMaterialProvider);
+            this.genomicNavigator.repaint();
             console.log('No active tracks. Switched to color ramp provider.');
         } else {
             // Tracks remain - ensure we're using trackMaterialProvider and trigger repaint
             this.materialProvider = this.trackMaterialProvider;
-            setMaterialProvider(this.trackMaterialProvider);
+            this.sceneManager.updateMaterialProvider(this.trackMaterialProvider);
+            this.genomicNavigator.repaint();
             console.log(`Active tracks: ${this.trackMaterialProvider.getTrackNames().join(', ')}`);
         }
     }
@@ -367,7 +368,8 @@ class IGVPanel extends Panel {
 
         if (tracksToRestore.length > 0) {
             this.materialProvider = this.trackMaterialProvider;
-            setMaterialProvider(this.trackMaterialProvider);
+            this.sceneManager.updateMaterialProvider(this.trackMaterialProvider);
+            this.genomicNavigator.repaint();
         }
 
         console.log(`Successfully restored ${tracksToRestore.length} tracks`);

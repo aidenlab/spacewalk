@@ -1,0 +1,119 @@
+flowchart TD
+    classDef stage fill:#f5f5f5,stroke:#999,color:#333
+    classDef core fill:#e8f0fe,stroke:#4a7fc1,color:#1a1a1a
+    classDef threejs fill:#e8f5e9,stroke:#5ca35c,color:#1a1a1a
+    classDef ui fill:#fff4e5,stroke:#d49a3c,color:#1a1a1a
+    classDef panel fill:#fce4ec,stroke:#b85a8a,color:#1a1a1a
+    classDef service fill:#f3e5f5,stroke:#9c5cb5,color:#1a1a1a
+    classDef datasource fill:#e0f7fa,stroke:#3a98a8,color:#1a1a1a
+    App((App)):::stage
+    subgraph S1[Stage 1 - Core managers]
+        EM[EnsembleManager]:::core
+        CMM[ColorMapManager]:::core
+        TMP[TrackMaterialProvider]:::core
+        CRMP[ColorRampMaterialProvider]:::core
+    end
+    subgraph S2[Stage 2 - Three.js]
+        Scene[scene]:::threejs
+        Cam[camera]:::threejs
+        Renderer[renderer]:::threejs
+        Picker[Picker]:::threejs
+        CLR[CameraLightingRig]:::threejs
+        SF[SceneFixtures]:::threejs
+        SM[SceneManager]:::threejs
+    end
+    subgraph S3[Stage 3 - UI]
+        GUI[GUIManager]:::ui
+        SBS[ScaleBarService]:::ui
+        SettM[SettingsManager]:::ui
+        Trace[TraceSelector]:::ui
+        GN[GenomicNavigator]:::ui
+    end
+    subgraph S4[Stage 4 - Panels and services]
+        IGV[IGVPanel]:::panel
+        JB[JuiceboxPanel]:::panel
+        LDM[LiveDistanceMapService]:::service
+        LCM[LiveContactMapService]:::service
+    end
+    subgraph S5[Stage 5 - App-level glue]
+        EIC[EnsembleIngestionController]:::service
+        SS[SessionService]:::service
+    end
+    subgraph S6[Stage 6 - On file load]
+        SWB[SWBDatasource]:::datasource
+    end
+    App --> EM
+    App --> CMM
+    App --> TMP
+    App --> CRMP
+    CMM --> CRMP
+    EM --> TMP
+    App --> Renderer
+    App --> Scene
+    App --> Cam
+    App --> Picker
+    App --> CLR
+    App --> SF
+    App --> SM
+    CRMP --> SM
+    EM --> SM
+    Scene --> SM
+    CLR --> SM
+    SF --> SM
+    App --> GUI
+    App --> SBS
+    App --> SettM
+    App --> Trace
+    App --> GN
+    SM --> GUI
+    EM --> GUI
+    CMM --> GUI
+    EM --> Trace
+    EM --> GN
+    SM --> GN
+    CRMP --> GN
+    Scene --> SettM
+    SBS --> SettM
+    SF --> SettM
+    App --> IGV
+    App --> JB
+    App --> LDM
+    App --> LCM
+    CRMP --> IGV
+    TMP --> IGV
+    EM --> IGV
+    GN --> IGV
+    SM --> IGV
+    EM --> JB
+    SM --> JB
+    GN --> JB
+    JB --> LDM
+    EM --> LCM
+    JB --> LCM
+    IGV --> LCM
+    LDM --> LCM
+    App --> EIC
+    App --> SS
+    EM --> EIC
+    SM --> EIC
+    IGV --> EIC
+    CRMP --> EIC
+    GN --> EIC
+    TMP --> EIC
+    EM --> SS
+    SM --> SS
+    IGV --> SS
+    JB --> SS
+    TMP --> SS
+    CLR --> SS
+    EIC --> SS
+    IGV -.-> SM
+    GN -.-> Picker
+    SM -.-> Picker
+    LCM -.-> JB
+    SF -.-> CLR
+    IGV -.-> EM
+    EM ==> SWB
+    IGV ==> SWB
+    GN ==> SS
+    EM ==> EIC

@@ -2,7 +2,6 @@ import * as THREE from 'three'
 import { StringUtils } from 'igv-utils'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import {clamp, lerp} from './utils/mathUtils.js'
-import {ensembleManager, igvPanel, scene, sceneManager} from './app.js'
 import { appleCrayonColorThreeJS } from "./utils/colorUtils.js"
 import EnsembleManager from './ensembleManager.js'
 import ConvexHull from "./utils/convexHull.js"
@@ -16,11 +15,14 @@ class BallAndStick {
 
     static renderStyle = 'render-style-ball-stick'
 
-    constructor ({ trace, pickHighlighter, stickMaterial, isStickVisible, ballRadiusIndex }) {
+    constructor ({ trace, pickHighlighter, stickMaterial, isStickVisible, ballRadiusIndex, ensembleManager, igvPanel, sceneManager }) {
 
         this.pickHighlighter = pickHighlighter
         this.stickMaterial = stickMaterial
         this.isStickVisible = isStickVisible
+        this.ensembleManager = ensembleManager
+        this.igvPanel = igvPanel
+        this.sceneManager = sceneManager
 
         // Build geometry from trace
         const stickCurves = createStickCurves(EnsembleManager.getSingleCentroidVertices(trace, true))
@@ -51,7 +53,7 @@ class BallAndStick {
         const { interpolantList } = data
 
         if (interpolantList) {
-            const interpolantWindowList = ensembleManager.getGenomicInterpolantWindowList(interpolantList)
+            const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
 
             if (interpolantWindowList) {
                 const instanceIdList = interpolantWindowList.map(({ index }) => index)
@@ -80,7 +82,7 @@ class BallAndStick {
 
         console.log(`Ball&Stick. Create ${ StringUtils.numberFormatter(trace.length) } balls. Tesselation width ${ widthSegments } height ${ heightSegments }`)
 
-        const genomicExtentList = ensembleManager.getCurrentGenomicExtentList()
+        const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
 
         const colorList = new Array(trace.length)
             .fill()
@@ -181,14 +183,14 @@ class BallAndStick {
     updateBallRadius(increment) {
 
         this.ballRadiusIndex = clamp(this.ballRadiusIndex + increment, 0, this.ballRadiusTable.length - 1)
-        sceneManager.ballRadiusIndex = this.ballRadiusIndex
+        this.sceneManager.ballRadiusIndex = this.ballRadiusIndex
         const radius = this.ballRadiusTable[ this.ballRadiusIndex ]
 
         const matrix = new THREE.Matrix4()
         const pp = new THREE.Vector3()
         const qq = new THREE.Quaternion()
         const ss = new THREE.Vector3()
-        for (let i = 0; i < ensembleManager.currentTrace.length; i++) {
+        for (let i = 0; i < this.ensembleManager.currentTrace.length; i++) {
 
             this.balls.getMatrixAt(i, matrix)
             matrix.decompose(pp, qq, ss)
@@ -208,8 +210,8 @@ class BallAndStick {
 
     updateMaterialProvider (materialProvider) {
 
-        for (let i = 0; i < ensembleManager.currentTrace.length; i++) {
-            const { interpolant } = ensembleManager.currentTrace[ i ]
+        for (let i = 0; i < this.ensembleManager.currentTrace.length; i++) {
+            const { interpolant } = this.ensembleManager.currentTrace[ i ]
             const color = materialProvider.colorForInterpolant(interpolant)
 
             const bufferAttribute = this.balls.geometry.getAttribute('instanceColor')
@@ -221,25 +223,27 @@ class BallAndStick {
     }
 
     renderLoopHelper () {
-        this.sticks.visible = (this.isStickVisible && sceneManager.renderStyle === BallAndStick.renderStyle)
+        this.sticks.visible = (this.isStickVisible && this.sceneManager.renderStyle === BallAndStick.renderStyle)
     }
 
     addToScene (scene) {
+        this.scene = scene
         scene.add(this.balls)
         scene.add(this.sticks)
         // scene.add(this.hull.mesh)
     }
 
     dispose () {
-        removeAndDisposeFromScene(scene, this.balls)
-        removeAndDisposeFromScene(scene, this.sticks)
+        removeAndDisposeFromScene(this.scene, this.balls)
+        removeAndDisposeFromScene(this.scene, this.sticks)
 
         if (this.hull && this.hull.mesh) {
-            removeAndDisposeFromScene(scene, this.hull.mesh)
+            removeAndDisposeFromScene(this.scene, this.hull.mesh)
         }
 
         // Clear highlighter reference to our now-disposed balls
         this.pickHighlighter.setBalls(undefined)
+        this.scene = undefined
     }
 
     hide () {

@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import { igvxhr } from 'igv-utils'
 import { createSessionWidgets } from '../widgets/sessionWidgets.js'
 import { createTrackWidgetsWithTrackRegistry } from '../widgets/trackWidgets.js'
@@ -5,13 +6,13 @@ import SpacewalkEventBus from "../spacewalkEventBus.js"
 import TraceSelector from '../traceSelector.js'
 import GenomicNavigator from '../genomicNavigator.js'
 import { highlightColor } from "../utils/colorUtils.js"
-import { toJSON, loadSession } from "../sessionServices.js"
 import { createSpacewalkFileLoaders } from '../spacewalkFileLoadWidgetServices.js'
 import configureContactMapLoaders from '../widgets/contactMapLoad.js'
 import { createShareWidgets, shareWidgetConfigurator } from '../share/shareWidgets.js'
 import { configureDrag } from "../utils/draggable.js"
 import GUIManager from "../guiManager.js"
 import SettingsManager from "../settingsManager.js"
+import ScaleBarService from "../scaleBarService.js"
 import { showRelease } from "../utils/release.js"
 import { spacewalkConfig } from "../../spacewalk-config.js"
 
@@ -41,18 +42,31 @@ class UIBootstrapper {
         const settingsButton = document.querySelector('#spacewalk-threejs-settings-button-container');
         uiComponents.guiManager = new GUIManager({
             settingsButton,
-            panel: document.querySelector('#spacewalk_ui_manager_panel')
+            panel: document.querySelector('#spacewalk_ui_manager_panel'),
+            sceneManager: this.appContext.sceneManager,
+            ensembleManager: this.appContext.ensembleManager,
+            colorMapManager: this.appContext.colorMapManager
         });
 
         // Initialize scale bar service (after GUI manager, so checkbox exists)
-        this.appContext.sceneManager.initializeScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container'));
+        this.appContext.assignScaleBarService(this.buildScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container')));
 
         // Initialize settings manager (after scale bar service, so all settings targets exist)
-        uiComponents.settingsManager = new SettingsManager();
+        uiComponents.settingsManager = new SettingsManager({
+            scene: this.appContext.scene,
+            scaleBarService: this.appContext.scaleBarService,
+            sceneFixtures: this.appContext.sceneFixtures
+        });
 
         // Initialize trace selector and navigator
         uiComponents.traceSelector = new TraceSelector(document.querySelector('#spacewalk_trace_select_input'), this.appContext.ensembleManager);
-        uiComponents.genomicNavigator = new GenomicNavigator(document.querySelector('#spacewalk-trace-navigator-container'), highlightColor, this.appContext.ensembleManager);
+        uiComponents.genomicNavigator = new GenomicNavigator(
+            document.querySelector('#spacewalk-trace-navigator-container'),
+            highlightColor,
+            this.appContext.ensembleManager,
+            this.appContext.sceneManager,
+            this.appContext.colorRampMaterialProvider
+        );
 
         // Initialize file loaders
         this.initializeFileLoaders();
@@ -67,12 +81,27 @@ class UIBootstrapper {
         this.initializeHomeButton();
 
         // Initialize share widgets
-        createShareWidgets(shareWidgetConfigurator(spacewalkConfig.urlShortener));
+        createShareWidgets(
+            shareWidgetConfigurator(spacewalkConfig.urlShortener),
+            () => this.appContext.sessionService
+        );
 
         // Show navbar
         document.querySelector('.navbar').style.display = '';
 
         return uiComponents;
+    }
+
+    buildScaleBarService(renderContainer) {
+        const saved = SettingsManager.load()
+        const scaleBarsHidden = saved?.scaleBars ? !saved.scaleBars.visible : ScaleBarService.setScaleBarsHidden()
+        const scaleBarsColor = saved?.scaleBars ? new THREE.Color(saved.scaleBars.r, saved.scaleBars.g, saved.scaleBars.b) : undefined
+        const referenceRulerHidden = saved?.referenceRuler ? !saved.referenceRuler.visible : true
+        const referenceRulerColor = saved?.referenceRuler ? new THREE.Color(saved.referenceRuler.r, saved.referenceRuler.g, saved.referenceRuler.b) : undefined
+        const service = new ScaleBarService(renderContainer, scaleBarsHidden, scaleBarsColor, referenceRulerHidden, referenceRulerColor)
+        service.insertScaleBarDOM()
+        service.insertReferenceRulerDOM()
+        return service
     }
 
     async initializeReleaseInfo() {
@@ -117,10 +146,11 @@ class UIBootstrapper {
         const fileLoader = {
             load: async fileOrPath => {
                 try {
-                    await this.appContext.sceneManager.ingestEnsemblePath(fileOrPath, '0', undefined);
+                    await this.appContext.ensembleIngestionController.ingestEnsemblePath(fileOrPath, '0', undefined);
                     const data = this.appContext.ensembleManager.createEventBusPayload();
                     SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
                 } catch (error) {
+                    if (error.userNotified) return
                     console.error('Failed to load file:', error)
                 }
             }
@@ -133,7 +163,9 @@ class UIBootstrapper {
             traceModalId: 'spacewalk-sw-load-select-modal',
             ensembleGroupModalId: 'spacewalk-ensemble-group-select-modal',
             dropboxButton: document.getElementById('spacewalk-sw-dropbox-button'),
-            fileLoader
+            fileLoader,
+            getEnsembleManager: () => this.appContext.ensembleManager,
+            getEnsembleIngestionController: () => this.appContext.ensembleIngestionController
         };
 
         createSpacewalkFileLoaders(spacewalkFileLoadConfig);
@@ -153,9 +185,9 @@ class UIBootstrapper {
             async config => {
                 const urlOrFile = config.url || config.file;
                 const json = await igvxhr.loadJson(urlOrFile);
-                await loadSession(json);
+                await this.appContext.sessionService.loadSession(json);
             },
-            () => toJSON()
+            () => this.appContext.sessionService.toJSON()
         );
     }
 

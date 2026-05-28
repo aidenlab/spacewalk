@@ -30,7 +30,8 @@ class PanelInitializer {
             colorRampMaterialProvider: this.appContext.colorRampMaterialProvider,
             trackMaterialProvider: this.appContext.trackMaterialProvider,
             ensembleManager: this.appContext.ensembleManager,
-            genomicNavigator: this.appContext.genomicNavigator
+            genomicNavigator: this.appContext.genomicNavigator,
+            sceneManager: this.appContext.sceneManager
         });
         panelObjects.igvPanel.materialProvider = this.appContext.colorRampMaterialProvider;
         // Populate module-level variable BEFORE initialization (event handlers may need it)
@@ -41,7 +42,10 @@ class PanelInitializer {
         panelObjects.juiceboxPanel = new JuiceboxPanel({
             container,
             panel: document.getElementById('spacewalk_juicebox_panel'),
-            isHidden: doInspectPanelVisibilityCheckbox('spacewalk_juicebox_panel')
+            isHidden: doInspectPanelVisibilityCheckbox('spacewalk_juicebox_panel'),
+            ensembleManager: this.appContext.ensembleManager,
+            sceneManager: this.appContext.sceneManager,
+            genomicNavigator: this.appContext.genomicNavigator
         });
         // Populate module-level variable BEFORE initialization (event handlers need it)
         this.appContext.populatePanelVariable('juiceboxPanel', panelObjects.juiceboxPanel);
@@ -50,8 +54,22 @@ class PanelInitializer {
         );
 
         // NOW initialize live map services (these depend on panels being ready AND module-level variables populated)
-        panelObjects.liveContactMapService = new LiveContactMapService();
-        panelObjects.liveDistanceMapService = new LiveDistanceMapService();
+        // Distance service first — contact service receives it as a dependency.
+        panelObjects.liveDistanceMapService = new LiveDistanceMapService({
+            juiceboxPanel: panelObjects.juiceboxPanel
+        });
+        panelObjects.liveContactMapService = new LiveContactMapService({
+            ensembleManager: this.appContext.ensembleManager,
+            juiceboxPanel: panelObjects.juiceboxPanel,
+            igvPanel: panelObjects.igvPanel,
+            liveDistanceMapService: panelObjects.liveDistanceMapService
+        });
+
+        // Late-wire: juiceboxPanel needs liveContactMapService for live-tab repaints
+        // and Juicebox color-swatch change callbacks.
+        panelObjects.juiceboxPanel.wireDependencies({
+            liveContactMapService: panelObjects.liveContactMapService
+        });
 
         // Configure contact map loaders
         this.configureContactMapLoaders(panelObjects.juiceboxPanel);

@@ -1,6 +1,5 @@
 import * as THREE from "three"
 import {StringUtils} from "igv-utils"
-import {ensembleManager, igvPanel, scene, sceneManager} from "./app.js"
 import EnsembleManager from "./ensembleManager.js"
 import {clamp} from "./utils/mathUtils.js"
 import ConvexHull from "./utils/convexHull.js"
@@ -10,9 +9,11 @@ class PointCloud {
 
     static renderStyle = 'render-style-point-cloud'
 
-    constructor ({ trace, pickHighlighter, deemphasizedColor, pointSizeBoundRadiusPercentage, pointOpacity }) {
+    constructor ({ trace, pickHighlighter, deemphasizedColor, pointSizeBoundRadiusPercentage, pointOpacity, ensembleManager, igvPanel }) {
         this.pickHighlighter = pickHighlighter
         this.deemphasizedColor = deemphasizedColor
+        this.ensembleManager = ensembleManager
+        this.igvPanel = igvPanel
 
         this.pointOpacity = pointOpacity ?? 0.375
         this.deemphasizedPointOpacity = 0.125/4
@@ -49,7 +50,7 @@ class PointCloud {
                 geometry.userData.colorAttribute = new THREE.Float32BufferAttribute(new Float32Array(xyz.length * 3), 3)
                 geometry.userData.colorAttribute.setUsage(drawUsage)
 
-                const rgb = igvPanel.materialProvider.colorForInterpolant(interpolant)
+                const rgb = this.igvPanel.materialProvider.colorForInterpolant(interpolant)
                 setGeometryColorAttribute(geometry.userData.colorAttribute.array, rgb)
                 geometry.setAttribute('color', geometry.userData.colorAttribute)
 
@@ -130,7 +131,7 @@ class PointCloud {
         const { interpolantList } = data
 
         if (interpolantList) {
-            const interpolantWindowList = ensembleManager.getGenomicInterpolantWindowList(interpolantList)
+            const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
 
             if (interpolantWindowList) {
                 const objectList = interpolantWindowList.map(({ index }) => this.meshList[ index ])
@@ -156,7 +157,7 @@ class PointCloud {
             mesh.material = this.material
 
             const index = this.meshList.indexOf(mesh)
-            const { interpolant } = ensembleManager.currentTrace[ index ]
+            const { interpolant } = this.ensembleManager.currentTrace[ index ]
             const rgb = materialProvider.colorForInterpolant(interpolant)
 
             setGeometryColorAttribute(mesh.geometry.userData.colorAttribute.array, rgb)
@@ -167,6 +168,7 @@ class PointCloud {
 
     addToScene (scene) {
 
+        this.scene = scene
         for (let mesh of this.meshList) {
             scene.add( mesh );
         }
@@ -176,10 +178,10 @@ class PointCloud {
 
     dispose () {
 
-        removeAndDisposeArrayFromScene(scene, this.meshList)
+        removeAndDisposeArrayFromScene(this.scene, this.meshList)
 
         if (this.hull && this.hull.mesh) {
-            scene.remove(this.hull.mesh)
+            this.scene.remove(this.hull.mesh)
             this.hull.mesh.geometry.dispose()
             disposeMaterial(this.hull.mesh.material)
         }
@@ -194,6 +196,8 @@ class PointCloud {
             material: undefined,
             deemphasizedMaterial: undefined
         })
+
+        this.scene = undefined
     }
 
     renderLoopHelper () {
@@ -225,7 +229,7 @@ class PointCloud {
         this.deemphasizedMaterial.size = this.pointSize
         this.deemphasizedMaterial.needsUpdate = true
 
-        const { radius } = EnsembleManager.getTraceBounds(ensembleManager.currentTrace)
+        const { radius } = EnsembleManager.getTraceBounds(this.ensembleManager.currentTrace)
         this.pointSizeBoundRadiusPercentage = this.pointSize / radius
     }
 

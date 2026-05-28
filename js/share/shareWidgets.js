@@ -22,17 +22,16 @@
  */
 
 import {setURLShortener} from './shareHelper.js'
-import { getShareURL } from "../sessionServices.js"
 
 let shareModal
 
-function createShareWidgets({ modalElement, inputElement, button }) {
+function createShareWidgets({ modalElement, inputElement, button }, getSessionService) {
 
     shareModal = new bootstrap.Modal(modalElement)
 
     modalElement.addEventListener('shown.bs.modal', async () => {
 
-        const result = await getShareURL()
+        const result = await getSessionService().getShareURL()
         if (result) {
             inputElement.value = result
             inputElement.focus()

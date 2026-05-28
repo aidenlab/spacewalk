@@ -1,9 +1,10 @@
-import {ensembleManager, igvPanel, genomicNavigator} from "./app.js";
-
 class BallHighlighter {
 
-    constructor (highlightColor) {
+    constructor (highlightColor, { ensembleManager, igvPanel, genomicNavigator }) {
         this.highlightColor = highlightColor;
+        this.ensembleManager = ensembleManager
+        this.igvPanel = igvPanel
+        this.genomicNavigator = genomicNavigator
         this.instanceIdList = undefined
         this.balls = undefined
     }
@@ -51,9 +52,9 @@ class BallHighlighter {
 
             this.balls.geometry.attributes.instanceColor.needsUpdate = true
 
-            const genomicExtentList = ensembleManager.getCurrentGenomicExtentList()
+            const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
             const interpolantWindowList = Array.from(this.instanceIdList).map(instanceId => genomicExtentList[ instanceId ])
-            genomicNavigator.highlightWithInterpolantWindowList(interpolantWindowList)
+            this.genomicNavigator.highlightWithInterpolantWindowList(interpolantWindowList)
 
         }
 
@@ -65,9 +66,9 @@ class BallHighlighter {
 
             const bufferAttribute = this.balls.geometry.getAttribute('instanceColor')
 
-            const genomicExtentList = ensembleManager.getCurrentGenomicExtentList()
+            const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
             for (const instanceId of this.instanceIdList) {
-                const color = igvPanel.materialProvider.colorForInterpolant(genomicExtentList[ instanceId ].interpolant)
+                const color = this.igvPanel.materialProvider.colorForInterpolant(genomicExtentList[ instanceId ].interpolant)
                 color.toArray(bufferAttribute.array, instanceId * 3)
             }
 

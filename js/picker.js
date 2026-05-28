@@ -1,5 +1,4 @@
 import SpacewalkEventBus from './spacewalkEventBus.js'
-import {sceneManager, genomicNavigator} from './app.js';
 
 const exclusionSet = new Set([ 'gnomon', 'groundplane', 'point_cloud', 'ribbon', 'stick' ]);
 
@@ -9,19 +8,26 @@ class Picker {
     constructor(raycaster) {
         this.raycaster = raycaster;
         this.isEnabled = true;
+        this.sceneManager = null
+        this.genomicNavigator = null
 
         SpacewalkEventBus.globalBus.subscribe("DidEnterGenomicNavigator", this);
         SpacewalkEventBus.globalBus.subscribe("DidLeaveGenomicNavigator", this);
+    }
+
+    wireDependencies({ sceneManager, genomicNavigator }) {
+        this.sceneManager = sceneManager
+        this.genomicNavigator = genomicNavigator
     }
 
     receiveEvent({ type, data }) {
 
         if ("DidEnterGenomicNavigator" === type) {
             this.isEnabled = false;
-            sceneManager.ballHighlighter.unhighlight()
+            this.sceneManager?.ballHighlighter?.unhighlight()
         } else if ("DidLeaveGenomicNavigator" === type) {
             this.isEnabled = true;
-            sceneManager.ballHighlighter.unhighlight()
+            this.sceneManager?.ballHighlighter?.unhighlight()
         }
 
     }
@@ -39,15 +45,15 @@ class Picker {
 
                 if (hit.instanceId && hit.instanceId !== currentInstanceId) {
                     currentInstanceId = hit.instanceId
-                    sceneManager.ballHighlighter.processHit(hit)
+                    this.sceneManager.ballHighlighter.processHit(hit)
                 }
 
             } else {
 
                 if (currentInstanceId) {
                     currentInstanceId = undefined
-                    sceneManager.ballHighlighter.unhighlight()
-                    genomicNavigator.repaint()
+                    this.sceneManager.ballHighlighter.unhighlight()
+                    this.genomicNavigator.repaint()
                 }
             }
 

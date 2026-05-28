@@ -2,6 +2,8 @@
 
 Interaction flows for the redesigned Juicebox panel. Live contact maps and live distance maps are computed by **hic-straw's `LiveContactMap`** and rendered by **direct canvas painting** — the same simple approach used in hic-straw's own example page. Juicebox's tile pipeline is used **only** for static Hi-C maps.
 
+> **Updated 2026-06.** Reflects current `LiveContactMap` setup: hic-straw receives the open HDF5 handle directly (baked `live_contact_map_vertices` fast path) and only falls back to runtime trace gathering for legacy pointcloud files. The old `liveMapUtils.ensureLiveMapVertexLists()` / `EnsembleManager.getLiveMapVertexLists()` indirection is gone. Also reflects Phase 3 DI (PR #44): `JuiceboxPanel`, `LiveContactMapService`, and `LiveDistanceMapService` all receive their collaborators via constructor injection; the module-level `tabAssessment` helper was folded into `JuiceboxPanel.assessTab()`.
+
 ---
 
 ## 1. Architecture Overview
@@ -25,9 +27,10 @@ flowchart TB
         LCMS[LiveContactMapService]
         LDMS[LiveDistanceMapService]
         JP[JuiceboxPanel]
-        Utils[liveMapUtils]
         RU[liveMapRenderUtils<br/>fillScaledPixel<br/>renderContactMap<br/>renderDistanceMap]
         EM[EnsembleManager]
+        DS[SWBDatasource]
+        IGV[IGVPanel]
     end
 
     subgraph HicStraw["hic-straw"]
@@ -40,10 +43,12 @@ flowchart TB
     end
 
     User[User presses Calculate] --> LCMS
-    LCMS -->|ensureLiveMapVertexLists| Utils
-    Utils -->|getLiveMapVertexLists| EM
+    LCMS -->|read locus + traceLength| EM
+    LCMS -->|read genome.chromosomes| IGV
+    LCMS -->|"hdf5 + ensembleGroupKey<br/>(or traces, legacy pointcloud)"| DS
     LCMS -->|"new LiveContactMap(config)"| LCM
     LCMS -->|"lcm.init()"| LCM
+    LCMS -->|"browser.loadLiveContactMap()<br/>(populates locus input + rulers)"| Browser
 
     LCMS -->|"renderContactMap(ctx, lcm)"| RU
     RU -->|"iterate lcm.contactRecords"| LCM
@@ -71,52 +76,59 @@ sequenceDiagram
     autonumber
     participant User
     participant LCMS as LiveContactMapService
-    participant Utils as liveMapUtils
     participant EM as EnsembleManager
-    participant DS as Datasource
+    participant IGV as IGVPanel
+    participant DS as SWBDatasource
     participant LCM as LiveContactMap<br/>(hic-straw)
+    participant JB as JuiceboxPanel
+    participant Browser as HicBrowser
     participant RU as liveMapRenderUtils
     participant ContactCanvas as Contact Canvas (2d)
     participant LDMS as LiveDistanceMapService
     participant DistCanvas as Distance Canvas (2d)
 
     User->>LCMS: click Calculate button
-    LCMS->>LCMS: showGlobalSpinner()
+    LCMS->>JB: showLiveMapSpinner()
 
-    Note over LCMS,DS: Phase 1 — Gather vertex data
-    LCMS->>Utils: ensureLiveMapVertexLists()
-    Utils->>EM: datasource instanceof SWBDatasource?
-    Utils->>DS: calculateLiveMapVertexLists() [if needed]
-    DS-->>Utils: (vertex lists cached)
-    Utils->>EM: getLiveMapVertexLists()
-    EM-->>LCMS: traces: Array<Array<{x, y, z}>>
+    Note over LCMS,DS: Phase 1 — Gather config
+    LCMS->>EM: locus, getLiveMapTraceLength()
+    LCMS->>IGV: browser.genome.id, browser.genome.chromosomes
+    LCMS->>DS: ds.isPointCloud, ds.hasLiveVertexBake()
+    alt baked HDF5 (default path)
+        LCMS->>LCMS: lcmConfig.hdf5 = ds.hdf5, ensembleGroupKey
+    else legacy pointcloud without bake
+        LCMS->>DS: buildPointCloudLiveMapTraces()
+        DS-->>LCMS: traces: Array<Array<{x, y, z}>>
+        LCMS->>LCMS: lcmConfig.traces = traces
+    end
 
     Note over LCMS,LCM: Phase 2 — Create and initialize LiveContactMap
-    LCMS->>LCMS: read slider values (threshold, exclusion, mode)
-    LCMS->>LCMS: get chromosomes from IGV genome
-    LCMS->>LCM: new LiveContactMap({ traces, chr, genomicStart, genomicEnd, binSize, chromosomes, ... })
+    LCMS->>LCM: new LiveContactMap(lcmConfig)
     LCMS->>LCM: init()
     LCM->>LCM: _computeDistances() → distanceMatrix, maxDistance
     LCM->>LCM: _deriveContacts() → contactRecords[] (with binOffset)
     LCM-->>LCMS: initialized
 
-    Note over LCMS,ContactCanvas: Phase 3 — Paint contact map directly
+    Note over LCMS,Browser: Phase 3 — Register live map with Juicebox
+    LCMS->>Browser: browser.loadLiveContactMap({ liveContactMap, name, locus })
+    Note right of Browser: Populates locus input,<br/>scrollbars, rulers — does<br/>NOT paint the canvas
+    LCMS->>JB: updateLiveMapCanvasSizes(contactMatrixView)
+
+    Note over LCMS,ContactCanvas: Phase 4 — Paint contact map directly
     LCMS->>RU: renderContactMap(ctx_live_contact, lcm)
-    RU->>RU: ctx.fillRect(white background)
     RU->>RU: iterate lcm.contactRecords
     RU->>RU: fillScaledPixel() for each record (upper + lower triangle)
     RU->>ContactCanvas: ctx.putImageData(imageData)
 
-    Note over LCMS,DistCanvas: Phase 4 — Paint distance map directly
-    LCMS->>LDMS: renderFromLiveContactMap(lcm)
+    Note over LCMS,DistCanvas: Phase 5 — Paint distance map directly
+    LCMS->>LDMS: renderFromLiveContactMap(lcm, colorConfig)
     LDMS->>RU: renderDistanceMap(ctx_live_distance, lcm)
     RU->>LCM: getDistanceMatrix()
     LCM-->>RU: { distances, maxDistance, traceLength }
-    RU->>RU: ctx.fillRect(black background)
     RU->>RU: iterate distances, fillScaledPixel() (blue→red)
     RU->>DistCanvas: ctx.putImageData(imageData)
 
-    LCMS->>LCMS: hideGlobalSpinner()
+    LCMS->>JB: hideLiveMapSpinner()
 ```
 
 ### Key Points
@@ -125,7 +137,8 @@ sequenceDiagram
 |--------|--------|
 | **Single LCM instance** | One `LiveContactMap` serves both maps — contact records for the contact canvas, distance matrix for the distance canvas |
 | **Direct painting** | Both canvases use `getContext('2d')` → `getImageData` → `fillScaledPixel` → `putImageData`. No tile pipeline, no Straw, no HiCDataset |
-| **Juicebox not involved** | Live maps do not call `browser.loadLiveContactMap()` or any Juicebox API. Juicebox is only for Hi-C files |
+| **HDF5 fast path** | Spacewalk passes hic-straw the already-open HDF5 handle so it can use the baked `live_contact_map_vertices` dataset. Legacy pointcloud files without the bake fall back to runtime centroid collapse via `ds.buildPointCloudLiveMapTraces()` |
+| **Juicebox register-only** | `browser.loadLiveContactMap()` is called so Juicebox populates the locus input, scrollbars, and rulers — but the canvas itself is painted directly by Spacewalk, not by the tile pipeline |
 | **Rendering utilities** | `liveMapRenderUtils.js` provides `renderContactMap()`, `renderDistanceMap()`, and `fillScaledPixel()` — shared by both services |
 | **Bin offset** | `renderContactMap()` uses `lcm.binOffset` to convert absolute bin indices back to trace-relative canvas positions |
 
@@ -202,7 +215,7 @@ sequenceDiagram
 
     alt User clicks Hi-C Map tab
         User->>Tab: click Hi-C Map
-        Tab->>JP: tabAssessment()
+        Tab->>JP: assessTab(tabButton)
         JP->>JP: show Hi-C canvas container
         JP->>JP: hide contact canvas container
         JP->>JP: hide distance canvas container
@@ -212,7 +225,7 @@ sequenceDiagram
 
     else User clicks Live Contact tab
         User->>Tab: click Live Contact
-        Tab->>JP: tabAssessment()
+        Tab->>JP: assessTab(tabButton)
         JP->>JP: hide Hi-C canvas container
         JP->>JP: show contact canvas container
         JP->>JP: hide distance canvas container
@@ -222,7 +235,7 @@ sequenceDiagram
 
     else User clicks Live Distance tab
         User->>Tab: click Live Distance
-        Tab->>JP: tabAssessment()
+        Tab->>JP: assessTab(tabButton)
         JP->>JP: hide Hi-C canvas container
         JP->>JP: hide contact canvas container
         JP->>JP: show distance canvas container
@@ -250,9 +263,8 @@ flowchart LR
     subgraph Spacewalk["Spacewalk (orchestrator + renderer)"]
         LCMS["LiveContactMapService<br/>• owns slider event handlers<br/>• creates LiveContactMap<br/>• paints contact canvas<br/>• triggers distance render"]
         LDMS["LiveDistanceMapService<br/>• receives LCM reference<br/>• paints distance canvas"]
-        JP["JuiceboxPanel<br/>• manages three canvases<br/>• tab show/hide<br/>• Hi-C file loading only"]
+        JP["JuiceboxPanel<br/>• manages three canvases<br/>• tab show/hide (assessTab)<br/>• Hi-C file loading<br/>• mouse-crosshair handler"]
         RU["liveMapRenderUtils<br/>• fillScaledPixel()<br/>• renderContactMap()<br/>• renderDistanceMap()"]
-        Utils["liveMapUtils<br/>• ensures vertex data ready"]
     end
 
     subgraph HicStraw["hic-straw (computation engine)"]
@@ -318,9 +330,10 @@ sequenceDiagram
 Ensemble 3D structures
         │
         ▼
-EnsembleManager.getLiveMapVertexLists()
+SWBDatasource — hdf5 handle (baked live_contact_map_vertices)
+                or buildPointCloudLiveMapTraces() (legacy pointcloud)
         │
-        ▼  traces: Array<Array<{x, y, z}>>
+        ▼  hdf5 + ensembleGroupKey  OR  traces: Array<Array<{x, y, z}>>
         │
    LiveContactMap (hic-straw)
         │
@@ -351,10 +364,12 @@ EnsembleManager.getLiveMapVertexLists()
 | **Contact map rendering** | Web worker RGBA + bitmaprenderer | Juicebox tile pipeline | Direct 2d canvas painting |
 | **Distance map rendering** | Web worker RGBA + bitmaprenderer | Spacewalk RGBA + bitmaprenderer | Direct 2d canvas painting |
 | **Canvases** | 3: Hi-C, ctx_live, ctx_live_distance | 2: Juicebox main (shared), distance | 3: Hi-C, contact (2d), distance (2d) |
-| **Juicebox involvement** | Color scale only | Full tile pipeline for contacts | Hi-C files only |
-| **Tab switching** | Separate canvases | Dataset swap on shared canvas | Separate canvases, show/hide |
+| **Juicebox involvement** | Color scale only | Full tile pipeline for contacts | `loadLiveContactMap()` to register locus/rulers only; Hi-C tile pipeline for Hi-C files only |
+| **Tab switching** | Separate canvases | Dataset swap on shared canvas | Separate canvases, show/hide via `JuiceboxPanel.assessTab()` |
 | **Canvas context type** | bitmaprenderer | bitmaprenderer + Juicebox ctx | All 2d (getContext('2d')) |
 | **Rendering pattern** | Custom per-pixel RGBA loops | Tile pipeline + custom RGBA | `fillScaledPixel` + `putImageData` |
 | **Threshold/exclusion** | Spacewalk auto-detect | Sliders → repaintMatrix() | Sliders → renderContactMap() |
 | **Worker files** | liveContactMapWorker, liveDistanceMapWorker | Deleted | Deleted |
 | **Shared utility** | None | None | `liveMapRenderUtils.js` |
+| **Vertex data path** | Computed per-call from EnsembleManager | `liveMapUtils.ensureLiveMapVertexLists()` indirection | Baked `live_contact_map_vertices` HDF5 fast path; legacy fallback via `ds.buildPointCloudLiveMapTraces()` |
+| **Module wiring** | Singleton imports from `app.js` | Singleton imports from `app.js` | **Constructor injection** (PR #44): `JuiceboxPanel`/`LiveContactMapService`/`LiveDistanceMapService` all receive collaborators explicitly. `tabAssessment` + `juiceboxMouseHandler` folded into `JuiceboxPanel` methods; `juiceboxPanelInstance` module singleton deleted |

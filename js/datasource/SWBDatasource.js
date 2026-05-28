@@ -1,15 +1,17 @@
 import * as THREE from 'three'
 import {openH5File} from 'hdf5-indexed-reader'
 import {FileUtils} from 'igv-utils'
-import { igvPanel } from '../app.js'
 import { SpacewalkGlobals } from '../spacewalkGlobals.js'
-import DataSourceBase from './dataSourceBase.js'
 import {hideGlobalSpinner, showGlobalSpinner} from "../utils/utils";
 import {createBoundingBoxWithFlatXYZList, cullDuplicateXYZ} from "../utils/mathUtils.js"
 import SpacewalkEventBus from "../spacewalkEventBus.js"
 import { updateEnsembleGroupDisplay } from "../guiManager.js"
 
-class SWBDatasource extends DataSourceBase {
+class SWBDatasource {
+
+    constructor({ igvPanel }) {
+        this.igvPanel = igvPanel
+    }
 
     dispose() {
         this.hdf5 = undefined
@@ -59,7 +61,7 @@ class SWBDatasource extends DataSourceBase {
         let genomeAssembly
 
         const hackedGenomeID = woollyMammothGenomeIDHack(this.header.genome)
-        if (hackedGenomeID !== undefined && igvPanel.knownGenomes[ hackedGenomeID ] !== undefined) {
+        if (hackedGenomeID !== undefined && this.igvPanel.knownGenomes[ hackedGenomeID ] !== undefined) {
             genomeAssembly = hackedGenomeID
         } else {
             console.warn(`Warning: Unrecognized genome ${ this.header.genome || 'undefined' }`)

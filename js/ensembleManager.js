@@ -2,28 +2,30 @@ import * as THREE from "three"
 import {FileUtils} from "igv-utils"
 import { includes } from "./utils/mathUtils.js"
 import {hideGlobalSpinner, showGlobalSpinner} from "./utils/utils.js"
-import Parser from './datasource/parser.js'
-import Datasource from './datasource/datasource.js'
 import SWBDatasource from "./datasource/SWBDatasource.js"
-import CNDBParser from "./datasource/CNDBParser.js"
-import CNDBDatasource from "./datasource/CNDBDatasource.js"
 
 class EnsembleManager {
 
     constructor () {
+        this.igvPanel = null
+    }
+
+    wireDependencies({ igvPanel }) {
+        this.igvPanel = igvPanel
     }
 
     async loadURL(url, traceKey, ensembleGroupKey) {
 
         const extension = FileUtils.getExtension(url)
-        const swbSet = new Set(['swb', 'sw'])
-        if (swbSet.has(extension)) {
-            const datasource = new SWBDatasource()
-            await this.loadSWB(url, datasource, parseInt(traceKey), ensembleGroupKey)
-        } else if ('cndb' === extension) {
-            await this.load(url, new CNDBParser(), new CNDBDatasource(), parseInt(traceKey))
+        if ('sw' === extension) {
+            await this.loadDatasource(url, new SWBDatasource({ igvPanel: this.igvPanel }), parseInt(traceKey), ensembleGroupKey)
         } else if ('swt' === extension) {
-            await this.load(url, new Parser(), new Datasource(), parseInt(traceKey))
+            const message = 'Spacewalk no longer reads .swt files. Please convert your file to the .sw HDF5 format using swt2sw (https://github.com/turner/swt2sw) and try again.'
+            console.warn(message)
+            alert(message)
+            const err = new Error(message)
+            err.userNotified = true
+            throw err
         }
 
     }
@@ -45,7 +47,7 @@ class EnsembleManager {
         hideGlobalSpinner()
     }
 
-    async loadSWB(path, datasource, index, ensembleGroupKey) {
+    async loadDatasource(path, datasource, index, ensembleGroupKey) {
 
         showGlobalSpinner()
         const { sample, genomeAssembly } = await datasource.load(path, ensembleGroupKey)
@@ -65,30 +67,8 @@ class EnsembleManager {
 
     }
 
-    async load(fileOrPath, parser, datasource, index, ensembleGroupKey) {
-
-        showGlobalSpinner()
-        const { sample, genomeAssembly } = await parser.parse(fileOrPath, datasource)
-        hideGlobalSpinner()
-
-        this.sample = sample
-
-        this.genomeAssembly = genomeAssembly
-
-        if (this.datasource) {
-            this.datasource.dispose()
-        }
-        this.datasource = datasource
-
-        const initialIndex = index || 0
-        this.currentTrace = await this.createTrace(initialIndex)
-        this.currentIndex = initialIndex
-
-    }
-
     createEventBusPayload() {
 
-        // const { genomicStart, genomicEnd } = this.datasource.getGenomicExtentWithIndex(this.currentIndex)
         const { chr, genomicStart, genomicEnd } = this.datasource.locus
 
         const payload =
@@ -151,10 +131,6 @@ class EnsembleManager {
         } else {
             return this.currentTrace.length
         }
-    }
-
-    getLiveMapVertexLists() {
-        return this.datasource.getLiveMapVertexLists()
     }
 
     get isPointCloud(){

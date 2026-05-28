@@ -2,6 +2,8 @@
 
 Interaction flows for the track material provider (checkbox) and cursor guide features. Spacewalk embeds IGV.js and coordinates via its public API; no IGV modifications required.
 
+> **Updated 2026-06 for Phase 3 DI.** `IGVPanel` now receives `sceneManager` and `genomicNavigator` via constructor injection; the old `utils.setMaterialProvider(...)` helper was deleted and its two lines inlined. See PR #42.
+
 ---
 
 ## 1. Track Material Provider — Architecture
@@ -15,7 +17,8 @@ flowchart TB
         IGVPanel[IGVPanel]
         Shim[igvTrackMaterialProviderShim]
         TMP[TrackMaterialProvider]
-        SetMP[setMaterialProvider]
+        SM[SceneManager]
+        GN[GenomicNavigator]
         VIZ[3D Viz: Ribbon / BallAndStick / PointCloud]
 
         IGVPanel -->|installShim| Shim
@@ -23,8 +26,9 @@ flowchart TB
         Shim -->|on trackorderchanged| Axis
         IGVPanel -->|activateTrackMaterialProvider| TMP
         IGVPanel -->|deactivateTrackMaterialProvider| TMP
-        IGVPanel -->|setMaterialProvider| SetMP
-        SetMP -->|updateMaterialProvider| VIZ
+        IGVPanel -->|sceneManager.updateMaterialProvider| SM
+        IGVPanel -->|genomicNavigator.repaint| GN
+        SM -->|fan out updateMaterialProvider| VIZ
         VIZ -->|colorForInterpolant| TMP
     end
 
@@ -155,7 +159,8 @@ sequenceDiagram
     User->>Shim: check checkbox
     Shim->>IGVPanel: activateTrackMaterialProvider(track)
     IGVPanel->>TMP: configure(track)
-    IGVPanel->>IGVPanel: setMaterialProvider(trackMaterialProvider)
+    IGVPanel->>IGVPanel: this.sceneManager.updateMaterialProvider(trackMaterialProvider)
+    IGVPanel->>IGVPanel: this.genomicNavigator.repaint()
 ```
 
 ### Cursor Guide — Sequence (IGV → Spacewalk)

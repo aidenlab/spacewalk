@@ -52,7 +52,7 @@ https://aidenlab.org/spacewalk/?file=https://example.com/data.sw&traceKey=0
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `file` | Yes | — | URL to a .sw/.swb/.cndb file |
+| `file` | Yes | — | URL to a .sw file |
 | `traceKey` | No | `0` | Trace index to display |
 | `ensembleGroupKey` | No | — | Ensemble group to load |
 
