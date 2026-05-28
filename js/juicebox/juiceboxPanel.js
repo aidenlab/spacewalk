@@ -1,15 +1,11 @@
 import hic from 'juicebox.js'
 import SpacewalkEventBus from '../spacewalkEventBus.js'
 import Panel from '../panel.js'
-import { ensembleManager, sceneManager, genomicNavigator, liveContactMapService } from '../app.js'
 import {appleCrayonColorRGB255, rgb255String} from "../utils/colorUtils"
-
-// Store reference to the singleton JuiceboxPanel instance for event handlers
-let juiceboxPanelInstance = null;
 
 class JuiceboxPanel extends Panel {
 
-    constructor ({ container, panel, isHidden }) {
+    constructor ({ container, panel, isHidden, ensembleManager, sceneManager, genomicNavigator }) {
 
         const xFunction = (cw, w) => {
             return (cw - w)/2;
@@ -46,8 +42,13 @@ class JuiceboxPanel extends Panel {
             dragOptions: { excludeSelector: dragExcludeSelector }
         });
 
-        // Store singleton instance for event handlers to access
-        juiceboxPanelInstance = this;
+        this.ensembleManager = ensembleManager
+        this.sceneManager = sceneManager
+        this.genomicNavigator = genomicNavigator
+        this.liveContactMapService = null
+
+        // Stable references for add/removeEventListener
+        this._tabEventHandler = (event) => this.assessTab(event.target)
 
         this.panel.addEventListener('mouseenter', (event) => {
             event.stopPropagation();
@@ -56,12 +57,16 @@ class JuiceboxPanel extends Panel {
 
         this.panel.addEventListener('mouseleave', (event) => {
             event.stopPropagation();
-            genomicNavigator.repaint()
+            this.genomicNavigator.repaint()
             SpacewalkEventBus.globalBus.post({ type: 'DidLeaveGenomicNavigator', data: 'DidLeaveGenomicNavigator' });
         });
 
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this)
 
+    }
+
+    wireDependencies({ liveContactMapService }) {
+        this.liveContactMapService = liveContactMapService
     }
 
     async initialize(container, config = JuiceboxPanel.defaultConfig) {
@@ -112,8 +117,8 @@ class JuiceboxPanel extends Panel {
         this.hicMapTab.show()
 
         // Apply Spacewalk locus
-        if (ensembleManager && ensembleManager.locus && this.browser.genome) {
-            const { chr, genomicStart, genomicEnd } = ensembleManager.locus
+        if (this.ensembleManager && this.ensembleManager.locus && this.browser.genome) {
+            const { chr, genomicStart, genomicEnd } = this.ensembleManager.locus
             try {
                 await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
             } catch (error) {
@@ -126,7 +131,7 @@ class JuiceboxPanel extends Panel {
             setTimeout(() => {
                 const activeTabButton = this.container.querySelector('button.nav-link.active')
                 if (activeTabButton && activeTabButton.id === 'spacewalk-juicebox-panel-hic-map-tab') {
-                    tabAssessment(this.browser, activeTabButton, this)
+                    this.assessTab(activeTabButton)
                     if (this.browser.contactMatrixView && this.browser.activeDataset) {
                         this.browser.contactMatrixView.update().catch(err => console.warn('Error updating contact matrix view after session load:', err))
                     }
@@ -253,14 +258,14 @@ class JuiceboxPanel extends Panel {
 
         this.browser.eventBus.subscribe('DidHideCrosshairs', {
             receiveEvent: () => {
-                sceneManager.delegateHideCrosshairs()
-                genomicNavigator.repaint()
+                this.sceneManager.delegateHideCrosshairs()
+                this.genomicNavigator.repaint()
             }
         })
 
         this.browser.coordinator.addCallback('onMapLoaded', async ({ dataset, state, datasetType }) => {
             const activeTabButton = this.container.querySelector('button.nav-link.active')
-            tabAssessment(this.browser, activeTabButton, this)
+            this.assessTab(activeTabButton)
 
             // Ensure repaint after map load
             if (this.browser.contactMatrixView && this.browser.activeDataset) {
@@ -272,26 +277,44 @@ class JuiceboxPanel extends Panel {
 
         // Repaint live maps when Juicebox color swatches change
         this.browser.coordinator.addCallback('onBackgroundColorChange', ({ rgb }) => {
-            if (liveContactMapService) {
+            if (this.liveContactMapService) {
                 this.updateLiveMapCanvasSizes(this.browser.contactMatrixView)
-                liveContactMapService.repaintContactMap({ background: rgb })
-                liveContactMapService.repaintDistanceMap({ background: rgb })
+                this.liveContactMapService.repaintContactMap({ background: rgb })
+                this.liveContactMapService.repaintDistanceMap({ background: rgb })
             }
         })
 
         this.browser.coordinator.addCallback('onForegroundColorChange', ({ rgb }) => {
-            if (liveContactMapService) {
+            if (this.liveContactMapService) {
                 this.updateLiveMapCanvasSizes(this.browser.contactMatrixView)
-                liveContactMapService.repaintContactMap({ foreground: rgb })
-                liveContactMapService.repaintDistanceMap({ foreground: rgb })
+                this.liveContactMapService.repaintContactMap({ foreground: rgb })
+                this.liveContactMapService.repaintDistanceMap({ foreground: rgb })
             }
         })
 
-        this.browser.setCustomCrosshairsHandler(({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, interpolantX, interpolantY }) => {
-            juiceboxMouseHandler({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, interpolantX, interpolantY });
-        })
+        this.browser.setCustomCrosshairsHandler(args => this.handleCrosshairs(args))
 
         this.configureTabs()
+    }
+
+    handleCrosshairs({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, interpolantX, interpolantY }) {
+
+        const em = this.ensembleManager
+        if (undefined === em || undefined === em.locus) {
+            return
+        }
+
+        const { genomicStart, genomicEnd } = em.locus
+
+        const trivialRejection = startXBP > genomicEnd || endXBP < genomicStart || startYBP > genomicEnd || endYBP < genomicStart
+        if (trivialRejection) return
+
+        const xRejection = xBP < genomicStart || xBP > genomicEnd
+        const yRejection = yBP < genomicStart || yBP > genomicEnd
+        if (xRejection || yRejection) return
+
+        this.sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolantX, interpolantY ] })
+        this.genomicNavigator.highlightFromInterpolant([ interpolantX, interpolantY ])
     }
 
     configureTabs() {
@@ -312,10 +335,10 @@ class JuiceboxPanel extends Panel {
         this.hicMapTab.show()
 
         const activeTabButton = this.container.querySelector('button.nav-link.active')
-        tabAssessment(this.browser, activeTabButton, this)
+        this.assessTab(activeTabButton)
 
         for (const tabElement of this.container.querySelectorAll('button[data-bs-toggle="tab"]')) {
-            tabElement.addEventListener('show.bs.tab', tabEventHandler)
+            tabElement.addEventListener('show.bs.tab', this._tabEventHandler)
         }
     }
 
@@ -343,7 +366,7 @@ class JuiceboxPanel extends Panel {
         moveControlsToCardHeader(document.getElementById('hic-live-distance-map-controls-widget'))
 
         for (const tabElement of this.container.querySelectorAll('button[data-bs-toggle="tab"]')) {
-            tabElement.removeEventListener('show.bs.tab', tabEventHandler);
+            tabElement.removeEventListener('show.bs.tab', this._tabEventHandler);
         }
     }
 
@@ -371,8 +394,8 @@ class JuiceboxPanel extends Panel {
             }
 
             // Apply Spacewalk's locus
-            if (ensembleManager && ensembleManager.locus && this.browser.genome) {
-                const { chr, genomicStart, genomicEnd } = ensembleManager.locus
+            if (this.ensembleManager && this.ensembleManager.locus && this.browser.genome) {
+                const { chr, genomicStart, genomicEnd } = this.ensembleManager.locus
                 try {
                     await this.browser.parseGotoInput(`${chr}:${genomicStart}-${genomicEnd}`)
                 } catch (error) {
@@ -396,8 +419,8 @@ class JuiceboxPanel extends Panel {
             const isControl = ('control-map' === mapType)
 
             const config = { url, name, isControl }
-            if (ensembleManager && ensembleManager.locus && !isControl) {
-                const { chr, genomicStart, genomicEnd } = ensembleManager.locus
+            if (this.ensembleManager && this.ensembleManager.locus && !isControl) {
+                const { chr, genomicStart, genomicEnd } = this.ensembleManager.locus
                 config.locus = `${chr}:${genomicStart}-${genomicEnd}`
             }
 
@@ -413,141 +436,113 @@ class JuiceboxPanel extends Panel {
         }
 
     }
-}
 
-function juiceboxMouseHandler({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, interpolantX, interpolantY }) {
+    assessTab(activeTabButton) {
 
-    if (undefined === ensembleManager || undefined === ensembleManager.locus) {
-        return
-    }
+        const browser = this.browser
+        const viewport = browser.layoutController.getContactMatrixViewport()
+        if (!viewport) {
+            console.warn('Viewport not found for tab assessment')
+            return
+        }
 
-    const { genomicStart, genomicEnd } = ensembleManager.locus
+        const hicContainer = viewport.querySelector(`#${browser.id}-contact-map-canvas-container`)
+        const liveContactContainer = viewport.querySelector(`#${browser.id}-live-contact-map-canvas-container`)
+        const liveDistanceContainer = viewport.querySelector(`#${browser.id}-live-distance-map-canvas-container`)
 
-    const trivialRejection = startXBP > genomicEnd || endXBP < genomicStart || startYBP > genomicEnd || endYBP < genomicStart
+        // Juicebox navbar elements
+        const hicNavbarContainer = browser.rootElement?.querySelector('.hic-navbar-container')
+        const contactMapNavBar = hicNavbarContainer?.querySelector(`div[id$='-contact-map-hic-nav-bar-map-container']`)
+        const controlsWidget = document.getElementById('hic-live-map-controls-widget')
+        const distanceControlsWidget = document.getElementById('hic-live-distance-map-controls-widget')
 
-    if (trivialRejection) {
-        return
-    }
+        const resolutionWidget    = hicNavbarContainer?.querySelector('.hic-resolution-selector-container')
+        const normalizationWidget = hicNavbarContainer?.querySelector('.hic-normalization-selector-container')
+        const colorScaleWidget    = hicNavbarContainer?.querySelector('.hic-colorscale-widget-container')
+        // Threshold steppers (the +/- icons next to the colorscale numeric input).
+        // The color swatches and numeric input live in the same container and must remain visible on Live tabs.
+        const colorScaleThresholdButtons = colorScaleWidget
+            ? colorScaleWidget.querySelectorAll('i.fa-minus, i.fa-plus')
+            : []
 
-    const xRejection = xBP < genomicStart || xBP > genomicEnd
-    const yRejection = yBP < genomicStart || yBP > genomicEnd
+        // Hide all canvas containers
+        if (hicContainer) hicContainer.style.display = 'none'
+        if (liveContactContainer) liveContactContainer.style.display = 'none'
+        if (liveDistanceContainer) liveDistanceContainer.style.display = 'none'
 
-    if (xRejection || yRejection) {
-        return
-    }
+        switch (activeTabButton.id) {
+            case 'spacewalk-juicebox-panel-hic-map-tab':
+                if (hicContainer) {
+                    hicContainer.style.display = 'block'
+                    // Trigger repaint
+                    setTimeout(() => {
+                        if (browser.contactMatrixView && browser.activeDataset) {
+                            browser.contactMatrixView.update().catch(err => console.warn('Error updating contact matrix view:', err))
+                        }
+                    }, 0)
+                }
+                // Show navbar dataset row, restore controls to card-header
+                if (contactMapNavBar) contactMapNavBar.style.display = ''
+                if (resolutionWidget) resolutionWidget.style.display = ''
+                if (normalizationWidget) normalizationWidget.style.display = ''
+                colorScaleThresholdButtons.forEach(btn => { btn.style.display = '' })
+                moveControlsToCardHeader(controlsWidget)
+                moveControlsToCardHeader(distanceControlsWidget)
+                controlsWidget.style.display = 'none'
+                distanceControlsWidget.style.display = 'none'
+                document.getElementById('hic-file-chooser-dropdown').style.display = 'block'
+                break;
 
-    sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolantX, interpolantY ] })
-    genomicNavigator.highlightFromInterpolant([ interpolantX, interpolantY ])
-}
+            case 'spacewalk-juicebox-panel-live-map-tab':
+                if (liveContactContainer) {
+                    liveContactContainer.style.display = 'block'
+                    // Repaint with current state when tab becomes visible (contact canvas may have been cleared when switching to Distance tab)
+                    setTimeout(() => {
+                        if (this.liveContactMapService) {
+                            this.updateLiveMapCanvasSizes(browser.contactMatrixView)
+                            this.liveContactMapService.repaintContactMap()
+                        }
+                    }, 0)
+                }
+                // Hide navbar dataset row, move contact controls into navbar
+                if (contactMapNavBar) contactMapNavBar.style.display = 'none'
+                if (resolutionWidget) resolutionWidget.style.display = 'none'
+                if (normalizationWidget) normalizationWidget.style.display = 'none'
+                colorScaleThresholdButtons.forEach(btn => { btn.style.display = 'none' })
+                moveControlsToNavbar(controlsWidget, hicNavbarContainer, contactMapNavBar)
+                moveControlsToCardHeader(distanceControlsWidget)
+                controlsWidget.style.display = ''
+                distanceControlsWidget.style.display = 'none'
+                document.getElementById('hic-file-chooser-dropdown').style.display = 'none'
+                break;
 
-function tabEventHandler(event) {
-    tabAssessment(juiceboxPanelInstance.browser, event.target, juiceboxPanelInstance);
-}
+            case 'spacewalk-juicebox-panel-live-distance-map-tab':
+                if (liveDistanceContainer) {
+                    liveDistanceContainer.style.display = 'block'
+                    // Repaint with current colors when tab becomes visible
+                    setTimeout(() => {
+                        if (this.liveContactMapService) {
+                            this.updateLiveMapCanvasSizes(browser.contactMatrixView)
+                            this.liveContactMapService.repaintDistanceMap()
+                        }
+                    }, 0)
+                }
+                // Hide navbar dataset row, move distance controls into navbar
+                if (contactMapNavBar) contactMapNavBar.style.display = 'none'
+                if (resolutionWidget) resolutionWidget.style.display = 'none'
+                if (normalizationWidget) normalizationWidget.style.display = 'none'
+                colorScaleThresholdButtons.forEach(btn => { btn.style.display = 'none' })
+                moveControlsToCardHeader(controlsWidget)
+                moveControlsToNavbar(distanceControlsWidget, hicNavbarContainer, contactMapNavBar)
+                controlsWidget.style.display = 'none'
+                distanceControlsWidget.style.display = ''
+                document.getElementById('hic-file-chooser-dropdown').style.display = 'none'
+                break;
 
-function tabAssessment(browser, activeTabButton, panel) {
-
-    const viewport = browser.layoutController.getContactMatrixViewport()
-    if (!viewport) {
-        console.warn('Viewport not found for tab assessment')
-        return
-    }
-
-    const hicContainer = viewport.querySelector(`#${browser.id}-contact-map-canvas-container`)
-    const liveContactContainer = viewport.querySelector(`#${browser.id}-live-contact-map-canvas-container`)
-    const liveDistanceContainer = viewport.querySelector(`#${browser.id}-live-distance-map-canvas-container`)
-
-    // Juicebox navbar elements
-    const hicNavbarContainer = browser.rootElement?.querySelector('.hic-navbar-container')
-    const contactMapNavBar = hicNavbarContainer?.querySelector(`div[id$='-contact-map-hic-nav-bar-map-container']`)
-    const controlsWidget = document.getElementById('hic-live-map-controls-widget')
-    const distanceControlsWidget = document.getElementById('hic-live-distance-map-controls-widget')
-
-    const resolutionWidget    = hicNavbarContainer?.querySelector('.hic-resolution-selector-container')
-    const normalizationWidget = hicNavbarContainer?.querySelector('.hic-normalization-selector-container')
-    const colorScaleWidget    = hicNavbarContainer?.querySelector('.hic-colorscale-widget-container')
-    // Threshold steppers (the +/- icons next to the colorscale numeric input).
-    // The color swatches and numeric input live in the same container and must remain visible on Live tabs.
-    const colorScaleThresholdButtons = colorScaleWidget
-        ? colorScaleWidget.querySelectorAll('i.fa-minus, i.fa-plus')
-        : []
-
-    // Hide all canvas containers
-    if (hicContainer) hicContainer.style.display = 'none'
-    if (liveContactContainer) liveContactContainer.style.display = 'none'
-    if (liveDistanceContainer) liveDistanceContainer.style.display = 'none'
-
-    switch (activeTabButton.id) {
-        case 'spacewalk-juicebox-panel-hic-map-tab':
-            if (hicContainer) {
-                hicContainer.style.display = 'block'
-                // Trigger repaint
-                setTimeout(() => {
-                    if (browser.contactMatrixView && browser.activeDataset) {
-                        browser.contactMatrixView.update().catch(err => console.warn('Error updating contact matrix view:', err))
-                    }
-                }, 0)
-            }
-            // Show navbar dataset row, restore controls to card-header
-            if (contactMapNavBar) contactMapNavBar.style.display = ''
-            if (resolutionWidget) resolutionWidget.style.display = ''
-            if (normalizationWidget) normalizationWidget.style.display = ''
-            colorScaleThresholdButtons.forEach(btn => { btn.style.display = '' })
-            moveControlsToCardHeader(controlsWidget)
-            moveControlsToCardHeader(distanceControlsWidget)
-            controlsWidget.style.display = 'none'
-            distanceControlsWidget.style.display = 'none'
-            document.getElementById('hic-file-chooser-dropdown').style.display = 'block'
-            break;
-
-        case 'spacewalk-juicebox-panel-live-map-tab':
-            if (liveContactContainer) {
-                liveContactContainer.style.display = 'block'
-                // Repaint with current state when tab becomes visible (contact canvas may have been cleared when switching to Distance tab)
-                setTimeout(() => {
-                    if (liveContactMapService) {
-                        panel.updateLiveMapCanvasSizes(browser.contactMatrixView)
-                        liveContactMapService.repaintContactMap()
-                    }
-                }, 0)
-            }
-            // Hide navbar dataset row, move contact controls into navbar
-            if (contactMapNavBar) contactMapNavBar.style.display = 'none'
-            if (resolutionWidget) resolutionWidget.style.display = 'none'
-            if (normalizationWidget) normalizationWidget.style.display = 'none'
-            colorScaleThresholdButtons.forEach(btn => { btn.style.display = 'none' })
-            moveControlsToNavbar(controlsWidget, hicNavbarContainer, contactMapNavBar)
-            moveControlsToCardHeader(distanceControlsWidget)
-            controlsWidget.style.display = ''
-            distanceControlsWidget.style.display = 'none'
-            document.getElementById('hic-file-chooser-dropdown').style.display = 'none'
-            break;
-
-        case 'spacewalk-juicebox-panel-live-distance-map-tab':
-            if (liveDistanceContainer) {
-                liveDistanceContainer.style.display = 'block'
-                // Repaint with current colors when tab becomes visible
-                setTimeout(() => {
-                    if (liveContactMapService) {
-                        panel.updateLiveMapCanvasSizes(browser.contactMatrixView)
-                        liveContactMapService.repaintDistanceMap()
-                    }
-                }, 0)
-            }
-            // Hide navbar dataset row, move distance controls into navbar
-            if (contactMapNavBar) contactMapNavBar.style.display = 'none'
-            if (resolutionWidget) resolutionWidget.style.display = 'none'
-            if (normalizationWidget) normalizationWidget.style.display = 'none'
-            colorScaleThresholdButtons.forEach(btn => { btn.style.display = 'none' })
-            moveControlsToCardHeader(controlsWidget)
-            moveControlsToNavbar(distanceControlsWidget, hicNavbarContainer, contactMapNavBar)
-            controlsWidget.style.display = 'none'
-            distanceControlsWidget.style.display = ''
-            document.getElementById('hic-file-chooser-dropdown').style.display = 'none'
-            break;
-
-        default:
-            console.log('Unknown tab is active');
-            break;
+            default:
+                console.log('Unknown tab is active');
+                break;
+        }
     }
 }
 

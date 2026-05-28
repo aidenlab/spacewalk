@@ -42,7 +42,10 @@ class PanelInitializer {
         panelObjects.juiceboxPanel = new JuiceboxPanel({
             container,
             panel: document.getElementById('spacewalk_juicebox_panel'),
-            isHidden: doInspectPanelVisibilityCheckbox('spacewalk_juicebox_panel')
+            isHidden: doInspectPanelVisibilityCheckbox('spacewalk_juicebox_panel'),
+            ensembleManager: this.appContext.ensembleManager,
+            sceneManager: this.appContext.sceneManager,
+            genomicNavigator: this.appContext.genomicNavigator
         });
         // Populate module-level variable BEFORE initialization (event handlers need it)
         this.appContext.populatePanelVariable('juiceboxPanel', panelObjects.juiceboxPanel);
@@ -60,6 +63,12 @@ class PanelInitializer {
             juiceboxPanel: panelObjects.juiceboxPanel,
             igvPanel: panelObjects.igvPanel,
             liveDistanceMapService: panelObjects.liveDistanceMapService
+        });
+
+        // Late-wire: juiceboxPanel needs liveContactMapService for live-tab repaints
+        // and Juicebox color-swatch change callbacks.
+        panelObjects.juiceboxPanel.wireDependencies({
+            liveContactMapService: panelObjects.liveContactMapService
         });
 
         // Configure contact map loaders
