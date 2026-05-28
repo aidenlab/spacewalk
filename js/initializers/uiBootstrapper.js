@@ -163,7 +163,9 @@ class UIBootstrapper {
             traceModalId: 'spacewalk-sw-load-select-modal',
             ensembleGroupModalId: 'spacewalk-ensemble-group-select-modal',
             dropboxButton: document.getElementById('spacewalk-sw-dropbox-button'),
-            fileLoader
+            fileLoader,
+            getEnsembleManager: () => this.appContext.ensembleManager,
+            getEnsembleIngestionController: () => this.appContext.ensembleIngestionController
         };
 
         createSpacewalkFileLoaders(spacewalkFileLoadConfig);

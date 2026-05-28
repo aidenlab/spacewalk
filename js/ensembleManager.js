@@ -7,13 +7,18 @@ import SWBDatasource from "./datasource/SWBDatasource.js"
 class EnsembleManager {
 
     constructor () {
+        this.igvPanel = null
+    }
+
+    wireDependencies({ igvPanel }) {
+        this.igvPanel = igvPanel
     }
 
     async loadURL(url, traceKey, ensembleGroupKey) {
 
         const extension = FileUtils.getExtension(url)
         if ('sw' === extension) {
-            await this.loadDatasource(url, new SWBDatasource(), parseInt(traceKey), ensembleGroupKey)
+            await this.loadDatasource(url, new SWBDatasource({ igvPanel: this.igvPanel }), parseInt(traceKey), ensembleGroupKey)
         } else if ('swt' === extension) {
             const message = 'Spacewalk no longer reads .swt files. Please convert your file to the .sw HDF5 format using swt2sw (https://github.com/turner/swt2sw) and try again.'
             console.warn(message)

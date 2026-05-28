@@ -1,12 +1,11 @@
 import {FileUtils, URIUtils} from 'igv-utils'
-import {ensembleManager, ensembleIngestionController} from './app.js'
 import SpacewalkEventBus from './spacewalkEventBus.js'
 
 let traceURLlModal
 let traceSelectModal
 let ensembleGroupModal
 
-function createSpacewalkFileLoaders ({ rootContainer, localFileInput, urlLoadModalId, traceModalId, ensembleGroupModalId, dropboxButton, fileLoader }) {
+function createSpacewalkFileLoaders ({ rootContainer, localFileInput, urlLoadModalId, traceModalId, ensembleGroupModalId, dropboxButton, fileLoader, getEnsembleManager, getEnsembleIngestionController }) {
 
     // local file
     localFileInput.addEventListener('change', async () => {
@@ -22,7 +21,7 @@ function createSpacewalkFileLoaders ({ rootContainer, localFileInput, urlLoadMod
     traceSelectModal = createAndConfigureTraceSelectModal(rootContainer, traceModalId, async path => await fileLoader.load(path))
 
     // Ensemble group from select list
-    ensembleGroupModal = createAndConfigureEnsembleGroupSelectModal(rootContainer, ensembleGroupModalId)
+    ensembleGroupModal = createAndConfigureEnsembleGroupSelectModal(rootContainer, ensembleGroupModalId, getEnsembleManager, getEnsembleIngestionController)
 
     // Dropbox
     dropboxButton.addEventListener('click', () => {
@@ -116,7 +115,7 @@ function createAndConfigureTraceSelectModal(parentElement, traceModalId, fileLoa
 
 }
 
-function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroupModalId) {
+function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroupModalId, getEnsembleManager, getEnsembleIngestionController) {
 
     const modalElement = createEnsembleGroupModalElement(ensembleGroupModalId)
     parentElement.appendChild(modalElement)
@@ -132,9 +131,9 @@ function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroup
         modal.hide()
 
         try {
-            await ensembleIngestionController.ingestEnsembleGroup(selectElement.value)
+            await getEnsembleIngestionController().ingestEnsembleGroup(selectElement.value)
 
-            const data = ensembleManager.createEventBusPayload()
+            const data = getEnsembleManager().createEventBusPayload()
 
             SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
         } catch (error) {

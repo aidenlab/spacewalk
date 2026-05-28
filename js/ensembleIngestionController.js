@@ -10,16 +10,17 @@ import { unsetDataMaterialProviderCheckbox } from './utils/utils.js'
  */
 class EnsembleIngestionController {
 
-    constructor({ ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider, genomicNavigator }) {
+    constructor({ ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider, genomicNavigator, trackMaterialProvider }) {
         this.ensembleManager = ensembleManager
         this.sceneManager = sceneManager
         this.igvPanel = igvPanel
         this.colorRampMaterialProvider = colorRampMaterialProvider
         this.genomicNavigator = genomicNavigator
+        this.trackMaterialProvider = trackMaterialProvider
     }
 
     async ingestEnsemblePath(url, traceKey, ensembleGroupKey) {
-        const { ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider, genomicNavigator } = this
+        const { ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider, genomicNavigator, trackMaterialProvider } = this
         sceneManager.isLoading = true
         try {
             await ensembleManager.loadURL(url, traceKey, ensembleGroupKey)
@@ -27,7 +28,17 @@ class EnsembleIngestionController {
             sceneManager.setupWithTrace(ensembleManager.currentTrace)
             sceneManager.configureRenderStyle(ensembleManager.isPointCloud === true ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
 
+            // Cached per-track color lists are keyed to the prior ensemble's
+            // genomic extent. Drop them on full ensemble load — mismatched
+            // lengths crash the blend loop, and an empty list crashes the
+            // navigator repaint below.
+            trackMaterialProvider.clearAllTracks()
+
             unsetDataMaterialProviderCheckbox(igvPanel)
+            // Flip IGVPanel off the now-empty trackMaterialProvider before
+            // anyone repaints through it. DidLoadEnsembleFile would do this
+            // too, but it fires after this method returns.
+            igvPanel.materialProvider = colorRampMaterialProvider
             sceneManager.updateMaterialProvider(colorRampMaterialProvider)
             genomicNavigator.repaint()
 
