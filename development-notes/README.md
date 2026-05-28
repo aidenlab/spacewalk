@@ -10,7 +10,7 @@ Status tags:
 - **Reference** — background knowledge that doesn't go stale (concepts, theory, setup)
 - **Historical** — describes work that has shipped or been abandoned; kept for context
 
-Last groomed: 2026-05-27.
+Last groomed: 2026-06 (post Phase 3 DI completion).
 
 ---
 
@@ -18,6 +18,8 @@ Last groomed: 2026-05-27.
 
 | Document | Status | When to read |
 |---|---|---|
+| [architecture/wiring-diagram.md](architecture/wiring-diagram.md) | Current | First read for new contributors — shows how `App` assembles every module and where each dep comes from (post-Phase-3 DI) |
+| [architecture/runtime-sequence-drag-drop.md](architecture/runtime-sequence-drag-drop.md) | Current | Companion to the wiring diagram — end-to-end "user drops a `.sw` file" trace through the wired graph |
 | [architecture-track-material-provider-checkbox.md](architecture-track-material-provider-checkbox.md) | Current | Before touching the IGV per-track checkbox that drives 3D coloring |
 | [interaction-diagram-spacewalk-igv.md](interaction-diagram-spacewalk-igv.md) | Current | Before editing `IGVPanel.js` or anything in `js/widgets/trackWidgets.js` |
 | [interaction-diagram-spacewalk-juicebox.md](interaction-diagram-spacewalk-juicebox.md) | Current | Before editing `js/juicebox/` — live contact/distance maps, hic-straw integration |

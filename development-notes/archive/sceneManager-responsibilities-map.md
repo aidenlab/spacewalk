@@ -1,4 +1,18 @@
-# SceneManager Responsibilities Map
+# SceneManager Responsibilities Map  *(archived — shipped)*
+
+**Status: historical — archived 2026-06.** This was the planning document for the Phase 3a SceneManager deepening pass. All three extraction candidates (A, B, C below) have shipped:
+
+- **Candidate A — ScaleBarService hoist** → PR #34 (`68bf4fe`)
+- **Candidate B — SceneFixtures** → PR #37 (`fcbc99e`)
+- **Candidate C — EnsembleIngestionController** → PR #36 (`4515d12`)
+
+Net effect: `js/sceneManager.js` went 425 → 271 lines. The subsequent Phase 3 DI arc (PRs #42–#45) then made every remaining dependency explicit via constructor injection. See [`../architecture/wiring-diagram.md`](../architecture/wiring-diagram.md) for the current `SceneManager` collaborators.
+
+Kept for context on why each extraction was chosen and in what order. Do not treat as current — `SceneManager`'s constructor signature, internal state, and consumer list have all changed.
+
+---
+
+# Original document (snapshot, 2026-05-27)
 
 Working document for the Phase 3 deepening pass. Goal: make `js/sceneManager.js`
 (425 lines) tractable by extracting cohesive pieces into modules with narrower
