@@ -5,13 +5,15 @@ How the `App` class assembles the running system and hands dependencies to each 
 **Conventions:**
 - **Solid arrow (`-->`)** — constructor injection (dep passed via `new X({...})`)
 - **Dashed arrow (`-.->`)** — late-bound dependency via `wireDependencies({...})` setter
-- **Dotted arrow (`..>`)** — lazy getter thunk (dep resolved at user-event time, not at wire time)
+- **Thick arrow (`==>`)** — runtime/on-demand construction or lazy-getter resolution
+
+The arrow points *from supplier to consumer*: `EM --> SM` means "EnsembleManager is passed to SceneManager."
 
 Modules are grouped by lifecycle stage. `App.initialize()` walks them in order top → bottom; each stage's modules can only depend on what's already been built.
 
 ```mermaid
 flowchart TD
-    classDef stage fill:#f5f5f5,stroke:#999,color:#333,font-weight:bold
+    classDef stage fill:#f5f5f5,stroke:#999,color:#333
     classDef core fill:#e8f0fe,stroke:#4a7fc1,color:#1a1a1a
     classDef threejs fill:#e8f5e9,stroke:#5ca35c,color:#1a1a1a
     classDef ui fill:#fff4e5,stroke:#d49a3c,color:#1a1a1a
@@ -21,16 +23,14 @@ flowchart TD
 
     App((App)):::stage
 
-    %% Stage 1 — Core managers (initializeCoreManagers)
-    subgraph S1[Stage 1 — Core managers]
+    subgraph S1[Stage 1 - Core managers]
         EM[EnsembleManager]:::core
         CMM[ColorMapManager]:::core
         TMP[TrackMaterialProvider]:::core
         CRMP[ColorRampMaterialProvider]:::core
     end
 
-    %% Stage 2 — Three.js objects (ThreeJSInitializer)
-    subgraph S2["Stage 2 — Three.js (ThreeJSInitializer)"]
+    subgraph S2[Stage 2 - Three.js]
         Scene[scene]:::threejs
         Cam[camera]:::threejs
         Renderer[renderer]:::threejs
@@ -40,8 +40,7 @@ flowchart TD
         SM[SceneManager]:::threejs
     end
 
-    %% Stage 3 — UI (UIBootstrapper)
-    subgraph S3[Stage 3 — UI]
+    subgraph S3[Stage 3 - UI]
         GUI[GUIManager]:::ui
         SBS[ScaleBarService]:::ui
         SettM[SettingsManager]:::ui
@@ -49,26 +48,23 @@ flowchart TD
         GN[GenomicNavigator]:::ui
     end
 
-    %% Stage 4 — Panels & services (PanelInitializer)
-    subgraph S4[Stage 4 — Panels & services]
+    subgraph S4[Stage 4 - Panels and services]
         IGV[IGVPanel]:::panel
         JB[JuiceboxPanel]:::panel
         LDM[LiveDistanceMapService]:::service
         LCM[LiveContactMapService]:::service
     end
 
-    %% Stage 5 — App-level glue (assignPanelObjects)
-    subgraph S5[Stage 5 — App-level glue]
+    subgraph S5[Stage 5 - App-level glue]
         EIC[EnsembleIngestionController]:::service
         SS[SessionService]:::service
     end
 
-    %% Stage 6 — Datasource (constructed per file load by EnsembleManager)
-    subgraph S6["Stage 6 — On file load"]
+    subgraph S6[Stage 6 - On file load]
         SWB[SWBDatasource]:::datasource
     end
 
-    %% Stage 1 wiring
+    %% Stage 1 — constructor injection
     App --> EM
     App --> CMM
     App --> TMP
@@ -76,7 +72,7 @@ flowchart TD
     CMM --> CRMP
     EM --> TMP
 
-    %% Stage 2 wiring (SceneManager built last in this stage)
+    %% Stage 2 — SceneManager built last so it can take scene/CLR/SF
     App --> Renderer
     App --> Scene
     App --> Cam
@@ -90,7 +86,7 @@ flowchart TD
     CLR --> SM
     SF --> SM
 
-    %% Stage 3 wiring
+    %% Stage 3
     App --> GUI
     App --> SBS
     App --> SettM
@@ -107,7 +103,7 @@ flowchart TD
     SBS --> SettM
     SF --> SettM
 
-    %% Stage 4 wiring
+    %% Stage 4
     App --> IGV
     App --> JB
     App --> LDM
@@ -126,7 +122,7 @@ flowchart TD
     IGV --> LCM
     LDM --> LCM
 
-    %% Stage 5 wiring
+    %% Stage 5
     App --> EIC
     App --> SS
     EM --> EIC
@@ -143,23 +139,24 @@ flowchart TD
     CLR --> SS
     EIC --> SS
 
-    %% Late-bound (wireDependencies) — dashed
-    IGV -.->|wireDependencies| SM
-    GN -.->|wireDependencies| Picker
-    Picker -.->|wireDependencies| Picker
-    LCM -.->|wireDependencies| JB
-    SF -.->|wireDependencies| CLR
-    IGV -.->|wireDependencies| EM
-    IGV -.->|wireDependencies| SM
+    %% Late-bound via wireDependencies (dashed)
+    IGV -.-> SM
+    GN -.-> Picker
+    SM -.-> Picker
+    LCM -.-> JB
+    SF -.-> CLR
+    IGV -.-> EM
 
-    %% Stage 6 — SWBDatasource constructed inside EnsembleManager.loadURL
-    EM ==>|new on file load| SWB
-    IGV -.->|via EnsembleManager.wireDependencies| SWB
+    %% Stage 6 — SWBDatasource constructed at file-load time
+    EM ==> SWB
+    IGV ==> SWB
 
-    %% Lazy-getter thunks — dotted
-    SS ..>|via uiBootstrapper, shareWidgets| GN
-    EIC ..>|via spacewalkFileLoadWidgetServices| EM
+    %% Lazy-getter thunks (thick)
+    GN ==> SS
+    EM ==> EIC
 ```
+
+**Edge legend recap:** dashed arrows into Picker (`GN -.-> Picker`, `SM -.-> Picker`) read as "Picker receives genomicNavigator and sceneManager via `picker.wireDependencies({...})`." The thick arrows from EM and GN to SS/EIC denote that those callers reach the dep through a lazy-getter thunk wired by `uiBootstrapper`/`shareWidgets`/`spacewalkFileLoadWidgetServices`.
 
 ## What the diagram is saying
 
