@@ -1,6 +1,6 @@
 import GUIManager from './guiManager.js'
 import PointCloud from './pointCloud.js'
-import { setMaterialProvider, unsetDataMaterialProviderCheckbox } from './utils/utils.js'
+import { unsetDataMaterialProviderCheckbox } from './utils/utils.js'
 
 /**
  * Orchestrates loading an ensemble (or switching ensemble groups) into the app.
@@ -10,15 +10,16 @@ import { setMaterialProvider, unsetDataMaterialProviderCheckbox } from './utils/
  */
 class EnsembleIngestionController {
 
-    constructor({ ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider }) {
+    constructor({ ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider, genomicNavigator }) {
         this.ensembleManager = ensembleManager
         this.sceneManager = sceneManager
         this.igvPanel = igvPanel
         this.colorRampMaterialProvider = colorRampMaterialProvider
+        this.genomicNavigator = genomicNavigator
     }
 
     async ingestEnsemblePath(url, traceKey, ensembleGroupKey) {
-        const { ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider } = this
+        const { ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider, genomicNavigator } = this
         sceneManager.isLoading = true
         try {
             await ensembleManager.loadURL(url, traceKey, ensembleGroupKey)
@@ -27,7 +28,8 @@ class EnsembleIngestionController {
             sceneManager.configureRenderStyle(ensembleManager.isPointCloud === true ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
 
             unsetDataMaterialProviderCheckbox(igvPanel)
-            setMaterialProvider(colorRampMaterialProvider)
+            sceneManager.updateMaterialProvider(colorRampMaterialProvider)
+            genomicNavigator.repaint()
 
             if (ensembleManager.genomeAssembly !== igvPanel.browser.genome.id) {
                 console.log(`Genome swap from ${ igvPanel.browser.genome.id } to ${ ensembleManager.genomeAssembly }. Call igv_browser.loadGenome`)
@@ -48,7 +50,7 @@ class EnsembleIngestionController {
     }
 
     async ingestEnsembleGroup(ensembleGroupKey) {
-        const { ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider } = this
+        const { ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider, genomicNavigator } = this
         sceneManager.isLoading = true
         try {
             await ensembleManager.loadEnsembleGroup(ensembleGroupKey)
@@ -57,7 +59,8 @@ class EnsembleIngestionController {
             sceneManager.configureRenderStyle(ensembleManager.isPointCloud === true ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
 
             unsetDataMaterialProviderCheckbox(igvPanel)
-            setMaterialProvider(colorRampMaterialProvider)
+            sceneManager.updateMaterialProvider(colorRampMaterialProvider)
+            genomicNavigator.repaint()
 
             await igvPanel.locusDidChange(ensembleManager.locus)
         } catch (error) {

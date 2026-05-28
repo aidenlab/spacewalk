@@ -199,6 +199,7 @@ class App {
             sceneManager: this.sceneManager,
             igvPanel: this.igvPanel,
             colorRampMaterialProvider: this.colorRampMaterialProvider,
+            genomicNavigator: this.genomicNavigator,
         });
         ensembleIngestionController = this.ensembleIngestionController;
     }

@@ -30,7 +30,8 @@ class PanelInitializer {
             colorRampMaterialProvider: this.appContext.colorRampMaterialProvider,
             trackMaterialProvider: this.appContext.trackMaterialProvider,
             ensembleManager: this.appContext.ensembleManager,
-            genomicNavigator: this.appContext.genomicNavigator
+            genomicNavigator: this.appContext.genomicNavigator,
+            sceneManager: this.appContext.sceneManager
         });
         panelObjects.igvPanel.materialProvider = this.appContext.colorRampMaterialProvider;
         // Populate module-level variable BEFORE initialization (event handlers may need it)
