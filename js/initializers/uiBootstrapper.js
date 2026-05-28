@@ -42,18 +42,31 @@ class UIBootstrapper {
         const settingsButton = document.querySelector('#spacewalk-threejs-settings-button-container');
         uiComponents.guiManager = new GUIManager({
             settingsButton,
-            panel: document.querySelector('#spacewalk_ui_manager_panel')
+            panel: document.querySelector('#spacewalk_ui_manager_panel'),
+            sceneManager: this.appContext.sceneManager,
+            ensembleManager: this.appContext.ensembleManager,
+            colorMapManager: this.appContext.colorMapManager
         });
 
         // Initialize scale bar service (after GUI manager, so checkbox exists)
         this.appContext.assignScaleBarService(this.buildScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container')));
 
         // Initialize settings manager (after scale bar service, so all settings targets exist)
-        uiComponents.settingsManager = new SettingsManager();
+        uiComponents.settingsManager = new SettingsManager({
+            scene: this.appContext.scene,
+            scaleBarService: this.appContext.scaleBarService,
+            sceneFixtures: this.appContext.sceneFixtures
+        });
 
         // Initialize trace selector and navigator
         uiComponents.traceSelector = new TraceSelector(document.querySelector('#spacewalk_trace_select_input'), this.appContext.ensembleManager);
-        uiComponents.genomicNavigator = new GenomicNavigator(document.querySelector('#spacewalk-trace-navigator-container'), highlightColor, this.appContext.ensembleManager);
+        uiComponents.genomicNavigator = new GenomicNavigator(
+            document.querySelector('#spacewalk-trace-navigator-container'),
+            highlightColor,
+            this.appContext.ensembleManager,
+            this.appContext.sceneManager,
+            this.appContext.colorRampMaterialProvider
+        );
 
         // Initialize file loaders
         this.initializeFileLoaders();

@@ -13,8 +13,8 @@ import {
     genomicNavigator,
     cameraLightingRig,
     sceneFixtures,
-    getThreeJSContainerRect,
 } from "./app.js"
+import { getThreeJSContainerRect } from "./utils/threeJSContainer.js"
 import {appleCrayonColorThreeJS, highlightColor} from "./utils/colorUtils.js"
 import BallHighlighter from "./ballHighlighter.js"
 import PointCloudHighlighter from "./pointCloudHighlighter.js"
