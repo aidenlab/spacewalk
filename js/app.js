@@ -186,7 +186,6 @@ class App {
             colorRampMaterialProvider: this.colorRampMaterialProvider,
             genomicNavigator: this.genomicNavigator,
         });
-        ensembleIngestionController = this.ensembleIngestionController;
 
         this.sessionService = new SessionService({
             ensembleManager: this.ensembleManager,
