@@ -2,6 +2,8 @@
 
 How the `App` class assembles the running system and hands dependencies to each module. This is the diagram that tells the post-Phase-3 story: every dependency is explicit; nothing reaches into `app.js` to grab a singleton.
 
+> 📐 **Standalone SVG addendum:** [`wiring-diagram.svg`](./wiring-diagram.svg) — open in a browser or image viewer to pan/zoom at full resolution. The inline render below is the same diagram but constrained to the document's column width. Regenerate via `npx -y @mermaid-js/mermaid-cli -i development-notes/architecture/wiring-diagram.mmd -o development-notes/architecture/wiring-diagram.svg -b transparent` after editing [`wiring-diagram.mmd`](./wiring-diagram.mmd).
+
 **Conventions:**
 - **Solid arrow (`-->`)** — constructor injection (dep passed via `new X({...})`)
 - **Dashed arrow (`-.->`)** — late-bound dependency via `wireDependencies({...})` setter
