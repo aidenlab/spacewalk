@@ -51,9 +51,15 @@ class PanelInitializer {
         );
 
         // NOW initialize live map services (these depend on panels being ready AND module-level variables populated)
-        panelObjects.liveContactMapService = new LiveContactMapService();
+        // Distance service first — contact service receives it as a dependency.
         panelObjects.liveDistanceMapService = new LiveDistanceMapService({
             juiceboxPanel: panelObjects.juiceboxPanel
+        });
+        panelObjects.liveContactMapService = new LiveContactMapService({
+            ensembleManager: this.appContext.ensembleManager,
+            juiceboxPanel: panelObjects.juiceboxPanel,
+            igvPanel: panelObjects.igvPanel,
+            liveDistanceMapService: panelObjects.liveDistanceMapService
         });
 
         // Configure contact map loaders
