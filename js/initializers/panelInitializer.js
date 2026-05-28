@@ -52,7 +52,9 @@ class PanelInitializer {
 
         // NOW initialize live map services (these depend on panels being ready AND module-level variables populated)
         panelObjects.liveContactMapService = new LiveContactMapService();
-        panelObjects.liveDistanceMapService = new LiveDistanceMapService();
+        panelObjects.liveDistanceMapService = new LiveDistanceMapService({
+            juiceboxPanel: panelObjects.juiceboxPanel
+        });
 
         // Configure contact map loaders
         this.configureContactMapLoaders(panelObjects.juiceboxPanel);
