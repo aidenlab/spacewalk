@@ -185,6 +185,7 @@ class App {
             igvPanel: this.igvPanel,
             colorRampMaterialProvider: this.colorRampMaterialProvider,
             genomicNavigator: this.genomicNavigator,
+            trackMaterialProvider: this.trackMaterialProvider,
         });
 
         this.sessionService = new SessionService({
