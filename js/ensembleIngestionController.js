@@ -30,10 +30,15 @@ class EnsembleIngestionController {
 
             // Cached per-track color lists are keyed to the prior ensemble's
             // genomic extent. Drop them on full ensemble load — mismatched
-            // lengths crash the blend loop.
+            // lengths crash the blend loop, and an empty list crashes the
+            // navigator repaint below.
             trackMaterialProvider.clearAllTracks()
 
             unsetDataMaterialProviderCheckbox(igvPanel)
+            // Flip IGVPanel off the now-empty trackMaterialProvider before
+            // anyone repaints through it. DidLoadEnsembleFile would do this
+            // too, but it fires after this method returns.
+            igvPanel.materialProvider = colorRampMaterialProvider
             sceneManager.updateMaterialProvider(colorRampMaterialProvider)
             genomicNavigator.repaint()
 
