@@ -4,7 +4,6 @@ import { Line2 } from "three/examples/jsm/lines/Line2.js"
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js"
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js"
 import EnsembleManager from './ensembleManager.js'
-import {igvPanel, sceneManager, ensembleManager, scene} from "./app.js"
 import {appleCrayonColorThreeJS} from "./utils/colorUtils.js";
 import {getPositionArrayWithTrace} from "./utils/utils.js"
 import ConvexHull from "./utils/convexHull"
@@ -19,7 +18,9 @@ class Ribbon {
 
     static renderStyle = 'render-style-ribbon'
 
-    constructor(trace) {
+    constructor(trace, { ensembleManager, igvPanel }) {
+
+        this.ensembleManager = ensembleManager
 
         const traceVertices = EnsembleManager.getSingleCentroidVertices(trace, true)
         this.curve = new THREE.CatmullRomCurve3( traceVertices, spacewalkConfig.isCircular === true )
@@ -97,9 +98,10 @@ class Ribbon {
 
     addToScene (scene) {
 
+        this.scene = scene
         scene.add( this.spline.mesh )
 
-        const { center, radius } = EnsembleManager.getTraceBounds(ensembleManager.currentTrace)
+        const { center, radius } = EnsembleManager.getTraceBounds(this.ensembleManager.currentTrace)
 
         this.highlightBeads = []
 
@@ -125,17 +127,17 @@ class Ribbon {
     dispose () {
 
         if (this.spline && this.spline.mesh) {
-            scene.remove(this.spline.mesh)
+            this.scene.remove(this.spline.mesh)
             disposeMaterial(this.spline.mesh.material)
             this.spline.mesh.geometry.dispose()
         }
 
         if (this.highlightBeads) {
-            removeAndDisposeArrayFromScene(scene, this.highlightBeads)
+            removeAndDisposeArrayFromScene(this.scene, this.highlightBeads)
         }
 
         if (this.hull && this.hull.mesh) {
-            scene.remove(this.hull.mesh)
+            this.scene.remove(this.hull.mesh)
             this.hull.mesh.geometry.dispose()
             disposeMaterial(this.hull.mesh.material)
         }
@@ -143,6 +145,8 @@ class Ribbon {
         if (this.curve) {
             this.curve = undefined
         }
+
+        this.scene = undefined
 
     }
 

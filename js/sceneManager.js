@@ -122,7 +122,7 @@ class SceneManager {
             })
             this.pointCloud.addToScene(scene)
         } else {
-            this.ribbon = new Ribbon(trace)
+            this.ribbon = new Ribbon(trace, { ensembleManager, igvPanel })
             this.ribbon.addToScene(scene)
 
             this.ballAndStick = new BallAndStick({
