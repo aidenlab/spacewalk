@@ -1,4 +1,4 @@
-import {ModalTable, GenericDataSource} from 'data-modal'
+import {createModalTable, GenericDataSource} from 'infinite-table/src/index.js'
 import {encodeTrackDatasourceConfigurator, supportsGenome} from './encodeTrackDatasourceConfigurator.js'
 import AlertSingleton from './alertSingleton.js'
 import {createGenericSelectModalElement} from './genericSelectModal.js'
@@ -81,11 +81,11 @@ function createTrackWidgetsWithTrackRegistry(igvMain,
                 okHandler: trackLoadHandler
             }
 
-        encodeModalTables.push(new ModalTable(encodeModalTableConfig))
+        encodeModalTables.push(createModalTable(encodeModalTableConfig))
 
     }
 
-    customModalTable = new ModalTable({
+    customModalTable = createModalTable({
         id: 'igv-custom-modal',
         parent: igvMain,
         title: 'UNTITLED',

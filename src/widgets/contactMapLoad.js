@@ -1,4 +1,4 @@
-import {GenericDataSource, ModalTable} from 'data-modal'
+import {GenericDataSource, createModalTable} from 'infinite-table/src/index.js'
 import {FileUtils} from 'igv-utils'
 import {aidenLabContactMapDatasourceConfigurator} from './aidenLabContactMapDatasourceConfig.js'
 import { createAndConfigureURLLoadModal } from '../spacewalkFileLoadWidgetServices.js'
@@ -85,7 +85,7 @@ function configureContactMapLoaders({
                     await loadHandler(url, name, mapType)
                 }
             }
-        contactMapModal = new ModalTable(modalTableConfig)
+        contactMapModal = createModalTable(modalTableConfig)
 
         const {items: path} = mapMenu
         const config = aidenLabContactMapDatasourceConfigurator(path)
@@ -108,7 +108,7 @@ function configureContactMapLoaders({
             }
         }
 
-    encodeHostedContactMapModal = new ModalTable(encodeModalTableConfig)
+    encodeHostedContactMapModal = createModalTable(encodeModalTableConfig)
 
     const datasource = new GenericDataSource(encodeContactMapDatasourceConfiguration)
     encodeHostedContactMapModal.setDatasource(datasource)
