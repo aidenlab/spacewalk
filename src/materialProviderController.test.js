@@ -23,17 +23,25 @@ function makeHarness() {
         isCheckedInUI: track => uiChecked.has(track)
     }
 
-    // Provider stubs: only the methods the controller calls. Color math is not tested here.
-    const trackProvider = { configure: async () => {}, removeTrackInstance: () => {} }
+    // Provider stubs: only the methods the controller calls. Color math is not tested here;
+    // we record removeTrack(name) calls so the removal path can be asserted.
+    const removedNames = []
+    const trackProvider = {
+        configure: async () => {},
+        removeTrackInstance: () => {},
+        removeTrack: name => { removedNames.push(name) }
+    }
     const colorRampProvider = { name: 'colorRamp' }
 
     const controller = new MaterialProviderController({ trackProvider, colorRampProvider, env })
 
     return {
-        controller, trackProvider, colorRampProvider,
+        controller, trackProvider, colorRampProvider, removedNames,
         track: name => ({ name }),
         setOrder: tracks => { order = tracks },
-        markEligible: track => eligible.add(track)
+        markEligible: track => eligible.add(track),
+        // Simulate IGV removing a track: it's gone from trackViews before trackremoved fires.
+        removeFromBrowser: track => { order = order.filter(t => t !== track) }
     }
 }
 
@@ -91,5 +99,34 @@ describe('MaterialProviderController session bookkeeping', () => {
 
         // serialize must recover b under its NEW id via the checkbox-state fallback.
         expect(h.controller.serialize()).toEqual([ 'b|0' ])
+    })
+
+    it('drops a removed track from the blend and falls back / re-blends correctly', async () => {
+        const h = makeHarness()
+        const a = h.track('a'), b = h.track('b')
+        h.setOrder([ a, b ])
+        ;[ a, b ].forEach(h.markEligible)
+
+        await h.controller.setTrackChecked(a, true)
+        await h.controller.setTrackChecked(b, true)
+        expect(h.controller.activeProvider).toBe(h.trackProvider)
+
+        // Remove `b` (the last track) — IGV drops it from trackViews, THEN fires
+        // trackremoved (so its name|index id can no longer be recomputed). `a` keeps
+        // its index 0 and still colors the model.
+        h.removeFromBrowser(b)
+        h.controller.removeTrack(b)
+
+        expect(h.removedNames).toEqual([ 'b' ])               // b's contribution removed by name
+        expect(h.controller.serialize()).toEqual([ 'a|0' ])   // b no longer in the checked set
+        expect(h.controller.activeProvider).toBe(h.trackProvider) // a remains -> still track provider
+
+        // Remove the last remaining track -> nothing left -> fall back to the color ramp.
+        h.removeFromBrowser(a)
+        h.controller.removeTrack(a)
+
+        expect(h.removedNames).toEqual([ 'b', 'a' ])
+        expect(h.controller.serialize()).toBe('none')
+        expect(h.controller.activeProvider).toBe(h.colorRampProvider)
     })
 })

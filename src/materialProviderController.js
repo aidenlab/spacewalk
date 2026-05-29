@@ -54,14 +54,27 @@ class MaterialProviderController {
         this._notifyActiveProvider()
     }
 
-    /** A track was removed from the browser entirely (trackremoved event). */
+    /**
+     * A track was removed from the browser entirely (trackremoved event). By the time
+     * this fires the track is already out of browser.trackViews, so its name|index id
+     * can no longer be recomputed — remove its contribution by name from both the
+     * checked set and the blended provider, then re-evaluate the active provider. If
+     * other tracks remain checked the provider re-blends and stays active; otherwise the
+     * switch falls back to the color ramp.
+     */
     removeTrack(track) {
-        const id = this.env.idFor(track)
-        const gone = id.endsWith('|-1')
-        const wasChecked = gone ? this.env.isCheckedInUI(track) : this.checked.has(id)
-        if (!gone) this.checked.delete(id)
-        if (wasChecked) {
-            this.trackProvider.removeTrackInstance(track)
+        const prefix = `${track.name}|`
+        const staleIds = Array.from(this.checked.keys()).filter(id => id.startsWith(prefix))
+        let wasContributing = staleIds.length > 0
+
+        for (const id of staleIds) this.checked.delete(id)
+
+        if (!wasContributing && this.env.isCheckedInUI(track)) {
+            wasContributing = true
+        }
+
+        if (wasContributing) {
+            this.trackProvider.removeTrack(track.name)
             this._notifyActiveProvider()
         }
     }
