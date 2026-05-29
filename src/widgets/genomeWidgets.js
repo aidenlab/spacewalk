@@ -1,4 +1,4 @@
-import {ModalTable, GenericDataSource} from 'data-modal'
+import {createModalTable, GenericDataSource} from 'infinite-table/src/index.js'
 import {StringUtils} from 'igv-utils'
 import Globals from "../globals.js"
 import AlertSingleton from "./alertSingleton.js"
@@ -29,7 +29,7 @@ function createGenomeWidgets({igvMain, urlModalId, genarkModalId, genomeFileLoad
             }
         }
 
-    genarkModalTable = new ModalTable(genarkModalTableConfig)
+    genarkModalTable = createModalTable(genarkModalTableConfig)
 
     const dataSource = new GenericDataSource(genarkDatasourceConfigurator())
     genarkModalTable.setDatasource(dataSource)

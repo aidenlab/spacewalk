@@ -20,8 +20,9 @@ function createSessionWidgets(rootContainer,
                               loadHandler,
                               JSONProvider) {
 
-    // Session - Dropbox button
-    $('div#spacewalk-session-dropdown-menu > :nth-child(1)').after(dropboxDropdownItem('igv-main-dropdown-dropbox-session-file-button'));
+    // Session - Dropbox button (insert after the first child of the dropdown menu)
+    const sessionDropdownMenu = document.querySelector('div#spacewalk-session-dropdown-menu')
+    sessionDropdownMenu.firstElementChild.insertAdjacentHTML('afterend', dropboxDropdownItem('igv-main-dropdown-dropbox-session-file-button'))
 
     const urlModalElement = createURLModalElement(urlModalId, 'Session URL')
     rootContainer.appendChild(urlModalElement)
