@@ -7,7 +7,7 @@ import EnsembleManager from './ensembleManager.js'
 import ConvexHull from "./utils/convexHull.js"
 import {getPositionArrayWithTrace} from "./utils/utils.js"
 import { removeAndDisposeFromScene } from './utils/disposalUtils.js'
-import { spacewalkConfig } from "../spacewalk-config.js"
+import { spacewalkConfig } from "./spacewalk-config.js"
 
 const stickTesselation = { length: 2, radial: 8 }
 

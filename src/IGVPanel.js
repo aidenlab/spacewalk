@@ -3,8 +3,8 @@ import SpacewalkEventBus from './spacewalkEventBus.js'
 import {installShim} from './igvTrackMaterialProviderShim.js';
 import Panel from './panel.js';
 import { getPathsWithTrackRegistry, updateTrackMenusWithTrackConfigurations } from './widgets/trackWidgets.js'
-import genomes from '/src/resources/genomes.json'
-import trackRegistry from '/src/resources/tracks/trackRegistry.json'
+import genomes from './resources/genomes.json'
+import trackRegistry from './resources/tracks/trackRegistry.json'
 
 
 let resizeObserver
