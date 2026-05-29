@@ -5,10 +5,11 @@ import App from "./app.js"
 import * as bootstrap from 'bootstrap'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'juicebox.js/dist/css/juicebox.css'
+import 'infinite-table/css/infinite-table.css'
 import './styles/app.scss'
 import {isWebGL2Supported} from "./utils/utils"
 
-// Expose Bootstrap as a global. App code and the data-modal dependency
+// Expose Bootstrap as a global. App code and the infinite-table dependency
 // reference `bootstrap.Modal`/`bootstrap.Tab` as a global (previously the
 // CDN <script>); keep that contract while Vite bundles the library.
 window.bootstrap = bootstrap
