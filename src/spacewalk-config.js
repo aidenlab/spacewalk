@@ -1,4 +1,4 @@
-import trackRegistry from '/src/resources/tracks/trackRegistry.json'
+import trackRegistry from './resources/tracks/trackRegistry.json'
 const spacewalkConfig =
     {
         trackRegistry,

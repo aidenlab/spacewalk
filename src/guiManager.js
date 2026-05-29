@@ -3,7 +3,7 @@ import { StringUtils } from 'igv-utils'
 import Ribbon from "./ribbon.js";
 import BallAndStick from "./ballAndStick.js";
 import Panel from "./panel.js";
-import { spacewalkConfig } from "../spacewalk-config.js";
+import { spacewalkConfig } from "./spacewalk-config.js";
 
 class GUIManager {
 
