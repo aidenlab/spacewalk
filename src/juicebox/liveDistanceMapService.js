@@ -1,23 +1,18 @@
 import SpacewalkEventBus from '../spacewalkEventBus.js'
-import { renderDistanceMap } from './liveMapRenderUtils.js'
 
 class LiveDistanceMapService {
 
-    constructor({ juiceboxPanel }) {
-        this.juiceboxPanel = juiceboxPanel
+    constructor({ liveMapView }) {
+        this.liveMapView = liveMapView
         this.lcm = null
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this)
     }
 
     receiveEvent({ type, data }) {
         if ('DidLoadEnsembleFile' === type) {
+            // Canvas clearing is handled by JuiceboxPanel via liveMapView.clear();
+            // here we only drop the compute state.
             this.lcm = null
-
-            // Clear distance canvas
-            const ctx = this.juiceboxPanel?.browser?.contactMatrixView?.ctx_live_distance
-            if (ctx) {
-                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-            }
         }
     }
 
@@ -29,16 +24,8 @@ class LiveDistanceMapService {
      * @param {Object} [colorConfig] - Optional color configuration { background: {r,g,b} }
      */
     renderFromLiveContactMap(lcm, colorConfig) {
-
         this.lcm = lcm
-
-        const ctx = this.juiceboxPanel?.browser?.contactMatrixView?.ctx_live_distance
-        if (!ctx) {
-            console.warn('Live distance canvas context not available')
-            return
-        }
-
-        renderDistanceMap(ctx, lcm, colorConfig)
+        this.liveMapView.renderDistance(lcm, colorConfig)
     }
 
     getClassName() {

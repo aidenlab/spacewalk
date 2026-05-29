@@ -1,6 +1,7 @@
 import hic from 'juicebox.js'
 import SpacewalkEventBus from '../spacewalkEventBus.js'
 import Panel from '../panel.js'
+import LiveMapView from './liveMapView.js'
 import {appleCrayonColorRGB255, rgb255String} from "../utils/colorUtils"
 
 class JuiceboxPanel extends Panel {
@@ -46,6 +47,10 @@ class JuiceboxPanel extends Panel {
         this.sceneManager = sceneManager
         this.genomicNavigator = genomicNavigator
         this.liveContactMapService = null
+
+        // Owns the live-map render surface (canvases, contexts, spinners, sizing).
+        // Browser is read lazily because it's created — and rebuilt on session reload — in loadSession.
+        this.liveMapView = new LiveMapView({ getBrowser: () => this.browser })
 
         // Stable references for add/removeEventListener
         this._tabEventHandler = (event) => this.assessTab(event.target)
@@ -108,8 +113,8 @@ class JuiceboxPanel extends Panel {
             return
         }
 
-        // Initialize live map canvases (Spacewalk-specific, 2d contexts)
-        this.initializeLiveMapCanvases()
+        // Mount the live map render surface (Spacewalk-specific, 2d contexts)
+        this.liveMapView.mount()
 
         this.attachMouseHandlersAndEventSubscribers()
 
@@ -141,119 +146,6 @@ class JuiceboxPanel extends Panel {
 
     }
 
-    /**
-     * Initialize live map canvas contexts for direct 2d rendering.
-     * Both live contact and live distance maps are painted directly
-     * to their own canvases — they do NOT use Juicebox's tile pipeline.
-     */
-    initializeLiveMapCanvases() {
-        const browser = this.browser
-        const viewport = browser.layoutController.getContactMatrixViewport()
-
-        if (!viewport) {
-            console.warn('Viewport not found, cannot initialize live map canvases')
-            return
-        }
-
-        const hicContainer = viewport.querySelector(`#${browser.id}-contact-map-canvas-container`)
-
-        // --- Live Contact Map canvas ---
-        let liveContactContainer = viewport.querySelector(`#${browser.id}-live-contact-map-canvas-container`)
-        if (!liveContactContainer) {
-            liveContactContainer = document.createElement('div')
-            liveContactContainer.id = `${browser.id}-live-contact-map-canvas-container`
-            if (hicContainer && hicContainer.nextSibling) {
-                viewport.insertBefore(liveContactContainer, hicContainer.nextSibling)
-            } else {
-                viewport.appendChild(liveContactContainer)
-            }
-        }
-
-        let contactCanvas = liveContactContainer.querySelector(`#${browser.id}-live-contact-map-canvas`)
-        if (!contactCanvas) {
-            contactCanvas = document.createElement('canvas')
-            contactCanvas.id = `${browser.id}-live-contact-map-canvas`
-            contactCanvas.style.imageRendering = 'pixelated'
-            liveContactContainer.appendChild(contactCanvas)
-        }
-
-        // Spinner overlay for live contact map
-        let contactSpinner = liveContactContainer.querySelector('.spacewalk-live-map-spinner-overlay')
-        if (!contactSpinner) {
-            contactSpinner = document.createElement('div')
-            contactSpinner.className = 'spacewalk-live-map-spinner-overlay'
-            contactSpinner.innerHTML = '<div class="spinner-border text-secondary"></div>'
-            liveContactContainer.appendChild(contactSpinner)
-        }
-        liveContactContainer.style.position = 'relative'
-        this.liveContactSpinner = contactSpinner
-
-        // Store 2d context for live contact map rendering
-        browser.contactMatrixView.ctx_live_contact = contactCanvas.getContext('2d')
-
-        // --- Live Distance Map canvas ---
-        let liveDistanceContainer = viewport.querySelector(`#${browser.id}-live-distance-map-canvas-container`)
-        if (!liveDistanceContainer) {
-            liveDistanceContainer = document.createElement('div')
-            liveDistanceContainer.id = `${browser.id}-live-distance-map-canvas-container`
-            if (liveContactContainer.nextSibling) {
-                viewport.insertBefore(liveDistanceContainer, liveContactContainer.nextSibling)
-            } else {
-                viewport.appendChild(liveDistanceContainer)
-            }
-        }
-
-        let distanceCanvas = liveDistanceContainer.querySelector(`#${browser.id}-live-distance-map-canvas`)
-        if (!distanceCanvas) {
-            distanceCanvas = document.createElement('canvas')
-            distanceCanvas.id = `${browser.id}-live-distance-map-canvas`
-            distanceCanvas.style.imageRendering = 'pixelated'
-            liveDistanceContainer.appendChild(distanceCanvas)
-        }
-
-        // Spinner overlay for live distance map
-        let distanceSpinner = liveDistanceContainer.querySelector('.spacewalk-live-map-spinner-overlay')
-        if (!distanceSpinner) {
-            distanceSpinner = document.createElement('div')
-            distanceSpinner.className = 'spacewalk-live-map-spinner-overlay'
-            distanceSpinner.innerHTML = '<div class="spinner-border text-secondary"></div>'
-            liveDistanceContainer.appendChild(distanceSpinner)
-        }
-        liveDistanceContainer.style.position = 'relative'
-        this.liveDistanceSpinner = distanceSpinner
-
-        // Store 2d context for live distance map rendering
-        browser.contactMatrixView.ctx_live_distance = distanceCanvas.getContext('2d')
-
-        // Size both canvases to match viewport
-        this.updateLiveMapCanvasSizes(browser.contactMatrixView)
-    }
-
-    /**
-     * Update live map canvas sizes to match the main canvas viewport.
-     */
-    updateLiveMapCanvasSizes(contactMatrixView) {
-
-        const width = contactMatrixView.viewportElement.offsetWidth
-        const height = contactMatrixView.viewportElement.offsetHeight
-
-        if (width === 0 || height === 0) {
-            console.warn(`Viewport dimensions are invalid: ${width}x${height}. Canvas sizes not updated.`)
-            return
-        }
-
-        for (const ctxName of ['ctx_live_contact', 'ctx_live_distance']) {
-            const ctx = contactMatrixView[ctxName]
-            if (ctx) {
-                const canvas = ctx.canvas
-                canvas.width = width
-                canvas.height = height
-                canvas.style.width = `${width}px`
-                canvas.style.height = `${height}px`
-            }
-        }
-    }
-
     attachMouseHandlersAndEventSubscribers() {
 
         this.browser.eventBus.subscribe('DidHideCrosshairs', {
@@ -278,7 +170,7 @@ class JuiceboxPanel extends Panel {
         // Repaint live maps when Juicebox color swatches change
         this.browser.coordinator.addCallback('onBackgroundColorChange', ({ rgb }) => {
             if (this.liveContactMapService) {
-                this.updateLiveMapCanvasSizes(this.browser.contactMatrixView)
+                this.liveMapView.resize()
                 this.liveContactMapService.repaintContactMap({ background: rgb })
                 this.liveContactMapService.repaintDistanceMap({ background: rgb })
             }
@@ -286,7 +178,7 @@ class JuiceboxPanel extends Panel {
 
         this.browser.coordinator.addCallback('onForegroundColorChange', ({ rgb }) => {
             if (this.liveContactMapService) {
-                this.updateLiveMapCanvasSizes(this.browser.contactMatrixView)
+                this.liveMapView.resize()
                 this.liveContactMapService.repaintContactMap({ foreground: rgb })
                 this.liveContactMapService.repaintDistanceMap({ foreground: rgb })
             }
@@ -342,20 +234,6 @@ class JuiceboxPanel extends Panel {
         }
     }
 
-    showLiveMapSpinner() {
-        const activeTabButton = this.panel.querySelector('button.nav-link.active')
-        if (activeTabButton?.id === 'spacewalk-juicebox-panel-live-map-tab' && this.liveContactSpinner) {
-            this.liveContactSpinner.style.display = 'flex'
-        } else if (activeTabButton?.id === 'spacewalk-juicebox-panel-live-distance-map-tab' && this.liveDistanceSpinner) {
-            this.liveDistanceSpinner.style.display = 'flex'
-        }
-    }
-
-    hideLiveMapSpinner() {
-        if (this.liveContactSpinner) this.liveContactSpinner.style.display = 'none'
-        if (this.liveDistanceSpinner) this.liveDistanceSpinner.style.display = 'none'
-    }
-
     isActiveTab(tab) {
         return tab._element.classList.contains('active')
     }
@@ -381,16 +259,8 @@ class JuiceboxPanel extends Panel {
                     ctx.fillStyle = rgb255String( appleCrayonColorRGB255('snow') )
                     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
                 }
-                // Clear live contact canvas
-                if (this.browser.contactMatrixView.ctx_live_contact) {
-                    const ctx = this.browser.contactMatrixView.ctx_live_contact
-                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-                }
-                // Clear live distance canvas
-                if (this.browser.contactMatrixView.ctx_live_distance) {
-                    const ctx = this.browser.contactMatrixView.ctx_live_distance
-                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
-                }
+                // Clear live contact + distance canvases
+                this.liveMapView.clear()
             }
 
             // Apply Spacewalk's locus
@@ -499,7 +369,7 @@ class JuiceboxPanel extends Panel {
                     // Repaint with current state when tab becomes visible (contact canvas may have been cleared when switching to Distance tab)
                     setTimeout(() => {
                         if (this.liveContactMapService) {
-                            this.updateLiveMapCanvasSizes(browser.contactMatrixView)
+                            this.liveMapView.resize()
                             this.liveContactMapService.repaintContactMap()
                         }
                     }, 0)
@@ -522,7 +392,7 @@ class JuiceboxPanel extends Panel {
                     // Repaint with current colors when tab becomes visible
                     setTimeout(() => {
                         if (this.liveContactMapService) {
-                            this.updateLiveMapCanvasSizes(browser.contactMatrixView)
+                            this.liveMapView.resize()
                             this.liveContactMapService.repaintDistanceMap()
                         }
                     }, 0)
