@@ -9,7 +9,7 @@ let contactMapModal;
 let urlModal
 const encodeContactMapDatasourceConfiguration =
     {
-        url: 'https://s3.amazonaws.com/igv.org.app/encode/hic/hic.txt',
+        url: 'https://raw.githubusercontent.com/igvteam/igv-data/main/data/encode/hic.txt',
         columns:
             [
                 // 'HREF',
