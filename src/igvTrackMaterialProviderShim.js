@@ -32,13 +32,7 @@ function injectCheckboxes(browser, igvPanel) {
         input.addEventListener('change', async (event) => {
             event.preventDefault()
             event.stopPropagation()
-            track.embeddingCheckboxChecked = input.checked
-            igvPanel.setMaterialProviderTrackChecked(track, input.checked)
-            if (input.checked) {
-                await igvPanel.activateTrackMaterialProvider(track)
-            } else {
-                await igvPanel.deactivateTrackMaterialProvider(track)
-            }
+            await igvPanel.setTrackChecked(track, input.checked)
         })
 
         container.appendChild(input)
