@@ -14,7 +14,7 @@ import GUIManager from "../guiManager.js"
 import SettingsManager from "../settingsManager.js"
 import ScaleBarService from "../scaleBarService.js"
 import { showRelease } from "../utils/release.js"
-import { spacewalkConfig } from "../../spacewalk-config.js"
+import { spacewalkConfig } from "../spacewalk-config.js"
 
 /**
  * Initializer class responsible for bootstrapping all UI widgets and controls.

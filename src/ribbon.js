@@ -8,7 +8,7 @@ import {appleCrayonColorThreeJS} from "./utils/colorUtils.js";
 import {getPositionArrayWithTrace} from "./utils/utils.js"
 import ConvexHull from "./utils/convexHull"
 import { disposeMaterial, removeAndDisposeArrayFromScene } from './utils/disposalUtils.js'
-import { spacewalkConfig } from "../spacewalk-config.js"
+import { spacewalkConfig } from "./spacewalk-config.js"
 
 const ribbonWidth = 4/*2*/
 const highlightBeadRadiusScalefactor = 1/(6e1)

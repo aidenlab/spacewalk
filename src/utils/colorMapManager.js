@@ -3,7 +3,7 @@ import SpacewalkEventBus from '../spacewalkEventBus.js'
 import { rgb255ToThreeJSColor, hsvToThreeJSColor } from "./colorUtils.js";
 import { createImage, readFileAsDataURL } from './utils.js';
 
-import peter_kovesi from '/src/resources/colormaps/peter_kovesi/peter_kovesi.json'
+import peter_kovesi from '../resources/colormaps/peter_kovesi/peter_kovesi.json'
 import bintu_et_al from '/resources/colormaps/bintu_et_al/bintu_et_al.png'
 import juicebox_default from '/resources/colormaps/juicebox_default/juicebox_default.png'
 import parula from '/resources/colormaps/parula/parula.png'
