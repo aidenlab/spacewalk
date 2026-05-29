@@ -1,6 +1,8 @@
 import igv from 'igv'
 import SpacewalkEventBus from './spacewalkEventBus.js'
 import {installShim} from './igvTrackMaterialProviderShim.js';
+import MaterialProviderController from './materialProviderController.js';
+import {createIGVTrackEnvironment} from './igvTrackEnvironment.js';
 import Panel from './panel.js';
 import { getPathsWithTrackRegistry, updateTrackMenusWithTrackConfigurations } from './widgets/trackWidgets.js'
 import genomes from './resources/genomes.json'
@@ -30,8 +32,19 @@ class IGVPanel extends Panel {
         this.genomicNavigator = genomicNavigator;
         this.sceneManager = sceneManager;
 
-        /** Map of trackId (name|index) -> true for material provider checkbox state. Single source of truth. */
-        this.materialProviderCheckedTracks = new Map();
+        // Owns the track -> material-provider state machine (checked set, active-provider
+        // switch, session state). IGV/DOM access is isolated behind the track environment
+        // port; the browser is read lazily because it doesn't exist until initialize().
+        this.materialController = new MaterialProviderController({
+            trackProvider: trackMaterialProvider,
+            colorRampProvider: colorRampMaterialProvider,
+            env: createIGVTrackEnvironment(() => this.browser),
+            onActiveProviderChanged: provider => {
+                this.materialProvider = provider;
+                this.sceneManager.updateMaterialProvider(provider);
+                this.genomicNavigator.repaint();
+            }
+        });
 
         // const dragHandle = panel.querySelector('.spacewalk_card_drag_container')
         // makeDraggable(panel, dragHandle)
@@ -162,14 +175,7 @@ class IGVPanel extends Panel {
         installShim(this.browser, this)
 
         this.browser.on('trackremoved', track => {
-            const id = this.getUniqueTrackId(track);
-            const wasChecked = id.endsWith('|-1') ? (track.embeddingCheckboxChecked || track.trackView?.materialProviderInput?.checked) : this.materialProviderCheckedTracks.has(id);
-            if (!id.endsWith('|-1')) {
-                this.materialProviderCheckedTracks.delete(id);
-            }
-            if (wasChecked) {
-                this.removeTrackFromMaterialProvider(track);
-            }
+            this.materialController.removeTrack(track);
         });
 
         this.browser.setCustomCursorGuideMouseHandler(({ bp, start, end, interpolant }) => {
@@ -193,91 +199,15 @@ class IGVPanel extends Panel {
 
     }
 
-    async activateTrackMaterialProvider(track) {
-        // Check if track can be used (zoom level check)
-        if (!this.canUseTrackForMaterial(track)) {
-            console.warn(`Track ${track.name} zoom level too low. Cannot add to material provider.`);
-            track.embeddingCheckboxChecked = false;
-            if (track.trackView?.materialProviderInput) {
-                track.trackView.materialProviderInput.checked = false;
-            }
-            return;
-        }
+    // Track -> material-provider state machine lives in MaterialProviderController.
+    // These delegators keep the panel's public surface (and its callers) stable.
 
-        // Add this track to the material provider
-        await this.trackMaterialProvider.configure(track);
-
-        // Switch to track material provider if not already using it
-        if (this.materialProvider !== this.trackMaterialProvider) {
-            this.materialProvider = this.trackMaterialProvider;
-        }
-
-        this.sceneManager.updateMaterialProvider(this.trackMaterialProvider);
-        this.genomicNavigator.repaint();
-        console.log(`Active tracks: ${this.trackMaterialProvider.getTrackNames().join(', ')}`);
-    }
-
-    async deactivateTrackMaterialProvider(track) {
-        // Remove this track from the material provider
-        this.removeTrackFromMaterialProvider(track);
-    }
-
-    removeTrackFromMaterialProvider(track) {
-        this.trackMaterialProvider.removeTrackInstance(track);
-
-        // If no tracks remain, switch back to color ramp provider
-        if (this.trackMaterialProvider.getTrackNames().length === 0) {
-            this.materialProvider = this.colorRampMaterialProvider;
-            this.sceneManager.updateMaterialProvider(this.colorRampMaterialProvider);
-            this.genomicNavigator.repaint();
-            console.log('No active tracks. Switched to color ramp provider.');
-        } else {
-            // Tracks remain - ensure we're using trackMaterialProvider and trigger repaint
-            this.materialProvider = this.trackMaterialProvider;
-            this.sceneManager.updateMaterialProvider(this.trackMaterialProvider);
-            this.genomicNavigator.repaint();
-            console.log(`Active tracks: ${this.trackMaterialProvider.getTrackNames().join(', ')}`);
-        }
-    }
-
-    canUseTrackForMaterial(track) {
-        const viewport = track.trackView?.viewports?.[0];
-        if (!viewport) return false;
-        if (typeof viewport.checkZoomIn === 'function') {
-            return viewport.checkZoomIn();
-        }
-        const zoomInNotice = viewport.$zoomInNotice?.get?.(0);
-        return !(zoomInNotice && zoomInNotice.style.display !== 'none');
-    }
-
-    getUniqueTrackId(track) {
-        const idx = this.browser.trackViews.findIndex(tv => tv.track === track);
-        return `${track.name}|${idx}`;
-    }
-
-    setMaterialProviderTrackChecked(track, checked) {
-        const id = this.getUniqueTrackId(track);
-        if (id.endsWith('|-1')) return;
-        if (checked) {
-            this.materialProviderCheckedTracks.set(id, true);
-        } else {
-            this.materialProviderCheckedTracks.delete(id);
-        }
+    setTrackChecked(track, checked) {
+        return this.materialController.setTrackChecked(track, checked);
     }
 
     clearMaterialProviderSessionState() {
-        this.materialProviderCheckedTracks.clear();
-    }
-
-    getMaterialProviderCheckedTrackIds() {
-        const trackViews = this.browser?.trackViews ?? [];
-        return Array.from(this.materialProviderCheckedTracks.keys()).filter(id => {
-            const lastPipe = id.lastIndexOf('|');
-            if (lastPipe < 0) return false;
-            const name = id.slice(0, lastPipe);
-            const idx = parseInt(id.slice(lastPipe + 1), 10);
-            return trackViews[idx]?.track?.name === name;
-        });
+        this.materialController.clear();
     }
 
     async loadTrackList(configurations) {
@@ -298,81 +228,11 @@ class IGVPanel extends Panel {
     }
 
     getSessionState() {
-        let ids = this.getMaterialProviderCheckedTrackIds();
-
-        if (ids.length === 0) {
-            const trackViews = this.browser.trackViews ?? [];
-            for (let i = 0; i < trackViews.length; i++) {
-                const track = trackViews[i]?.track;
-                if (track && (track.embeddingCheckboxChecked || trackViews[i].materialProviderInput?.checked)) {
-                    this.materialProviderCheckedTracks.set(`${track.name}|${i}`, true);
-                }
-            }
-            ids = this.getMaterialProviderCheckedTrackIds();
-        }
-
-        return ids.length > 0 ? ids : 'none';
+        return this.materialController.serialize();
     }
 
     async restoreSessionState(state) {
-        const raw = Array.isArray(state) ? state : (state === 'none' ? [] : [state]);
-
-        if (raw.length === 0) {
-            console.log('No tracks to restore for material provider');
-            return;
-        }
-
-        const isNewFormat = raw.some(s => typeof s === 'string' && s.includes('|'));
-        const trackViews = this.browser.trackViews ?? [];
-        let tracksToRestore;
-
-        if (isNewFormat) {
-            const idSet = new Set(raw);
-            tracksToRestore = trackViews
-                .map((tv, i) => ({ track: tv.track, id: `${tv.track.name}|${i}` }))
-                .filter(({ track, id }) => track && idSet.has(id))
-                .map(({ track }) => track);
-        } else {
-            const namesToRestore = new Set(raw);
-            const restored = new Set();
-            tracksToRestore = [];
-            for (const tv of trackViews) {
-                const track = tv.track;
-                if (!track || !namesToRestore.has(track.name)) continue;
-                if (restored.has(track.name)) continue;
-                restored.add(track.name);
-                tracksToRestore.push(track);
-            }
-        }
-
-        if (tracksToRestore.length === 0) {
-            console.warn('No matching tracks found for restoration');
-            return;
-        }
-
-        console.log(`Restoring ${tracksToRestore.length} tracks`);
-
-        for (const track of tracksToRestore) {
-            if (typeof track.trackView?.isLoading === 'function' && track.trackView.isLoading()) {
-                console.warn(`Track ${track.name} is still loading. Skipping.`);
-                continue;
-            }
-
-            track.embeddingCheckboxChecked = true;
-            if (track.trackView?.materialProviderInput) {
-                track.trackView.materialProviderInput.checked = true;
-            }
-            this.setMaterialProviderTrackChecked(track, true);
-            await this.activateTrackMaterialProvider(track);
-        }
-
-        if (tracksToRestore.length > 0) {
-            this.materialProvider = this.trackMaterialProvider;
-            this.sceneManager.updateMaterialProvider(this.trackMaterialProvider);
-            this.genomicNavigator.repaint();
-        }
-
-        console.log(`Successfully restored ${tracksToRestore.length} tracks`);
+        return this.materialController.restore(state);
     }
 }
 
