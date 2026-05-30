@@ -191,36 +191,4 @@ class SessionService {
     }
 }
 
-function getUrlParams(url) {
-
-    const search = decodeURIComponent( url.slice( url.indexOf( '?' ) + 1 ) );
-
-    return search
-        .split('&')
-        .reduce((acc, key_value) => {
-
-            const [ key, value ] = key_value.split( '=', 2 );
-            acc[ key ] = value;
-            return acc;
-        }, {});
-
-}
-
-function uncompressSessionURL(sessionURL) {
-
-    if (sessionURL.indexOf('/gzip;base64') > 0) {
-
-        const bytes = BGZip.decodeDataURI(sessionURL, undefined)
-        let json = '';
-        for (let b of bytes) {
-            json += String.fromCharCode(b)
-        }
-        return json;
-    } else {
-
-        const enc = sessionURL.slice(5);
-        return BGZip.uncompressString(enc)
-    }
-}
-
-export { SessionService, getUrlParams, uncompressSessionURL };
+export { SessionService };

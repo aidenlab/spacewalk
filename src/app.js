@@ -3,7 +3,8 @@ import ColorMapManager from "./utils/colorMapManager.js"
 import TrackMaterialProvider from "./trackMaterialProvider.js"
 import ColorRampMaterialProvider from "./colorRampMaterialProvider.js"
 import { appleCrayonColorRGB255 } from "./utils/colorUtils.js"
-import { SessionService, getUrlParams, uncompressSessionURL } from "./sessionServices.js"
+import { SessionService } from "./sessionServices.js"
+import SessionBootstrapper from "./sessionBootstrapper.js"
 import SpacewalkEventBus from "./spacewalkEventBus.js"
 import { showGlobalSpinner, hideGlobalSpinner } from './utils/utils.js'
 import { defaultColormapName } from "./utils/colorMapManager.js"
@@ -35,6 +36,7 @@ class App {
         this.sceneFixtures = null;
         this.ensembleIngestionController = null;
         this.sessionService = null;
+        this.sessionBootstrapper = null;
 
         // Panels
         this.juiceboxPanel = null;
@@ -99,7 +101,7 @@ class App {
         this.uiBootstrapper.initializeFullscreenMode(traceContainer);
 
         // Load session from URL parameters if present
-        await this.consumeURLParams(getUrlParams(window.location.href));
+        await this.sessionBootstrapper.run(window.location.href);
 
         hideGlobalSpinner();
 
@@ -197,53 +199,12 @@ class App {
             cameraLightingRig: this.cameraLightingRig,
             ensembleIngestionController: this.ensembleIngestionController,
         });
-    }
 
-    async consumeURLParams(params) {
-        // Mode 1: Direct file URL (e.g., ?file=https://example.com/data.sw)
-        if (params.file) {
-            const fileURL = extractFileParam(window.location.href);
-            const traceKey = params.traceKey || '0';
-            const ensembleGroupKey = params.ensembleGroupKey || undefined;
-            try {
-                await this.ensembleIngestionController.ingestEnsemblePath(fileURL, traceKey, ensembleGroupKey);
-                const data = this.ensembleManager.createEventBusPayload();
-                SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
-            } catch (error) {
-                console.error('Failed to load file from URL params:', error)
-                hideGlobalSpinner()
-            }
-            return;
-        }
-
-        // Mode 2: Compressed share session (existing logic)
-        const { sessionURL: igvSessionURL, session: juiceboxSessionURL, spacewalkSessionURL } = params;
-
-        let acc = {};
-
-    // spacewalk
-    if (spacewalkSessionURL) {
-            const spacewalk = JSON.parse(uncompressSessionURL(spacewalkSessionURL));
-            acc = { ...acc, spacewalk };
-    }
-
-    // juicebox
-    if (juiceboxSessionURL) {
-            const juicebox = JSON.parse(uncompressSessionURL(juiceboxSessionURL));
-            acc = { ...acc, juicebox };
-    }
-
-    // igv
-    if (igvSessionURL) {
-            const igv = JSON.parse(uncompressSessionURL(igvSessionURL));
-            acc = { ...acc, igv };
-    }
-
-        const result = 0 === Object.keys(acc).length ? undefined : acc;
-
-    if (result) {
-            await this.sessionService.loadSession(result);
-        }
+        this.sessionBootstrapper = new SessionBootstrapper({
+            ensembleManager: this.ensembleManager,
+            ensembleIngestionController: this.ensembleIngestionController,
+            sessionService: this.sessionService,
+        });
     }
 
     initializePostMessageListener() {
@@ -343,32 +304,6 @@ class App {
         };
         renderLoop();
     }
-}
-
-// Extract the file URL from the raw query string, preserving its own query parameters.
-// The file URL may contain '&' characters (e.g., Dropbox links with rlkey, st, dl params)
-// that would otherwise be split apart by standard query string parsing.
-const spacewalkParams = new Set(['traceKey', 'ensembleGroupKey']);
-
-function extractFileParam(href) {
-    const queryString = decodeURIComponent(href.slice(href.indexOf('?') + 1));
-    const fileIndex = queryString.indexOf('file=');
-    if (fileIndex === -1) return undefined;
-
-    const valueStart = fileIndex + 'file='.length;
-    const rest = queryString.slice(valueStart);
-
-    // Scan for '&key=' where key is a known Spacewalk parameter
-    let endIndex = rest.length;
-    for (const param of spacewalkParams) {
-        const marker = `&${param}=`;
-        const idx = rest.indexOf(marker);
-        if (idx !== -1 && idx < endIndex) {
-            endIndex = idx;
-        }
-    }
-
-    return rest.slice(0, endIndex);
 }
 
 export default App
