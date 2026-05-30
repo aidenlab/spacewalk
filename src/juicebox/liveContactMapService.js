@@ -127,13 +127,27 @@ class LiveContactMapService {
 
             await this.lcm.init()
 
-            // Register live map with Juicebox so locus input, scrollbars, and rulers get populated
-            const locusStr = `${chr}:${genomicStart}-${genomicEnd}`
-            await this.getJuiceboxBrowser().loadLiveContactMap({
-                liveContactMap: this.lcm,
-                name: 'Live Contact Map',
-                locus: `${locusStr} ${locusStr}`
-            })
+            // The live contact/distance tabs render to their own canvases (LiveMapView),
+            // independent of Juicebox's activeDataset. Registering the live map with
+            // Juicebox is needed only to populate the shared chrome (locus input,
+            // rulers, scrollbars) when nothing else has — i.e. when no .hic map is
+            // loaded (no browser.genome, so the ensemble-load goto is skipped).
+            //
+            // When a real .hic map IS loaded, loadLiveContactMap would clearSession()
+            // and overwrite activeDataset/genome with the low-res live map, so the Hi-C
+            // tab repaints blurry on return (issue #55). In that case the chrome already
+            // sits at the same locus (both driven to ensembleManager.locus), so skip it
+            // and leave the Hi-C dataset intact.
+            const browser = this.getJuiceboxBrowser()
+            const hasHicMap = browser?.activeDataset && !browser.activeDataset.isLive
+            if (!hasHicMap) {
+                const locusStr = `${chr}:${genomicStart}-${genomicEnd}`
+                await browser.loadLiveContactMap({
+                    liveContactMap: this.lcm,
+                    name: 'Live Contact Map',
+                    locus: `${locusStr} ${locusStr}`
+                })
+            }
 
             // Size the threshold slider to the data and sync it to the freshly
             // derived default. this.lcm.distanceThreshold is only defined after
