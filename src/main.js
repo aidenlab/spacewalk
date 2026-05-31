@@ -8,11 +8,26 @@ import 'juicebox.js/dist/css/juicebox.css'
 import 'infinite-table/css/infinite-table.css'
 import './styles/app.scss'
 import {isWebGL2Supported} from "./utils/utils"
+import { presentResourceError } from "./widgets/presentResourceError.js"
 
 // Expose Bootstrap as a global. App code and the infinite-table dependency
 // reference `bootstrap.Modal`/`bootstrap.Tab` as a global (previously the
 // CDN <script>); keep that contract while Vite bundles the library.
 window.bootstrap = bootstrap
+
+// Global safety net: anything that escapes a call site — an unhandled promise
+// rejection or an uncaught exception — lands here instead of dying silently on
+// the console with the spinner left spinning. Resource (img/script) load errors
+// arrive on the 'error' event with no .error; leave those to their own handlers.
+window.addEventListener('unhandledrejection', event => {
+    presentResourceError(event.reason, {})
+})
+
+window.addEventListener('error', event => {
+    if (event.error instanceof Error) {
+        presentResourceError(event.error, {})
+    }
+})
 
 document.addEventListener("DOMContentLoaded", async (event) => {
 
