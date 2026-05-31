@@ -5,6 +5,7 @@ dist-ssr
 *.local
 .idea
 package-lock.json
+.claude/
 
 # Environment variables
 .env
