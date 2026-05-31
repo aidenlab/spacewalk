@@ -1,7 +1,7 @@
 import * as THREE from "three"
 import {FileUtils} from "igv-utils"
 import { includes } from "./utils/mathUtils.js"
-import {hideGlobalSpinner, showGlobalSpinner} from "./utils/utils.js"
+import {withSpinner} from "./utils/utils.js"
 import SWBDatasource from "./datasource/SWBDatasource.js"
 
 class EnsembleManager {
@@ -32,26 +32,23 @@ class EnsembleManager {
 
     async loadEnsembleGroup(ensembleGroupKey) {
 
-        showGlobalSpinner()
+        await withSpinner(async () => {
 
-        let str = `loadEnsembleGroup(${ ensembleGroupKey })`
-        console.time(str)
+            let str = `loadEnsembleGroup(${ ensembleGroupKey })`
+            console.time(str)
 
-        this.datasource.currentEnsembleGroupKey = ensembleGroupKey
-        await this.datasource.updateWithEnsembleGroupKey(ensembleGroupKey)
-        this.currentIndex = 0
-        this.currentTrace = await this.createTrace(this.currentIndex)
+            this.datasource.currentEnsembleGroupKey = ensembleGroupKey
+            await this.datasource.updateWithEnsembleGroupKey(ensembleGroupKey)
+            this.currentIndex = 0
+            this.currentTrace = await this.createTrace(this.currentIndex)
 
-        console.timeEnd(str)
-
-        hideGlobalSpinner()
+            console.timeEnd(str)
+        })
     }
 
     async loadDatasource(path, datasource, index, ensembleGroupKey) {
 
-        showGlobalSpinner()
-        const { sample, genomeAssembly } = await datasource.load(path, ensembleGroupKey)
-        hideGlobalSpinner()
+        const { sample, genomeAssembly } = await withSpinner(() => datasource.load(path, ensembleGroupKey))
 
         this.sample = sample
         this.genomeAssembly = genomeAssembly
