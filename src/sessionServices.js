@@ -5,6 +5,7 @@ import SpacewalkEventBus from './spacewalkEventBus.js'
 import { shortenURL } from "./share/shareHelper.js"
 import { SpacewalkGlobals } from './spacewalkGlobals.js'
 import GUIManager from "./guiManager.js"
+import { presentResourceError } from "./widgets/presentResourceError.js"
 
 class SessionService {
 
@@ -20,7 +21,14 @@ class SessionService {
 
     async loadSession(json) {
 
-        await this.loadSpacewalkSession(json.spacewalk)
+        try {
+            await this.loadSpacewalkSession(json.spacewalk)
+        } catch (e) {
+            // The ensemble (.sw) is the spine of the restore and has already been
+            // reported by loadSpacewalkSession. Abort rather than load IGV/Juicebox
+            // against a half-purged scene.
+            return
+        }
 
         if (json.juicebox) {
             await this.juiceboxPanel.loadSession(json.juicebox)
@@ -99,7 +107,8 @@ class SessionService {
             const data = this.ensembleManager.createEventBusPayload()
             SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
         } catch (error) {
-            console.error('Failed to load session:', error)
+            presentResourceError(error, { what: 'the Spacewalk ensemble', url })
+            throw error
         }
 
     }
