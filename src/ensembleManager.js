@@ -22,10 +22,7 @@ class EnsembleManager {
         } else if ('swt' === extension) {
             const message = 'Spacewalk no longer reads .swt files. Please convert your file to the .sw HDF5 format using swt2sw (https://github.com/turner/swt2sw) and try again.'
             console.warn(message)
-            alert(message)
-            const err = new Error(message)
-            err.userNotified = true
-            throw err
+            throw new Error(message)
         }
 
     }

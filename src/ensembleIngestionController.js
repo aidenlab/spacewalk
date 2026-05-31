@@ -49,9 +49,6 @@ class EnsembleIngestionController {
 
             await igvPanel.locusDidChange(ensembleManager.locus)
         } catch (error) {
-            if (error.userNotified) {
-                throw error
-            }
             console.error('Error loading ensemble:', error)
             sceneManager.purgeScene()
             throw error
