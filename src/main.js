@@ -8,6 +8,7 @@ import 'juicebox.js/dist/css/juicebox.css'
 import 'infinite-table/css/infinite-table.css'
 import './styles/app.scss'
 import {isWebGL2Supported} from "./utils/utils"
+import AlertSingleton from "./widgets/alertSingleton.js"
 import { presentResourceError } from "./widgets/presentResourceError.js"
 
 // Expose Bootstrap as a global. App code and the infinite-table dependency
@@ -30,6 +31,12 @@ window.addEventListener('error', event => {
 })
 
 document.addEventListener("DOMContentLoaded", async (event) => {
+
+    // Build the draggable alert dialog up front. Without this init the
+    // AlertSingleton used by presentResourceError (and the file/track/genome
+    // widgets) has no backing dialog and every present() throws — failures then
+    // fall back to console only. Must run before anything that can fail.
+    AlertSingleton.init(document.body)
 
     if (isWebGL2Supported()) {
         console.log("WebGL 2.0 is supported. Compute Like a Boss! 🎉");
