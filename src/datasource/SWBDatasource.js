@@ -2,7 +2,8 @@ import * as THREE from 'three'
 import {openH5File} from 'hdf5-indexed-reader'
 import {FileUtils} from 'igv-utils'
 import { SpacewalkGlobals } from '../spacewalkGlobals.js'
-import {hideGlobalSpinner, showGlobalSpinner} from "../utils/utils";
+import {withSpinner} from "../utils/utils";
+import { probe, KIND } from "../net/remoteResource.js"
 import {createBoundingBoxWithFlatXYZList, cullDuplicateXYZ} from "../utils/mathUtils.js"
 import SpacewalkEventBus from "../spacewalkEventBus.js"
 import { updateEnsembleGroupDisplay } from "../guiManager.js"
@@ -23,6 +24,21 @@ class SWBDatasource {
 
         SpacewalkGlobals.url = false === FileUtils.isFilePath(path) ? path : undefined
 
+        // Preflight a remote .sw before the heavyweight open. A dead Dropbox/S3
+        // link otherwise surfaces as a cryptic error deep inside the HDF5 reader
+        // (or, for a dl=0 preview link, a parse error on the returned HTML page).
+        // The probe turns 404/403/401 and the HTML-masquerade into one clean
+        // classified RemoteError. Definitive failures abort; a probe that itself
+        // can't connect (kind 'network' — a transient/CORS hiccup the reader may
+        // not hit) falls through to openH5File so we never false-abort a load
+        // that would have worked.
+        if (false === FileUtils.isFilePath(path)) {
+            const remoteError = await probe(path, { expect: 'hdf5' })
+            if (remoteError && KIND.NETWORK !== remoteError.kind) {
+                throw remoteError
+            }
+        }
+
         // Override hdf5-indexed-reader's default fetchSize=2000/maxSize=200000.
         // On high-latency hosts (Dropbox ~500ms RTT), those defaults produce
         // ~100 sequential 2KB range requests just to load the embedded JSON
@@ -38,19 +54,18 @@ class SWBDatasource {
 
     async initialize(hdf5, ensembleGroupKey) {
 
-        showGlobalSpinner()
+        await withSpinner(async () => {
 
-        this.hdf5 = hdf5
-        const headerGroup = await hdf5.get('/Header')
-        this.header = await headerGroup.attrs
+            this.hdf5 = hdf5
+            const headerGroup = await hdf5.get('/Header')
+            this.header = await headerGroup.attrs
 
-        this.ensembleGroupKeys = await getEnsembleGroupKeys(hdf5)
+            this.ensembleGroupKeys = await getEnsembleGroupKeys(hdf5)
 
-        this.currentEnsembleGroupKey = ensembleGroupKey || this.ensembleGroupKeys[ 0 ]
+            this.currentEnsembleGroupKey = ensembleGroupKey || this.ensembleGroupKeys[ 0 ]
 
-        await this.updateWithEnsembleGroupKey(this.currentEnsembleGroupKey)
-
-        hideGlobalSpinner()
+            await this.updateWithEnsembleGroupKey(this.currentEnsembleGroupKey)
+        })
 
 
         // Update the ensemble group select list with list of ensemble group keys, if more than one.
@@ -106,47 +121,46 @@ class SWBDatasource {
 
     async createTrace(i) {
 
-        showGlobalSpinner()
+        return await withSpinner(async () => {
 
-        let str = `createTrace() - retrieve dataset: ${ this.currentEnsembleGroupKey }/spatial_position/t_${i}`
-        console.time(str)
-        const traceDataset = await this.hdf5.get( `${ this.currentEnsembleGroupKey }/spatial_position/t_${i}` )
-        const traceValues = await traceDataset.value
-        console.timeEnd(str)
+            let str = `createTrace() - retrieve dataset: ${ this.currentEnsembleGroupKey }/spatial_position/t_${i}`
+            console.time(str)
+            const traceDataset = await this.hdf5.get( `${ this.currentEnsembleGroupKey }/spatial_position/t_${i}` )
+            const traceValues = await traceDataset.value
+            console.timeEnd(str)
 
-        this.currentTraceIndex = i
+            this.currentTraceIndex = i
 
-        str = `createTrace() - build ${ true === this.isPointCloud ? 'pointcloud' : 'ball & stick' } trace`
-        console.time(str)
+            str = `createTrace() - build ${ true === this.isPointCloud ? 'pointcloud' : 'ball & stick' } trace`
+            console.time(str)
 
-        let trace
-        if (true === this.isPointCloud) {
+            let trace
+            if (true === this.isPointCloud) {
 
-            const { genomicExtentList, regionXYZDictionary, regionIndexStrings } = createGenomicExtentList(traceValues, this.globaleGenomicExtentList)
+                const { genomicExtentList, regionXYZDictionary, regionIndexStrings } = createGenomicExtentList(traceValues, this.globaleGenomicExtentList)
 
-            this.currentGenomicExtentList = genomicExtentList
+                this.currentGenomicExtentList = genomicExtentList
 
-            trace = genomicExtentList.map((genomicExtent, index) => {
-                const key = regionIndexStrings[ index ]
-                return createPointCloudPayload(key, genomicExtent, regionXYZDictionary[ key ])
-            })
-        } else {
+                trace = genomicExtentList.map((genomicExtent, index) => {
+                    const key = regionIndexStrings[ index ]
+                    return createPointCloudPayload(key, genomicExtent, regionXYZDictionary[ key ])
+                })
+            } else {
 
-            this.currentGenomicExtentList = this.globaleGenomicExtentList
+                this.currentGenomicExtentList = this.globaleGenomicExtentList
 
-            const xyzList = createCleanFlatXYZList(traceValues)
+                const xyzList = createCleanFlatXYZList(traceValues)
 
-            trace = xyzList.map((xyz, index) => {
-                const { interpolant } = this.currentGenomicExtentList[ index ]
-                return { interpolant, xyz, drawUsage: THREE.StaticDrawUsage}
-            })
+                trace = xyzList.map((xyz, index) => {
+                    const { interpolant } = this.currentGenomicExtentList[ index ]
+                    return { interpolant, xyz, drawUsage: THREE.StaticDrawUsage}
+                })
 
-        }
-        console.timeEnd(str)
+            }
+            console.timeEnd(str)
 
-        hideGlobalSpinner()
-
-        return trace
+            return trace
+        })
 
     }
 

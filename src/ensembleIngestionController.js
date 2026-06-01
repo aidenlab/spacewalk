@@ -49,11 +49,13 @@ class EnsembleIngestionController {
 
             await igvPanel.locusDidChange(ensembleManager.locus)
         } catch (error) {
-            if (error.userNotified) {
-                throw error
-            }
+            // Leave the prior scene intact and interactive rather than purging it.
+            // The load throws before we touch any scene/ensemble state (datasource
+            // .load() is the first await), so this is a clean rollback to the last
+            // good state. purgeScene() would also dispose the gnomon/groundplane
+            // fixtures, leaving isGood2Go() false and freezing the render loop. The
+            // error surface is presented by the caller.
             console.error('Error loading ensemble:', error)
-            sceneManager.purgeScene()
             throw error
         } finally {
             sceneManager.isLoading = false
@@ -75,8 +77,9 @@ class EnsembleIngestionController {
 
             await igvPanel.locusDidChange(ensembleManager.locus)
         } catch (error) {
+            // See ingestEnsemblePath: leave the prior scene intact rather than
+            // purging it (which would freeze the render loop). Clean rollback.
             console.error('Error loading ensemble group:', error)
-            sceneManager.purgeScene()
             throw error
         } finally {
             sceneManager.isLoading = false

@@ -21,8 +21,10 @@ Last groomed: 2026-06 (post Phase 3 DI completion).
 | [architecture/wiring-diagram.md](architecture/wiring-diagram.md) | Current | First read for new contributors — shows how `App` assembles every module and where each dep comes from (post-Phase-3 DI) |
 | [architecture/runtime-sequence-drag-drop.md](architecture/runtime-sequence-drag-drop.md) | Current | Companion to the wiring diagram — end-to-end "user drops a `.sw` file" trace through the wired graph |
 | [architecture-track-material-provider-checkbox.md](architecture-track-material-provider-checkbox.md) | Current | Before touching the IGV per-track checkbox that drives 3D coloring |
+| [refactor-igvpanel-material-provider-registry.md](refactor-igvpanel-material-provider-registry.md) | Proposal | RFC to extract the track→material-provider state machine out of `IGVPanel` into a testable registry (tech-debt item #5, candidate 1) |
 | [interaction-diagram-spacewalk-igv.md](interaction-diagram-spacewalk-igv.md) | Current | Before editing `IGVPanel.js` or anything in `js/widgets/trackWidgets.js` |
 | [interaction-diagram-spacewalk-juicebox.md](interaction-diagram-spacewalk-juicebox.md) | Current | Before editing `js/juicebox/` — live contact/distance maps, hic-straw integration |
+| [refactor-juiceboxpanel-live-map-view.md](refactor-juiceboxpanel-live-map-view.md) | Proposal | RFC to extract the live-map render surface out of `JuiceboxPanel` into a `LiveMapView` and break the panel↔service cycle (tech-debt item #5, candidate 2) |
 | [threejs/spacewalk-color-management-audit.md](threejs/spacewalk-color-management-audit.md) | Current | When working on color rendering across the Three.js pipeline |
 | [threejs/threejs-transparency-notes.md](threejs/threejs-transparency-notes.md) | Reference | When debugging transparency / depth-sort issues in Three.js |
 

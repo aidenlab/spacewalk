@@ -12,7 +12,7 @@ class SessionFileLoad extends FileLoad {
         const path = paths[0]
 
         try {
-            this.loadHandler({url: path})
+            await this.loadHandler({url: path})
 
         } catch (e) {
             throw new Error('Session file did not load' + e.message)

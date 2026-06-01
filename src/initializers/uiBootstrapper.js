@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { igvxhr } from 'igv-utils'
+import { fetchJSON } from '../net/remoteResource.js'
 import { createSessionWidgets } from '../widgets/sessionWidgets.js'
 import { createTrackWidgetsWithTrackRegistry } from '../widgets/trackWidgets.js'
 import SpacewalkEventBus from "../spacewalkEventBus.js"
@@ -15,6 +16,7 @@ import SettingsManager from "../settingsManager.js"
 import ScaleBarService from "../scaleBarService.js"
 import { showRelease } from "../utils/release.js"
 import { spacewalkConfig } from "../spacewalk-config.js"
+import { presentResourceError } from "../widgets/presentResourceError.js"
 
 /**
  * Initializer class responsible for bootstrapping all UI widgets and controls.
@@ -150,8 +152,11 @@ class UIBootstrapper {
                     const data = this.appContext.ensembleManager.createEventBusPayload();
                     SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
                 } catch (error) {
-                    if (error.userNotified) return
-                    console.error('Failed to load file:', error)
+                    const url = typeof fileOrPath === 'string' ? fileOrPath : undefined
+                    const what = typeof fileOrPath === 'string'
+                        ? fileOrPath.split('/').pop().split('?')[0]
+                        : fileOrPath.name
+                    presentResourceError(error, { what, url })
                 }
             }
         };
@@ -184,8 +189,17 @@ class UIBootstrapper {
             'spacewalk-session-save-modal',
             async config => {
                 const urlOrFile = config.url || config.file;
-                const json = await igvxhr.loadJson(urlOrFile);
-                await this.appContext.sessionService.loadSession(json);
+                try {
+                    // A pasted/launch URL goes through the remote-resource boundary
+                    // (classified errors, Dropbox masquerade); a local File still
+                    // reads via igvxhr (fetch can't read a File object).
+                    const json = typeof urlOrFile === 'string'
+                        ? await fetchJSON(urlOrFile)
+                        : await igvxhr.loadJson(urlOrFile);
+                    await this.appContext.sessionService.loadSession(json);
+                } catch (e) {
+                    presentResourceError(e, { what: 'the session', url: typeof urlOrFile === 'string' ? urlOrFile : undefined });
+                }
             },
             () => this.appContext.sessionService.toJSON()
         );

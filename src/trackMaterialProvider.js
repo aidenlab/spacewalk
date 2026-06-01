@@ -1,4 +1,5 @@
 import { rgb255, rgb255Lerp, rgb255ToThreeJSColor, blendColorsLab, hexOrRGB255StringtoRGB255 } from './utils/colorUtils.js'
+import { trackIdFromBrowser } from './trackId.js'
 
 class TrackMaterialProvider {
 
@@ -59,9 +60,8 @@ class TrackMaterialProvider {
     }
 
     getUniqueTrackId(track) {
-        // Create a unique identifier: trackName + index in browser
-        const trackIndex = track.browser.trackViews.findIndex(tv => tv.track === track);
-        return `${track.name}|${trackIndex}`;
+        // Canonical id scheme shared with MaterialProviderController (see src/trackId.js)
+        return trackIdFromBrowser(track, track.browser);
     }
 
     updateAggregatedColorList() {

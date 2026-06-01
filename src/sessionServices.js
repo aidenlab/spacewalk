@@ -5,6 +5,7 @@ import SpacewalkEventBus from './spacewalkEventBus.js'
 import { shortenURL } from "./share/shareHelper.js"
 import { SpacewalkGlobals } from './spacewalkGlobals.js'
 import GUIManager from "./guiManager.js"
+import { presentResourceError, presentResourceErrors } from "./widgets/presentResourceError.js"
 
 class SessionService {
 
@@ -20,16 +21,38 @@ class SessionService {
 
     async loadSession(json) {
 
-        await this.loadSpacewalkSession(json.spacewalk)
+        try {
+            await this.loadSpacewalkSession(json.spacewalk)
+        } catch (e) {
+            // The ensemble (.sw) is the spine of the restore and has already been
+            // reported by loadSpacewalkSession. Abort rather than load IGV/Juicebox
+            // against a half-purged scene.
+            return
+        }
+
+        // The ensemble spine is loaded. The remaining sub-loads are best-effort:
+        // a dead .hic map or a missing IGV track shouldn't blank the app or abort
+        // the rest of the restore. Collect each failure and report them together
+        // in one dialog at the end rather than throwing on the first (which used
+        // to skip everything after it) or stacking N separate dialogs.
+        const problems = []
 
         if (json.juicebox) {
-            await this.juiceboxPanel.loadSession(json.juicebox)
+            try {
+                await this.juiceboxPanel.loadSession(json.juicebox)
+            } catch (e) {
+                problems.push({ err: e, what: 'the Juicebox contact map' })
+            }
         } else {
             const { chr, genomicStart, genomicEnd } = json.spacewalk.locus
             this.juiceboxPanel.locus = `${chr}:${genomicStart}-${genomicEnd}`
         }
 
-        await this.loadIGVSession(json.spacewalk, json.igv)
+        try {
+            await this.loadIGVSession(json.spacewalk, json.igv)
+        } catch (e) {
+            problems.push({ err: e, what: 'the IGV tracks' })
+        }
 
         // CRITICAL: After all sessions are loaded, apply the session's ensemble locus as the single source of truth
         // This ensures that regardless of what locus each component (Juicebox, IGV) derived from
@@ -57,6 +80,12 @@ class SessionService {
         } catch (error) {
             console.warn('Error applying session ensemble locus to IGV after session load:', error.message)
         }
+
+        // One consolidated report for the best-effort sub-loads above. No-op when
+        // they all succeeded. (The locus re-applies are intentionally not folded
+        // in — they're lockstep sync of an already-loaded browser, not resource
+        // fetches, and stay as console warnings.)
+        presentResourceErrors(problems)
     }
 
     async loadIGVSession(spacewalk, igv) {
@@ -99,7 +128,8 @@ class SessionService {
             const data = this.ensembleManager.createEventBusPayload()
             SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
         } catch (error) {
-            console.error('Failed to load session:', error)
+            presentResourceError(error, { what: 'the Spacewalk ensemble', url })
+            throw error
         }
 
     }
@@ -191,36 +221,4 @@ class SessionService {
     }
 }
 
-function getUrlParams(url) {
-
-    const search = decodeURIComponent( url.slice( url.indexOf( '?' ) + 1 ) );
-
-    return search
-        .split('&')
-        .reduce((acc, key_value) => {
-
-            const [ key, value ] = key_value.split( '=', 2 );
-            acc[ key ] = value;
-            return acc;
-        }, {});
-
-}
-
-function uncompressSessionURL(sessionURL) {
-
-    if (sessionURL.indexOf('/gzip;base64') > 0) {
-
-        const bytes = BGZip.decodeDataURI(sessionURL, undefined)
-        let json = '';
-        for (let b of bytes) {
-            json += String.fromCharCode(b)
-        }
-        return json;
-    } else {
-
-        const enc = sessionURL.slice(5);
-        return BGZip.uncompressString(enc)
-    }
-}
-
-export { SessionService, getUrlParams, uncompressSessionURL };
+export { SessionService };
