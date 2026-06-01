@@ -52,7 +52,6 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
             onDragEnd(event, { left, top })
         }
 
-        SpacewalkEventBus.globalBus.post({ type: "DidEndRenderContainerDrag" })
         SpacewalkEventBus.globalBus.post({ type: "DidEndDrag", data: target.getAttribute('id') })
 
     }
