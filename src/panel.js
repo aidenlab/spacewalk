@@ -41,7 +41,6 @@ class Panel {
         });
 
         SpacewalkEventBus.globalBus.subscribe('DidSelectPanel', this)
-        SpacewalkEventBus.globalBus.subscribe('AppWindowDidResize', this)
         SpacewalkEventBus.globalBus.subscribe('DidEndDrag', this)
     }
 
@@ -49,10 +48,6 @@ class Panel {
 
         if ('DidSelectPanel' === type) {
             this.panel.style.zIndex = this.getClassName() === data ? zIndexPanelSelected : zIndexPanelUnselected;
-        } else if ('AppWindowDidResize' === type && !this.isHidden) {
-            const offset = this.getOffset();
-            this.panel.style.left = `${offset.left}px`;
-            this.panel.style.top = `${offset.top}px`;
         } else if ('DidEndDrag' === type && data && data === this.panel.getAttribute('id')) {
             this.setTopLeftPercentages(true);
         }
