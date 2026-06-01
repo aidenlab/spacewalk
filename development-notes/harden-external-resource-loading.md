@@ -1,7 +1,15 @@
 # Hardening: external-resource loading & failure modes
 
-Date: 2026-05-30
-Branch: TBD (`harden/external-resource-loading`)
+> **STATUS: COMPLETE (2026-06-01).** Phases 0–3 shipped to `main` across three PRs:
+> **#59** (Phases 0 + 1 — stop-the-bleeding + one error surface, plus the failed-load
+> freeze fix), **#60** (Phase 2 — the `src/net/remoteResource.js` boundary), **#61**
+> (Phase 3 — the consolidated session-load report). Phase 4 (retry/backoff, inline
+> relink affordance, parse-time URL validation) is explicitly deferred. See the
+> per-phase annotations in the commit plan below.
+
+Date: 2026-05-30 (completed 2026-06-01)
+Branch: `harden/external-resource-loading` (Phases 0+1), `harden/remote-resource-boundary`
+(Phase 2), `harden/session-load-transaction` (Phase 3) — all merged.
 Companion to: `~/Desktop/spacewalk-module-deepening-candidates.md` (this is a *separate* item — a
 cross-cutting reliability pass, not one of the three deepening candidates, all of which shipped).
 Shape: **stop-the-bleeding fixes → one error surface → a narrow remote-resource boundary**.
@@ -145,26 +153,44 @@ eye-audited in the viewport.
 
 ## Phased commit plan (tiny commits)
 
-### Phase 0 — Stop the bleeding (independent, ship first)
+### Phase 0 — Stop the bleeding (independent, ship first) — ✅ SHIPPED (#59)
 0a. Add `withSpinner` to `utils.js`; route `ensembleManager`/`SWBDatasource` show/hide through it.
 0b. Add the missing `await` in `sessionFileLoad.js:15`.
 0c. Global `unhandledrejection` + `error` listener in `main.js` → `presentResourceError`.
 0d. `loadSpacewalkSession` (`sessionServices.js:90`): surface + **abort** the restore on ensemble failure.
 
-### Phase 1 — One error surface
+### Phase 1 — One error surface — ✅ SHIPPED (#59)
 1a. `presentResourceError(err, { what, url })`; fix `alertDialog.js:81` status mapping.
 1b. Replace native `alert()` (`ensembleManager.js:25`, `juiceboxPanel.js:304`) and delete the
     `userNotified` flag (`ensembleManager.js:27`, `ensembleIngestionController.js:52`).
 
-### Phase 2 — The boundary (the deepening)
+> **Follow-up fix (also in #59):** a failed load froze the 3D viewport. `App.render()`
+> gates the whole render loop on `sceneManager.isGood2Go()`, which needs the gnomon/
+> groundplane fixtures; the failure path's `purgeScene()` disposed them, stranding the
+> loop. Fix: drop `purgeScene()` from the ingestion catch blocks — the load throws
+> before any scene mutation, so the prior scene stays intact and interactive (a clean
+> rollback, previewing Phase 3's transaction thinking).
+
+### Phase 2 — The boundary (the deepening) — ✅ SHIPPED (#60)
 2a. Add `src/net/remoteResource.js` + `remoteResource.test.js` (pure core: normalize/classify) — green.
-2b. Route session JSON (`uiBootstrapper.js:187`), color maps, track/genome registries through `fetchJSON`.
+    *(13 by-value tests; the pure core is zero-import so it loads under `vitest run`.)*
+2b. Route session JSON (`uiBootstrapper.js`), track/genome registries through `fetchJSON`.
+    > **Deviation:** color maps were **not** routed through `fetchJSON`. `colorMapManager`
+    > fetches a PNG **blob** (not JSON) and already degrades gracefully to built-in maps —
+    > a dialog for an optional missing colormap would be worse, not better.
 2c. `.sw` preflight in `SWBDatasource.load` via `probe`; detect 404/403 + HTML-masquerade.
+    > Only **definitive** kinds (not-found/forbidden/unauthorized/not-expected-format) abort;
+    > a `network`-kind probe failure falls through to `openH5File` so a transient/CORS hiccup
+    > the reader wouldn't hit never false-aborts a working load. Local files skip the probe.
 
-### Phase 3 — Session-load transaction
-3a. Make `loadSession` (`sessionServices.js:21`) all-or-nothing for the spine; consolidate the report.
+### Phase 3 — Session-load transaction — ✅ SHIPPED (#61)
+3a. The spine-abort landed early in 0d. Phase 3 added the **consolidated report**: extract
+    `formatResourceError` + add `presentResourceErrors(problems)`; `loadSession` wraps the
+    best-effort sub-loads (Juicebox map, IGV session), continues the restore on failure, and
+    reports them together in one dialog. Locus re-applies stay as `console.warn` (lockstep
+    sync of an already-loaded browser, not resource fetches).
 
-### Phase 4 — Optional resilience (defer)
+### Phase 4 — Optional resilience — ⏸️ DEFERRED (not started)
 - Retry/backoff for transient (non-4xx) errors only.
 - Inline "resource unavailable — relink" affordance so a dead URL isn't a dead end.
 - Validate session URLs at parse time (`launchIntent`).
