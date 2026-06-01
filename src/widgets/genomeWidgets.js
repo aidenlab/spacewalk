@@ -2,6 +2,8 @@ import {createModalTable, GenericDataSource} from 'infinite-table/src/index.js'
 import {StringUtils} from 'igv-utils'
 import Globals from "../globals.js"
 import AlertSingleton from "./alertSingleton.js"
+import { fetchJSON } from '../net/remoteResource.js'
+import { presentResourceError } from './presentResourceError.js'
 import {createURLModalElement} from "./urlModal.js"
 import FileLoadManager from "./fileLoadManager.js"
 import FileLoadWidget from "./fileLoadWidget.js"
@@ -88,19 +90,13 @@ async function getAppLaunchGenomes(genomes) {
     }
     if (Array.isArray(genomes)) {
         return genomes
-    } else {
+    }
 
-        let response = undefined
-        try {
-            response = await fetch(genomes)
-        } catch (e) {
-            AlertSingleton.present(e.message)
-        }
-
-        if (response) {
-            let json = await response.json()
-            return json
-        }
+    try {
+        return await fetchJSON(genomes)
+    } catch (e) {
+        presentResourceError(e, { what: 'the genome list', url: genomes })
+        return undefined
     }
 }
 

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { igvxhr } from 'igv-utils'
+import { fetchJSON } from '../net/remoteResource.js'
 import { createSessionWidgets } from '../widgets/sessionWidgets.js'
 import { createTrackWidgetsWithTrackRegistry } from '../widgets/trackWidgets.js'
 import SpacewalkEventBus from "../spacewalkEventBus.js"
@@ -188,8 +189,17 @@ class UIBootstrapper {
             'spacewalk-session-save-modal',
             async config => {
                 const urlOrFile = config.url || config.file;
-                const json = await igvxhr.loadJson(urlOrFile);
-                await this.appContext.sessionService.loadSession(json);
+                try {
+                    // A pasted/launch URL goes through the remote-resource boundary
+                    // (classified errors, Dropbox masquerade); a local File still
+                    // reads via igvxhr (fetch can't read a File object).
+                    const json = typeof urlOrFile === 'string'
+                        ? await fetchJSON(urlOrFile)
+                        : await igvxhr.loadJson(urlOrFile);
+                    await this.appContext.sessionService.loadSession(json);
+                } catch (e) {
+                    presentResourceError(e, { what: 'the session', url: typeof urlOrFile === 'string' ? urlOrFile : undefined });
+                }
             },
             () => this.appContext.sessionService.toJSON()
         );
