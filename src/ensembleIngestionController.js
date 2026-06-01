@@ -1,5 +1,6 @@
 import GUIManager from './guiManager.js'
 import PointCloud from './pointCloud.js'
+import SpacewalkEventBus from './spacewalkEventBus.js'
 import { unsetDataMaterialProviderCheckbox } from './utils/utils.js'
 
 /**
@@ -36,8 +37,8 @@ class EnsembleIngestionController {
 
             unsetDataMaterialProviderCheckbox(igvPanel)
             // Flip IGVPanel off the now-empty trackMaterialProvider before
-            // anyone repaints through it. DidLoadEnsembleFile would do this
-            // too, but it fires after this method returns.
+            // anyone repaints through it (including the in-method repaint below
+            // and the DidLoadEnsembleFile subscribers we notify at the end).
             igvPanel.materialProvider = colorRampMaterialProvider
             sceneManager.updateMaterialProvider(colorRampMaterialProvider)
             genomicNavigator.repaint()
@@ -48,6 +49,8 @@ class EnsembleIngestionController {
             }
 
             await igvPanel.locusDidChange(ensembleManager.locus)
+
+            this.announceDidLoadEnsembleFile()
         } catch (error) {
             // Leave the prior scene intact and interactive rather than purging it.
             // The load throws before we touch any scene/ensemble state (datasource
@@ -76,6 +79,8 @@ class EnsembleIngestionController {
             genomicNavigator.repaint()
 
             await igvPanel.locusDidChange(ensembleManager.locus)
+
+            this.announceDidLoadEnsembleFile()
         } catch (error) {
             // See ingestEnsemblePath: leave the prior scene intact rather than
             // purging it (which would freeze the render loop). Clean rollback.
@@ -84,6 +89,13 @@ class EnsembleIngestionController {
         } finally {
             sceneManager.isLoading = false
         }
+    }
+
+    // Single source for DidLoadEnsembleFile. Both ingest paths announce here on
+    // success, so no caller has to remember to post the event itself.
+    announceDidLoadEnsembleFile() {
+        const data = this.ensembleManager.createEventBusPayload()
+        SpacewalkEventBus.globalBus.post({ type: 'DidLoadEnsembleFile', data })
     }
 }
 
