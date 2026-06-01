@@ -3,7 +3,6 @@ import { igvxhr } from 'igv-utils'
 import { fetchJSON } from '../net/remoteResource.js'
 import { createSessionWidgets } from '../widgets/sessionWidgets.js'
 import { createTrackWidgetsWithTrackRegistry } from '../widgets/trackWidgets.js'
-import SpacewalkEventBus from "../spacewalkEventBus.js"
 import TraceSelector from '../traceSelector.js'
 import GenomicNavigator from '../genomicNavigator.js'
 import { highlightColor } from "../utils/colorUtils.js"
@@ -149,8 +148,6 @@ class UIBootstrapper {
             load: async fileOrPath => {
                 try {
                     await this.appContext.ensembleIngestionController.ingestEnsemblePath(fileOrPath, '0', undefined);
-                    const data = this.appContext.ensembleManager.createEventBusPayload();
-                    SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
                 } catch (error) {
                     const url = typeof fileOrPath === 'string' ? fileOrPath : undefined
                     const what = typeof fileOrPath === 'string'
@@ -169,7 +166,6 @@ class UIBootstrapper {
             ensembleGroupModalId: 'spacewalk-ensemble-group-select-modal',
             dropboxButton: document.getElementById('spacewalk-sw-dropbox-button'),
             fileLoader,
-            getEnsembleManager: () => this.appContext.ensembleManager,
             getEnsembleIngestionController: () => this.appContext.ensembleIngestionController
         };
 

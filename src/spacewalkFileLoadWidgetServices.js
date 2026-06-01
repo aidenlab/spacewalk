@@ -5,7 +5,7 @@ let traceURLlModal
 let traceSelectModal
 let ensembleGroupModal
 
-function createSpacewalkFileLoaders ({ rootContainer, localFileInput, urlLoadModalId, traceModalId, ensembleGroupModalId, dropboxButton, fileLoader, getEnsembleManager, getEnsembleIngestionController }) {
+function createSpacewalkFileLoaders ({ rootContainer, localFileInput, urlLoadModalId, traceModalId, ensembleGroupModalId, dropboxButton, fileLoader, getEnsembleIngestionController }) {
 
     // local file
     localFileInput.addEventListener('change', async () => {
@@ -21,7 +21,7 @@ function createSpacewalkFileLoaders ({ rootContainer, localFileInput, urlLoadMod
     traceSelectModal = createAndConfigureTraceSelectModal(rootContainer, traceModalId, async path => await fileLoader.load(path))
 
     // Ensemble group from select list
-    ensembleGroupModal = createAndConfigureEnsembleGroupSelectModal(rootContainer, ensembleGroupModalId, getEnsembleManager, getEnsembleIngestionController)
+    ensembleGroupModal = createAndConfigureEnsembleGroupSelectModal(rootContainer, ensembleGroupModalId, getEnsembleIngestionController)
 
     // Dropbox
     dropboxButton.addEventListener('click', () => {
@@ -115,7 +115,7 @@ function createAndConfigureTraceSelectModal(parentElement, traceModalId, fileLoa
 
 }
 
-function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroupModalId, getEnsembleManager, getEnsembleIngestionController) {
+function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroupModalId, getEnsembleIngestionController) {
 
     const modalElement = createEnsembleGroupModalElement(ensembleGroupModalId)
     parentElement.appendChild(modalElement)
@@ -132,10 +132,6 @@ function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroup
 
         try {
             await getEnsembleIngestionController().ingestEnsembleGroup(selectElement.value)
-
-            const data = getEnsembleManager().createEventBusPayload()
-
-            SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
         } catch (error) {
             console.error('Failed to load ensemble group:', error)
         }

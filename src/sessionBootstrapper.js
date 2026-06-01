@@ -1,4 +1,3 @@
-import SpacewalkEventBus from './spacewalkEventBus.js'
 import { hideGlobalSpinner } from './utils/utils.js'
 import { parseLaunchIntent } from './launchIntent.js'
 import { uncompressSessionURL } from './sessionURLCodec.js'
@@ -11,8 +10,7 @@ import { uncompressSessionURL } from './sessionURLCodec.js'
  */
 class SessionBootstrapper {
 
-    constructor({ ensembleManager, ensembleIngestionController, sessionService }) {
-        this.ensembleManager = ensembleManager
+    constructor({ ensembleIngestionController, sessionService }) {
         this.ensembleIngestionController = ensembleIngestionController
         this.sessionService = sessionService
     }
@@ -26,8 +24,6 @@ class SessionBootstrapper {
             case 'file':
                 try {
                     await this.ensembleIngestionController.ingestEnsemblePath(intent.fileURL, intent.traceKey, intent.ensembleGroupKey)
-                    const data = this.ensembleManager.createEventBusPayload()
-                    SpacewalkEventBus.globalBus.post({ type: 'DidLoadEnsembleFile', data })
                 } catch (error) {
                     console.error('Failed to load file from URL params:', error)
                     hideGlobalSpinner()
