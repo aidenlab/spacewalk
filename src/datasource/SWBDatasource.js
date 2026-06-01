@@ -3,6 +3,7 @@ import {openH5File} from 'hdf5-indexed-reader'
 import {FileUtils} from 'igv-utils'
 import { SpacewalkGlobals } from '../spacewalkGlobals.js'
 import {withSpinner} from "../utils/utils";
+import { probe, KIND } from "../net/remoteResource.js"
 import {createBoundingBoxWithFlatXYZList, cullDuplicateXYZ} from "../utils/mathUtils.js"
 import SpacewalkEventBus from "../spacewalkEventBus.js"
 import { updateEnsembleGroupDisplay } from "../guiManager.js"
@@ -22,6 +23,21 @@ class SWBDatasource {
     async load(path, ensembleGroupKey) {
 
         SpacewalkGlobals.url = false === FileUtils.isFilePath(path) ? path : undefined
+
+        // Preflight a remote .sw before the heavyweight open. A dead Dropbox/S3
+        // link otherwise surfaces as a cryptic error deep inside the HDF5 reader
+        // (or, for a dl=0 preview link, a parse error on the returned HTML page).
+        // The probe turns 404/403/401 and the HTML-masquerade into one clean
+        // classified RemoteError. Definitive failures abort; a probe that itself
+        // can't connect (kind 'network' — a transient/CORS hiccup the reader may
+        // not hit) falls through to openH5File so we never false-abort a load
+        // that would have worked.
+        if (false === FileUtils.isFilePath(path)) {
+            const remoteError = await probe(path, { expect: 'hdf5' })
+            if (remoteError && KIND.NETWORK !== remoteError.kind) {
+                throw remoteError
+            }
+        }
 
         // Override hdf5-indexed-reader's default fetchSize=2000/maxSize=200000.
         // On high-latency hosts (Dropbox ~500ms RTT), those defaults produce

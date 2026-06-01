@@ -1,6 +1,8 @@
 import {createModalTable, GenericDataSource} from 'infinite-table/src/index.js'
 import {encodeTrackDatasourceConfigurator, supportsGenome} from './encodeTrackDatasourceConfigurator.js'
 import AlertSingleton from './alertSingleton.js'
+import { fetchJSON } from '../net/remoteResource.js'
+import { presentResourceError } from './presentResourceError.js'
 import {createGenericSelectModalElement} from './genericSelectModal.js'
 import {createTrackURLModalElement} from './trackURLModal.js'
 import FileLoadManager from "./fileLoadManager.js"
@@ -268,18 +270,11 @@ async function getPathsWithTrackRegistry(genomeID, trackRegistry) {
         return undefined
     }
 
-    let responses = []
-    try {
-        responses = await Promise.all(JSONFilePaths.map(path => fetch(path)))
-    } catch (e) {
-        AlertSingleton.present(e.message)
-    }
-
     let trackConfigurations = []
     try {
-        trackConfigurations = await Promise.all(responses.map(response => response.json()))
+        trackConfigurations = await Promise.all(JSONFilePaths.map(path => fetchJSON(path)))
     } catch (e) {
-        AlertSingleton.present(e.message)
+        presentResourceError(e, { what: 'a track registry' })
     }
 
     return trackConfigurations
@@ -288,19 +283,11 @@ async function getPathsWithTrackRegistry(genomeID, trackRegistry) {
 
 async function getPathsWithTrackRegistryFile(genomeID, trackRegistryFile) {
 
-    let response = undefined
-    try {
-        response = await fetch(trackRegistryFile)
-    } catch (e) {
-        console.error(e)
-    }
-
     let trackRegistry = undefined
-    if (response) {
-        trackRegistry = await response.json()
-    } else {
-        const e = new Error("Error retrieving registry via getPathsWithTrackRegistryFile()")
-        AlertSingleton.present(e.message)
+    try {
+        trackRegistry = await fetchJSON(trackRegistryFile)
+    } catch (e) {
+        presentResourceError(e, { what: 'the track registry', url: trackRegistryFile })
         throw e
     }
 
@@ -311,18 +298,11 @@ async function getPathsWithTrackRegistryFile(genomeID, trackRegistryFile) {
         return undefined
     }
 
-    let responses = []
-    try {
-        responses = await Promise.all(JSONFilePaths.map(path => fetch(path)))
-    } catch (e) {
-        AlertSingleton.present(e.message)
-    }
-
     let trackConfigurations = []
     try {
-        trackConfigurations = await Promise.all(responses.map(response => response.json()))
+        trackConfigurations = await Promise.all(JSONFilePaths.map(path => fetchJSON(path)))
     } catch (e) {
-        AlertSingleton.present(e.message)
+        presentResourceError(e, { what: 'a track registry' })
     }
 
     return trackConfigurations
