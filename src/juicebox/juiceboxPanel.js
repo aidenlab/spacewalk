@@ -3,6 +3,7 @@ import SpacewalkEventBus from '../spacewalkEventBus.js'
 import Panel from '../panel.js'
 import LiveMapView from './liveMapView.js'
 import {appleCrayonColorRGB255, rgb255String} from "../utils/colorUtils"
+import { presentResourceError } from "../widgets/presentResourceError.js"
 
 class JuiceboxPanel extends Panel {
 
@@ -106,9 +107,8 @@ class JuiceboxPanel extends Panel {
                 throw new Error('Failed to create browser instance after session restore')
             }
         } catch (e) {
-            const error = new Error(`Error loading Juicebox Session ${ e.message }`)
-            console.error(error.message)
-            alert(error.message)
+            console.error('Error loading Juicebox Session', e)
+            presentResourceError(e, { what: 'the Hi-C map session' })
             this.browser = null
             return
         }
@@ -300,9 +300,8 @@ class JuiceboxPanel extends Panel {
             }
 
         } catch (e) {
-            const error = new Error(`Error loading ${ url }: ${ e }`)
-            console.error(error.message)
-            alert(error.message)
+            console.error(`Error loading ${ url }`, e)
+            presentResourceError(e, { what: 'the Hi-C map', url })
         }
 
     }

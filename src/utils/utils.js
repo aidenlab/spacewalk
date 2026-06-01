@@ -17,6 +17,18 @@ function hideGlobalSpinner() {
     document.getElementById('spacewalk-spinner').style.display = 'none'
 }
 
+// Run an async operation with the global spinner shown, guaranteeing the
+// spinner is hidden afterward even if the operation throws. Replaces hand-paired
+// showGlobalSpinner()/hideGlobalSpinner() calls that strand the spinner on failure.
+async function withSpinner(fn) {
+    showGlobalSpinner()
+    try {
+        return await fn()
+    } finally {
+        hideGlobalSpinner()
+    }
+}
+
 function unsetDataMaterialProviderCheckbox(igvPanel) {
     const trackViews = igvPanel.browser?.trackViews ?? [];
     for (const trackView of trackViews) {
@@ -157,6 +169,7 @@ export {
     isWebGL2Supported,
     showGlobalSpinner,
     hideGlobalSpinner,
+    withSpinner,
     unsetDataMaterialProviderCheckbox,
     createImage,
     transferRGBAMatrixToLiveMapCanvas,

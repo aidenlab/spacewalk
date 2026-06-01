@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import {openH5File} from 'hdf5-indexed-reader'
 import {FileUtils} from 'igv-utils'
 import { SpacewalkGlobals } from '../spacewalkGlobals.js'
-import {hideGlobalSpinner, showGlobalSpinner} from "../utils/utils";
+import {withSpinner} from "../utils/utils";
 import {createBoundingBoxWithFlatXYZList, cullDuplicateXYZ} from "../utils/mathUtils.js"
 import SpacewalkEventBus from "../spacewalkEventBus.js"
 import { updateEnsembleGroupDisplay } from "../guiManager.js"
@@ -38,19 +38,18 @@ class SWBDatasource {
 
     async initialize(hdf5, ensembleGroupKey) {
 
-        showGlobalSpinner()
+        await withSpinner(async () => {
 
-        this.hdf5 = hdf5
-        const headerGroup = await hdf5.get('/Header')
-        this.header = await headerGroup.attrs
+            this.hdf5 = hdf5
+            const headerGroup = await hdf5.get('/Header')
+            this.header = await headerGroup.attrs
 
-        this.ensembleGroupKeys = await getEnsembleGroupKeys(hdf5)
+            this.ensembleGroupKeys = await getEnsembleGroupKeys(hdf5)
 
-        this.currentEnsembleGroupKey = ensembleGroupKey || this.ensembleGroupKeys[ 0 ]
+            this.currentEnsembleGroupKey = ensembleGroupKey || this.ensembleGroupKeys[ 0 ]
 
-        await this.updateWithEnsembleGroupKey(this.currentEnsembleGroupKey)
-
-        hideGlobalSpinner()
+            await this.updateWithEnsembleGroupKey(this.currentEnsembleGroupKey)
+        })
 
 
         // Update the ensemble group select list with list of ensemble group keys, if more than one.
@@ -106,47 +105,46 @@ class SWBDatasource {
 
     async createTrace(i) {
 
-        showGlobalSpinner()
+        return await withSpinner(async () => {
 
-        let str = `createTrace() - retrieve dataset: ${ this.currentEnsembleGroupKey }/spatial_position/t_${i}`
-        console.time(str)
-        const traceDataset = await this.hdf5.get( `${ this.currentEnsembleGroupKey }/spatial_position/t_${i}` )
-        const traceValues = await traceDataset.value
-        console.timeEnd(str)
+            let str = `createTrace() - retrieve dataset: ${ this.currentEnsembleGroupKey }/spatial_position/t_${i}`
+            console.time(str)
+            const traceDataset = await this.hdf5.get( `${ this.currentEnsembleGroupKey }/spatial_position/t_${i}` )
+            const traceValues = await traceDataset.value
+            console.timeEnd(str)
 
-        this.currentTraceIndex = i
+            this.currentTraceIndex = i
 
-        str = `createTrace() - build ${ true === this.isPointCloud ? 'pointcloud' : 'ball & stick' } trace`
-        console.time(str)
+            str = `createTrace() - build ${ true === this.isPointCloud ? 'pointcloud' : 'ball & stick' } trace`
+            console.time(str)
 
-        let trace
-        if (true === this.isPointCloud) {
+            let trace
+            if (true === this.isPointCloud) {
 
-            const { genomicExtentList, regionXYZDictionary, regionIndexStrings } = createGenomicExtentList(traceValues, this.globaleGenomicExtentList)
+                const { genomicExtentList, regionXYZDictionary, regionIndexStrings } = createGenomicExtentList(traceValues, this.globaleGenomicExtentList)
 
-            this.currentGenomicExtentList = genomicExtentList
+                this.currentGenomicExtentList = genomicExtentList
 
-            trace = genomicExtentList.map((genomicExtent, index) => {
-                const key = regionIndexStrings[ index ]
-                return createPointCloudPayload(key, genomicExtent, regionXYZDictionary[ key ])
-            })
-        } else {
+                trace = genomicExtentList.map((genomicExtent, index) => {
+                    const key = regionIndexStrings[ index ]
+                    return createPointCloudPayload(key, genomicExtent, regionXYZDictionary[ key ])
+                })
+            } else {
 
-            this.currentGenomicExtentList = this.globaleGenomicExtentList
+                this.currentGenomicExtentList = this.globaleGenomicExtentList
 
-            const xyzList = createCleanFlatXYZList(traceValues)
+                const xyzList = createCleanFlatXYZList(traceValues)
 
-            trace = xyzList.map((xyz, index) => {
-                const { interpolant } = this.currentGenomicExtentList[ index ]
-                return { interpolant, xyz, drawUsage: THREE.StaticDrawUsage}
-            })
+                trace = xyzList.map((xyz, index) => {
+                    const { interpolant } = this.currentGenomicExtentList[ index ]
+                    return { interpolant, xyz, drawUsage: THREE.StaticDrawUsage}
+                })
 
-        }
-        console.timeEnd(str)
+            }
+            console.timeEnd(str)
 
-        hideGlobalSpinner()
-
-        return trace
+            return trace
+        })
 
     }
 

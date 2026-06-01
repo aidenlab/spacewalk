@@ -15,6 +15,7 @@ import SettingsManager from "../settingsManager.js"
 import ScaleBarService from "../scaleBarService.js"
 import { showRelease } from "../utils/release.js"
 import { spacewalkConfig } from "../spacewalk-config.js"
+import { presentResourceError } from "../widgets/presentResourceError.js"
 
 /**
  * Initializer class responsible for bootstrapping all UI widgets and controls.
@@ -150,8 +151,11 @@ class UIBootstrapper {
                     const data = this.appContext.ensembleManager.createEventBusPayload();
                     SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data });
                 } catch (error) {
-                    if (error.userNotified) return
-                    console.error('Failed to load file:', error)
+                    const url = typeof fileOrPath === 'string' ? fileOrPath : undefined
+                    const what = typeof fileOrPath === 'string'
+                        ? fileOrPath.split('/').pop().split('?')[0]
+                        : fileOrPath.name
+                    presentResourceError(error, { what, url })
                 }
             }
         };
