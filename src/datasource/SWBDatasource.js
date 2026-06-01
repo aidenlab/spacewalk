@@ -5,8 +5,8 @@ import { SpacewalkGlobals } from '../spacewalkGlobals.js'
 import {withSpinner} from "../utils/utils";
 import { probe, KIND } from "../net/remoteResource.js"
 import {createBoundingBoxWithFlatXYZList, cullDuplicateXYZ} from "../utils/mathUtils.js"
-import SpacewalkEventBus from "../spacewalkEventBus.js"
 import { updateEnsembleGroupDisplay } from "../guiManager.js"
+import { updateEnsembleGroupSelect } from "../spacewalkFileLoadWidgetServices.js"
 
 class SWBDatasource {
 
@@ -70,7 +70,7 @@ class SWBDatasource {
 
         // Update the ensemble group select list with list of ensemble group keys, if more than one.
         if (this.ensembleGroupKeys.length > 1) {
-            SpacewalkEventBus.globalBus.post({ type: 'DidLoadSWBEnsembleGroup', data: this.ensembleGroupKeys })
+            updateEnsembleGroupSelect(this.ensembleGroupKeys)
         }
 
         let genomeAssembly
