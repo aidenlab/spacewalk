@@ -15,19 +15,38 @@ observable selection → one reconciler → one per-viz `renderHighlight`**.
 
 ## Trigger
 
-Mousing the genomic-navigator color ramp does **not** highlight the 3D structure **for point
-cloud**. Ball-and-stick highlights fine from the navigator; the IGV and Juicebox cursors highlight
-point cloud fine. So the same visualization is highlightable from one input and not another, and
-the same input highlights one render style and not another. That asymmetry is the tell: the bug is
-not a missing call, it's a design where each (input × render-style) pair is wired independently and
-only the self-consistent pairs happen to work.
+> **Bug surface (confirmed 2026-06-02):** the **genomic navigator's own highlight strip** — the
+> overlay band painted on the color ramp itself (`#spacewalk_color_ramp_canvas_highlight` /
+> `highlight_ctx`, drawn by `paintWithInterpolantWindowList`) — **not** the 3D structure highlight.
+> An earlier diagnosis mislabeled this as "the 3D structure doesn't highlight"; the 3D point-cloud
+> highlight from the navigator actually works (Phase 1 confirmed the selection tracks and the
+> delegate reaches `PointCloudHighlighter` with a valid mesh). What's missing is the strip.
+
+Mousing the navigator ramp in **point-cloud** mode does **not** paint the navigator's own highlight
+strip. It paints fine in ball-and-stick and ribbon mode. The split has a precise mechanism — who
+paints the strip differs per render style:
+
+- **Ribbon:** `onCanvasMouseMove` calls `highlightFromInterpolant` directly (`genomicNavigator.js:98`),
+  but **only** under `renderStyle === Ribbon.renderStyle`. ✅
+- **Ball-and-stick:** the navigator drives the 3D highlighter, and `BallHighlighter.highlight()`
+  **reaches back** with `genomicNavigator.highlightWithInterpolantWindowList(...)`
+  (`ballHighlighter.js:57`) — the strip is painted as a *side effect of the 3D highlighter*. ✅
+- **Point cloud:** `PointCloudHighlighter` holds **no `genomicNavigator` reference at all** (its
+  constructor takes only `ensembleManager`, `igvPanel`) and never calls back. Nothing paints the
+  strip. ❌
+
+So the navigator strip is the navigator's own concern in exactly one render style (ribbon), is
+carried by a backward highlighter→input coupling in another (ball), and is carried by nobody in the
+third (point cloud). The strip's upkeep was never owned by the navigator; it leaks out of whichever
+3D highlighter happens to call home.
 
 Repro: `data/pointcloud/single-trace-multiple-genomic-locations.sw` (1 trace, 9 contiguous chr19
-regions, no gaps), render style = point cloud, mouse the navigator ramp.
+regions, no gaps), render style = point cloud, mouse the navigator ramp — the strip stays blank.
 
 **This bug is pre-existing** — git-confirmed the highlight-path files are byte-for-byte unchanged
-across the entire event-bus arc. The event-bus cleanup did not cause it and a point fix would not
-retire the class of bug it represents.
+across the entire event-bus arc. The event-bus cleanup did not cause it and a one-line point fix
+(ungate the navigator's self-paint for all render styles) would mask it without removing the
+backward coupling that makes the strip's ownership ambiguous.
 
 ## How highlighting works today
 
@@ -73,11 +92,14 @@ how the producers interleave.
 
 ## The defect, stated structurally
 
-The diagnosis (via temporary console probes, since reverted): on the navigator → point-cloud path,
-the call reaches `PointCloudHighlighter.highlightWithObjectList` with a **valid mesh**
-(`objectCount:1, anyUndefined:false`) and runs `highlight()`. It is **not** a missing or broken
-call. The highlight is applied and then clobbered, because the highlighter is a piece of imperative
-state that four producers and three clear-paths all write through without any of them owning it.
+The visible bug (navigator strip blank in point-cloud mode) is the symptom; the structural defect
+is that **no single thing owns "what is highlighted," and the navigator strip in particular has no
+owner** — it is repainted as a side effect of whichever 3D highlighter happens to call back, so it
+exists in ribbon (self-painted) and ball (highlighter back-call) and vanishes in point cloud
+(no back-call). The Phase 1 selection-state instrumentation confirmed the 3D path itself is fine:
+the delegate reaches `PointCloudHighlighter.highlightWithObjectList` with a valid mesh and the
+selection tracks cleanly with no clobber. The breakage is purely "the strip is rendered by nobody,"
+not "the highlight is computed wrong."
 
 Concrete fragilities that make this inevitable:
 
@@ -95,9 +117,13 @@ Concrete fragilities that make this inevitable:
 5. **A producer with a side-channel.** The navigator additionally pokes IGV's cursor guide
    (`genomicNavigator.js:93`), which can re-enter `delegateGenomicInterpolant` through IGV's
    handler — a second writer firing inside the first writer's call.
-6. **The highlighter reaches back into a producer.** `BallHighlighter.highlight()` calls
-   `genomicNavigator.highlightWithInterpolantWindowList` (`ballHighlighter.js:57`) — the renderer
-   driving an input. The data flow is a cycle, not a pipeline.
+6. **The highlighter reaches back into a producer — and this *is* the bug.**
+   `BallHighlighter.highlight()` calls `genomicNavigator.highlightWithInterpolantWindowList`
+   (`ballHighlighter.js:57`): the 3D renderer drives the navigator-strip renderer. The strip's
+   upkeep rides on this cycle, so it works only where the cycle exists (ball) and dies where it
+   doesn't (point cloud, whose highlighter has no navigator reference). Making the strip a
+   first-class renderer of the shared selection deletes this back-call and the per-style asymmetry
+   in one move.
 
 ## Proposed design — one state, many writers, one renderer
 
