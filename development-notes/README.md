@@ -25,7 +25,8 @@ Last groomed: 2026-06 (post Phase 3 DI completion).
 | [interaction-diagram-spacewalk-igv.md](interaction-diagram-spacewalk-igv.md) | Current | Before editing `IGVPanel.js` or anything in `js/widgets/trackWidgets.js` |
 | [interaction-diagram-spacewalk-juicebox.md](interaction-diagram-spacewalk-juicebox.md) | Current | Before editing `js/juicebox/` — live contact/distance maps, hic-straw integration |
 | [refactor-juiceboxpanel-live-map-view.md](refactor-juiceboxpanel-live-map-view.md) | Proposal | RFC to extract the live-map render surface out of `JuiceboxPanel` into a `LiveMapView` and break the panel↔service cycle (tech-debt item #5, candidate 2) |
-| [refactor-event-bus-usage.md](refactor-event-bus-usage.md) | Proposal | RFC to clean up global event-bus usage — delete the dead second bus + unused machinery, give `DidLoadEnsembleFile` a single source, demote point-to-point "events" back to calls |
+| [refactor-event-bus-usage.md](refactor-event-bus-usage.md) | Proposal | RFC to clean up global event-bus usage — delete the dead second bus + unused machinery, give `DidLoadEnsembleFile` a single source, demote point-to-point "events" back to calls (Phases 0–2 shipped #62–#64; Phase 3 rolled into the highlighting RFC below) |
+| [refactor-highlighting-redesign.md](refactor-highlighting-redesign.md) | Proposal | RFC to rebuild highlighting as "one state, many writers, one renderer" — fixes the point-cloud-from-navigator bug class and subsumes event-bus Phase 3. Read before touching `picker.js`, the `*Highlighter` classes, or any `delegate*`/`handleGenomicInterpolant` path |
 | [threejs/spacewalk-color-management-audit.md](threejs/spacewalk-color-management-audit.md) | Current | When working on color rendering across the Three.js pipeline |
 | [threejs/threejs-transparency-notes.md](threejs/threejs-transparency-notes.md) | Reference | When debugging transparency / depth-sort issues in Three.js |
 
