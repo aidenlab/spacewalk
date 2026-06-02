@@ -1,9 +1,9 @@
 import {FileUtils, URIUtils} from 'igv-utils'
-import SpacewalkEventBus from './spacewalkEventBus.js'
 
 let traceURLlModal
 let traceSelectModal
 let ensembleGroupModal
+let ensembleGroupSelectElement
 
 function createSpacewalkFileLoaders ({ rootContainer, localFileInput, urlLoadModalId, traceModalId, ensembleGroupModalId, dropboxButton, fileLoader, getEnsembleIngestionController }) {
 
@@ -123,6 +123,7 @@ function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroup
     const modal = new bootstrap.Modal(modalElement)
 
     const selectElement = modalElement.querySelector('select')
+    ensembleGroupSelectElement = selectElement
 
     selectElement.addEventListener('change', async event => {
 
@@ -138,37 +139,39 @@ function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroup
 
     })
 
-    const loadEventHandler = ({ data }) => {
-
-        // discard pre-exisiting option elements
-        selectElement.innerHTML = ''
-
-        selectElement.appendChild(createPlaceholderOptionElement())
-
-        // sort
-        const sorted = data.sort((a, b) => {
-            // Extract the first number after the initial string
-            const firstNumberA = parseInt(a.match(/^\D+(\d+)/)?.[1] || 0, 10);
-            const firstNumberB = parseInt(b.match(/^\D+(\d+)/)?.[1] || 0, 10);
-
-            // Extract the second number, whether it's foo23, foo_23, or foo_03
-            const secondNumberA = parseInt(a.match(/\D(\d+)$/)?.[1] || 0, 10);
-            const secondNumberB = parseInt(b.match(/\D(\d+)$/)?.[1] || 0, 10);
-
-            // Sort by the first number, then by the second number
-            return firstNumberA - firstNumberB || secondNumberA - secondNumberB;
-        });
-
-        for (const key of sorted ) {
-            const html = `<option value=\"${ key }\">${ key }</option>`
-            const fragment = document.createRange().createContextualFragment(html)
-            selectElement.appendChild(fragment.firstChild)
-        }
-    }
-
-    SpacewalkEventBus.globalBus.subscribe('DidLoadSWBEnsembleGroup', loadEventHandler)
-
     return modal
+}
+
+// Populate the ensemble-group <select> with the keys discovered in a multi-group
+// .sw. SWBDatasource calls this directly on load — mirroring its direct
+// updateEnsembleGroupDisplay() call in the same path (replaces the former
+// DidLoadSWBEnsembleGroup event, whose sole subscriber was this select).
+function updateEnsembleGroupSelect(ensembleGroupKeys) {
+
+    // discard pre-exisiting option elements
+    ensembleGroupSelectElement.innerHTML = ''
+
+    ensembleGroupSelectElement.appendChild(createPlaceholderOptionElement())
+
+    // sort
+    const sorted = ensembleGroupKeys.sort((a, b) => {
+        // Extract the first number after the initial string
+        const firstNumberA = parseInt(a.match(/^\D+(\d+)/)?.[1] || 0, 10);
+        const firstNumberB = parseInt(b.match(/^\D+(\d+)/)?.[1] || 0, 10);
+
+        // Extract the second number, whether it's foo23, foo_23, or foo_03
+        const secondNumberA = parseInt(a.match(/\D(\d+)$/)?.[1] || 0, 10);
+        const secondNumberB = parseInt(b.match(/\D(\d+)$/)?.[1] || 0, 10);
+
+        // Sort by the first number, then by the second number
+        return firstNumberA - firstNumberB || secondNumberA - secondNumberB;
+    });
+
+    for (const key of sorted ) {
+        const html = `<option value=\"${ key }\">${ key }</option>`
+        const fragment = document.createRange().createContextualFragment(html)
+        ensembleGroupSelectElement.appendChild(fragment.firstChild)
+    }
 }
 
 function createEnsembleGroupModalElement(ensembleGroupModalId) {
@@ -244,4 +247,4 @@ function createAndConfigureURLLoadModal(root, id, input_handler) {
     return new bootstrap.Modal(modalElement)
 }
 
-export { createSpacewalkFileLoaders, createAndConfigureURLLoadModal }
+export { createSpacewalkFileLoaders, createAndConfigureURLLoadModal, updateEnsembleGroupSelect }
