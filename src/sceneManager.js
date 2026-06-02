@@ -59,6 +59,10 @@ class SceneManager {
     createHighlighters({ ensembleManager, igvPanel, genomicNavigator }) {
         this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel, genomicNavigator })
         this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
+
+        // Phase 2: the navigator strip renders from the shared selection,
+        // independent of render style. (3D vizzes become renderers in a later phase.)
+        this.highlightController.addRenderer(selection => genomicNavigator.renderHighlight(selection))
     }
 
     receiveEvent({ type, data }) {

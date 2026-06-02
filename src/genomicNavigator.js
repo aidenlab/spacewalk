@@ -140,6 +140,22 @@ class GenomicNavigator {
 
     }
 
+    /**
+     * Render the highlight strip from the shared selection (region indices).
+     * Registered with HighlightController; called on every selection change.
+     * Maps each index to its genomic extent and skips indices with no extent
+     * (gaps in the genomic extent). An empty selection clears the strip.
+     */
+    renderHighlight(selection) {
+        const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
+        if (!genomicExtentList) {
+            this.paintWithInterpolantWindowList([])
+            return
+        }
+        const windowList = selection.map(index => genomicExtentList[ index ]).filter(Boolean)
+        this.paintWithInterpolantWindowList(windowList)
+    }
+
     paintWithInterpolantWindowList(interpolantWindowList) {
 
         this.highlight_ctx.clearRect(0, 0, this.highlight_ctx.canvas.width, this.highlight_ctx.canvas.height);
