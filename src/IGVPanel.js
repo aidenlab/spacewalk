@@ -192,6 +192,14 @@ class IGVPanel extends Panel {
                 return;
             }
 
+            // A cursor over a gap in the genomic extent yields no window -> clear, don't highlight.
+            const windowList = this.ensembleManager.getGenomicInterpolantWindowList([ interpolant ])
+            if (windowList) {
+                this.sceneManager.highlightController.set(windowList.map(({ index }) => index), 'igvCursor')
+            } else {
+                this.sceneManager.highlightController.clear('igvCursor')
+            }
+
             this.sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolant ] })
             this.genomicNavigator.highlightFromInterpolant([ interpolant ])
 

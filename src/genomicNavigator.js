@@ -88,6 +88,7 @@ class GenomicNavigator {
             const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
 
             if (interpolantWindowList) {
+                this.sceneManager.highlightController.set(interpolantWindowList.map(({ index }) => index), 'navigator')
                 this.sceneManager.delegateGenomicInterpolant({ interpolantList })
 
                 const update = this.igvPanel.browser?.cursorGuide?.updateWithInterpolant
@@ -99,6 +100,7 @@ class GenomicNavigator {
                     this.highlightFromInterpolant(interpolantList)
                 }
             } else {
+                this.sceneManager.highlightController.clear('navigator')
                 this.sceneManager.delegateGenomicInterpolant({})
             }
 

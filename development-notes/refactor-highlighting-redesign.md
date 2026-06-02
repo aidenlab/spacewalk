@@ -138,6 +138,27 @@ Why this kills the bug class: the navigator and IGV inputs traverse the **identi
 (both just `set(selection)`), so they cannot diverge by render style. There is no per-(input×style)
 wiring left to get wrong.
 
+## Constraint: gaps in the genomic extent
+
+An ensemble's genomic extent can have **gaps** — stretches with no region, either because the
+data isn't in the file or because a defect was deliberately ignored. This is **not** specific to a
+render style; it can occur for both ball-and-stick and point cloud. The navigator (and every other
+input) must ignore gap regions gracefully — hovering a gap highlights nothing, it does not throw
+and does not highlight a neighbor.
+
+Two places this must hold:
+
+1. **Producer side (gap → no selection).** `ensembleManager.getGenomicInterpolantWindowList`
+   already rejects gaps: an interpolant that falls between extents matches no extent's
+   `[start, end]` and the method returns `undefined`. Every producer must treat `undefined` as an
+   explicit **`clear()`**, never as a degenerate `set([])`. (Phase 1 wires all four producers this
+   way.)
+2. **Renderer side (index → maybe-no-handle).** Because indices index the *extent* list, a renderer
+   mapping `index → geometry handle` (`meshList[index]`, an `instanceId`, a curve point) must
+   tolerate a **missing** handle and skip it, not assume 1:1 alignment. `renderHighlight(selection)`
+   filters the selection to the handles it actually has before mutating geometry. This is the
+   forward-looking guard for the "data simply isn't there" case.
+
 ## What this subsumes
 
 - **Event-bus Phase 3.** `DidEnterGenomicNavigator` / `DidLeaveGenomicNavigator` exist only to
