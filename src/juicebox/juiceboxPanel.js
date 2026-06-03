@@ -205,8 +205,15 @@ class JuiceboxPanel extends Panel {
         const yRejection = yBP < genomicStart || yBP > genomicEnd
         if (xRejection || yRejection) return
 
+        // A crosshair over a gap in the genomic extent yields no window -> clear, don't highlight.
+        const windowList = em.getGenomicInterpolantWindowList([ interpolantX, interpolantY ])
+        if (windowList) {
+            this.sceneManager.highlightController.set(windowList.map(({ index }) => index), 'juiceboxCrosshairs')
+        } else {
+            this.sceneManager.highlightController.clear('juiceboxCrosshairs')
+        }
+
         this.sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolantX, interpolantY ] })
-        this.genomicNavigator.highlightFromInterpolant([ interpolantX, interpolantY ])
     }
 
     configureTabs() {
