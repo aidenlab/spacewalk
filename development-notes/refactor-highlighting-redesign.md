@@ -1,12 +1,24 @@
 # Refactor: highlighting — one state, many writers, one renderer
 
-> **STATUS: PROPOSAL (RFC).** Not started. Drafted 2026-06-02 as the next major piece after the
-> event-bus arc ([refactor-event-bus-usage.md](refactor-event-bus-usage.md), Phases 0–2 shipped in
-> PRs #62–#64). Motivated by a pre-existing point-cloud highlighting bug that no point fix cleanly
-> resolves because the design itself is the defect. No code changed yet.
+> **STATUS: BUG FIXED, strip-painter cleanup landed — branch ready for PR.** Drafted 2026-06-02 as
+> the next major piece after the event-bus arc ([refactor-event-bus-usage.md](refactor-event-bus-usage.md),
+> Phases 0–2 shipped in PRs #62–#64). Motivated by a pre-existing point-cloud highlighting bug that
+> no point fix cleanly resolves because the design itself is the defect.
+>
+> Shipped on branch `refactor/highlighting-redesign` (not yet pushed / no PR):
+> - **Phase 1** (8c92395) — `HighlightController` + selection state in shadow mode.
+> - **Phase 2** (71e218d) — **bug fixed**: navigator strip is a first-class renderer of the shared
+>   selection (`genomicNavigator.renderHighlight`), so it tracks in point-cloud mode.
+> - **Phase 3** (94a4627) — deleted the redundant legacy strip painters now that the strip has one
+>   owner: `highlightFromInterpolant` / `highlightWithInterpolantWindowList`, the ribbon-only gate,
+>   the IGV/Juicebox direct calls, and the `BallHighlighter → genomicNavigator` back-call.
+>
+> **Deferred (optional, not bug-driven):** the rest of the original Phase 3 below — making the 3D
+> vizzes `renderHighlight(selection)` renderers, deleting the `delegate*` routers, and dissolving
+> event-bus Phase 3 (`DidEnter/LeaveGenomicNavigator` + `picker.isEnabled` + `point_cloud` exclusion).
 
 Date: 2026-06-02
-Branch: _none yet_ (suggest `refactor/highlighting-redesign`)
+Branch: `refactor/highlighting-redesign`
 Companion to: [architecture/wiring-diagram.md](architecture/wiring-diagram.md) and
 [refactor-event-bus-usage.md](refactor-event-bus-usage.md) (this work **subsumes that doc's
 Phase 3** — the `DidEnter/LeaveGenomicNavigator` events dissolve into producers here).
@@ -219,10 +231,15 @@ verifiable in the viewport.
 - Verify all four inputs × all three render styles in the viewport, including the repro file.
 
 ### Phase 3 — make producers pure, delete the old paths
+**Landed (94a4627) — the strip-painter slice:** deleted the `ballHighlighter → genomicNavigator`
+back-call, the navigator's `highlightFromInterpolant` / `highlightWithInterpolantWindowList`, the
+ribbon-only self-paint gate, and the IGV/Juicebox direct `highlightFromInterpolant` calls. The
+navigator strip now has exactly one writer (`renderHighlight(selection)` off the controller).
+
+**Deferred (optional, tech-debt — not bug-driven):**
 - Strip the geometry side effects out of the four producers; they only `set/clear`.
 - Delete `delegateGenomicInterpolant` / `delegateLeaveGenomicNavigator` / `delegateHideCrosshairs`
-  routing, the two standalone highlighter classes' public mutators, and the
-  `ballHighlighter → genomicNavigator` back-call.
+  routing, the two standalone highlighter classes' public mutators.
 - Remove `DidEnter/LeaveGenomicNavigator` + `picker.isEnabled` + the `point_cloud` exclusion
   (event-bus Phase 3 falls out here).
 - Verify the full matrix again.
