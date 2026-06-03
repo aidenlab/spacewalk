@@ -98,9 +98,10 @@ class IGVPanel extends Panel {
         }
 
         if (this.browser) {
-            // Ensure cursor guide callback fires: spacewalk branch removed the doShowCursorGuide
-            // guard from rulerViewport.mouseMove so customMouseHandler always receives position.
-            // Master wraps that logic in if(doShowCursorGuide); without this, callback never fires.
+            // igv v3.8.0 (upstream): rulerViewport.mouseMove() returns a position — and the
+            // CursorGuide therefore moves the guide line and fires customMouseHandler — only
+            // when browser.doShowCursorGuide is true. Force it on. (Both also require a ruler
+            // track view and a CANVAS mousemove target; see CursorGuide.mouseMoveHandler.)
             this.browser.doShowCursorGuide = true
             this.configureMouseHandlers()
             installShim(this.browser, this)
@@ -199,8 +200,6 @@ class IGVPanel extends Panel {
             } else {
                 this.sceneManager.highlightController.clear('igvCursor')
             }
-
-            this.sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolant ] })
 
         })
 
