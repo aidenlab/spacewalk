@@ -1,6 +1,7 @@
 import igv from 'igv'
 import SpacewalkEventBus from './spacewalkEventBus.js'
 import {installShim} from './igvTrackMaterialProviderShim.js';
+import IGVCursorGuide from './igvCursorGuide.js';
 import MaterialProviderController from './materialProviderController.js';
 import {createIGVTrackEnvironment} from './igvTrackEnvironment.js';
 import Panel from './panel.js';
@@ -98,11 +99,6 @@ class IGVPanel extends Panel {
         }
 
         if (this.browser) {
-            // igv v3.8.0 (upstream): rulerViewport.mouseMove() returns a position — and the
-            // CursorGuide therefore moves the guide line and fires customMouseHandler — only
-            // when browser.doShowCursorGuide is true. Force it on. (Both also require a ruler
-            // track view and a CANVAS mousemove target; see CursorGuide.mouseMoveHandler.)
-            this.browser.doShowCursorGuide = true
             this.configureMouseHandlers()
             installShim(this.browser, this)
         }
@@ -168,41 +164,23 @@ class IGVPanel extends Panel {
 
     configureMouseHandlers () {
 
-        // Re-apply cursor guide after IGV rebuilds (loadSession, etc.). Same pattern as track
-        // material provider re-injection: IGV's DOM lifecycle can affect visibility/state.
-        this.browser.doShowCursorGuide = true
-        this.browser.setCursorGuideVisibility(true)
-
         installShim(this.browser, this)
 
         this.browser.on('trackremoved', track => {
             this.materialController.removeTrack(track);
         });
 
-        this.browser.setCustomCursorGuideMouseHandler(({ bp, start, end, interpolant }) => {
-
-            if (undefined === this.ensembleManager || undefined === this.ensembleManager.locus) {
-                return
-            }
-
-            const { genomicStart, genomicEnd } = this.ensembleManager.locus
-
-            const xRejection = start > genomicEnd || end < genomicStart || bp < genomicStart || bp > genomicEnd;
-
-            if (xRejection) {
-                return;
-            }
-
-            // A cursor over a gap in the genomic extent yields no window -> clear, don't highlight.
-            const windowList = this.ensembleManager.getGenomicInterpolantWindowList([ interpolant ])
-            if (windowList) {
-                this.sceneManager.highlightController.set(windowList.map(({ index }) => index), 'igvCursor')
-            } else {
-                this.sceneManager.highlightController.clear('igvCursor')
-            }
-
-        })
-
+        // Spacewalk owns the IGV cursor guide + highlight producer (see igvCursorGuide.js),
+        // rather than relying on igv's internal cursorGuide. Create once; (re-)attach producer
+        // listeners each time IGV rebuilds its DOM.
+        if (!this.cursorGuide) {
+            this.cursorGuide = new IGVCursorGuide({
+                getBrowser: () => this.browser,
+                ensembleManager: this.ensembleManager,
+                highlightController: this.sceneManager.highlightController
+            })
+        }
+        this.cursorGuide.attach(this.browser.columnContainer)
     }
 
     // Track -> material-provider state machine lives in MaterialProviderController.
