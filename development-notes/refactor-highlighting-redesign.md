@@ -1,11 +1,12 @@
 # Refactor: highlighting — one state, many writers, one renderer
 
-> **STATUS: BUG FIXED, strip-painter cleanup landed — branch ready for PR.** Drafted 2026-06-02 as
-> the next major piece after the event-bus arc ([refactor-event-bus-usage.md](refactor-event-bus-usage.md),
-> Phases 0–2 shipped in PRs #62–#64). Motivated by a pre-existing point-cloud highlighting bug that
-> no point fix cleanly resolves because the design itself is the defect.
+> **STATUS: BUG FIXED, strip-painter cleanup landed — [PR #65](https://github.com/aidenlab/spacewalk/pull/65)
+> open (2026-06-03), awaiting review.** Drafted 2026-06-02 as the next major piece after the event-bus
+> arc ([refactor-event-bus-usage.md](refactor-event-bus-usage.md), Phases 0–2 shipped in PRs #62–#64).
+> Motivated by a pre-existing point-cloud highlighting bug that no point fix cleanly resolves because
+> the design itself is the defect.
 >
-> Shipped on branch `refactor/highlighting-redesign` (not yet pushed / no PR):
+> Shipped on branch `refactor/highlighting-redesign` (PR #65):
 > - **Phase 1** (8c92395) — `HighlightController` + selection state in shadow mode.
 > - **Phase 2** (71e218d) — **bug fixed**: navigator strip is a first-class renderer of the shared
 >   selection (`genomicNavigator.renderHighlight`), so it tracks in point-cloud mode.
