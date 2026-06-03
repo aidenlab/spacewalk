@@ -1,7 +1,6 @@
 import hic from 'juicebox.js'
 import {BGZip} from 'igv-utils'
 import Panel from './panel.js'
-import SpacewalkEventBus from './spacewalkEventBus.js'
 import { shortenURL } from "./share/shareHelper.js"
 import { SpacewalkGlobals } from './spacewalkGlobals.js'
 import GUIManager from "./guiManager.js"
@@ -116,17 +115,18 @@ class SessionService {
 
         GUIManager.updateRenderStyleWidgetState(renderStyle)
 
+        // Restore saved panel visibility before ingesting. setState only
+        // presents/dismisses panels from the saved flags — it's independent of
+        // the ensemble — and ingestEnsemblePath now posts DidLoadEnsembleFile
+        // itself, so panel visibility must be settled before that fires.
+        //
+        // TODO: Gnomon, ground plane, scale bars, and background color are now
+        // managed by SettingsManager (localStorage). Session values are ignored
+        // during testing of the new settings approach.
+        Panel.setState(panelVisibility)
+
         try {
             await this.ensembleIngestionController.ingestEnsemblePath(url, traceKey, ensembleGroupKey)
-
-            // TODO: Gnomon, ground plane, scale bars, and background color are now
-            // managed by SettingsManager (localStorage). Session values are ignored
-            // during testing of the new settings approach.
-
-            Panel.setState(panelVisibility)
-
-            const data = this.ensembleManager.createEventBusPayload()
-            SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data })
         } catch (error) {
             presentResourceError(error, { what: 'the Spacewalk ensemble', url })
             throw error

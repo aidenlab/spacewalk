@@ -25,7 +25,11 @@ class Panel {
 
         configureDrag(panel, dragTarget, container, {
             topConstraint: document.querySelector('.navbar'),
-            ...(dragOptions || {})
+            ...(dragOptions || {}),
+            // Re-derive this panel's top/left percentages once its own drag ends.
+            // Per-panel callback replaces the former global DidEndDrag broadcast +
+            // id-filter — each panel only ever cared about its own drag.
+            onDragEnd: () => this.setTopLeftPercentages(true)
         })
 
         dragHandle.addEventListener(`mousedown`, (event) => {
@@ -41,20 +45,12 @@ class Panel {
         });
 
         SpacewalkEventBus.globalBus.subscribe('DidSelectPanel', this)
-        SpacewalkEventBus.globalBus.subscribe('AppWindowDidResize', this)
-        SpacewalkEventBus.globalBus.subscribe('DidEndDrag', this)
     }
 
     receiveEvent({ type, data }) {
 
         if ('DidSelectPanel' === type) {
             this.panel.style.zIndex = this.getClassName() === data ? zIndexPanelSelected : zIndexPanelUnselected;
-        } else if ('AppWindowDidResize' === type && !this.isHidden) {
-            const offset = this.getOffset();
-            this.panel.style.left = `${offset.left}px`;
-            this.panel.style.top = `${offset.top}px`;
-        } else if ('DidEndDrag' === type && data && data === this.panel.getAttribute('id')) {
-            this.setTopLeftPercentages(true);
         }
     }
 

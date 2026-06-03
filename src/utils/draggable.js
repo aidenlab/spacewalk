@@ -1,4 +1,3 @@
-import SpacewalkEventBus from '../spacewalkEventBus.js'
 import {clamp} from './mathUtils.js'
 
 let dragData = undefined
@@ -51,9 +50,6 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
         if (onDragEnd) {
             onDragEnd(event, { left, top })
         }
-
-        SpacewalkEventBus.globalBus.post({ type: "DidEndRenderContainerDrag" })
-        SpacewalkEventBus.globalBus.post({ type: "DidEndDrag", data: target.getAttribute('id') })
 
     }
 

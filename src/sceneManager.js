@@ -10,6 +10,7 @@ import { getThreeJSContainerRect } from "./utils/threeJSContainer.js"
 import {appleCrayonColorThreeJS, highlightColor} from "./utils/colorUtils.js"
 import BallHighlighter from "./ballHighlighter.js"
 import PointCloudHighlighter from "./pointCloudHighlighter.js"
+import HighlightController from "./highlightController.js"
 
 class SceneManager {
 
@@ -32,6 +33,12 @@ class SceneManager {
         // and genomicNavigator exist — they aren't constructed at app boot.
         this.ballHighlighter = null
         this.pointCloudHighlighter = null
+
+        // Phase 1 (shadow mode) single source of truth for the highlight
+        // selection. Producers report here; nothing renders from it yet.
+        // See development-notes/refactor-highlighting-redesign.md.
+        this.highlightController = new HighlightController()
+
         this.stickMaterial = new THREE.MeshPhongMaterial({ color: appleCrayonColorThreeJS('aluminum') })
         this.stickMaterial.side = THREE.DoubleSide
         this.deemphasizedColor = appleCrayonColorThreeJS('magnesium')
@@ -50,8 +57,12 @@ class SceneManager {
     }
 
     createHighlighters({ ensembleManager, igvPanel, genomicNavigator }) {
-        this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel, genomicNavigator })
+        this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel })
         this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
+
+        // Phase 2: the navigator strip renders from the shared selection,
+        // independent of render style. (3D vizzes become renderers in a later phase.)
+        this.highlightController.addRenderer(selection => genomicNavigator.renderHighlight(selection))
     }
 
     receiveEvent({ type, data }) {
@@ -93,6 +104,7 @@ class SceneManager {
      * Delegate hide crosshairs events to affected visualization objects
      */
     delegateHideCrosshairs() {
+        this.highlightController.clear('hideCrosshairs')
         if (this.ballAndStick && BallAndStick.renderStyle === this.renderStyle) {
             this.ballAndStick.handleHideCrosshairs()
         }
@@ -105,6 +117,7 @@ class SceneManager {
      * Delegate leave genomic navigator events
      */
     delegateLeaveGenomicNavigator() {
+        this.highlightController.clear('leaveNavigator')
         if (this.pointCloud && PointCloud.renderStyle === this.renderStyle) {
             this.pointCloud.handleLeaveGenomicNavigator()
         }

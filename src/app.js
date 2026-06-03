@@ -5,7 +5,6 @@ import ColorRampMaterialProvider from "./colorRampMaterialProvider.js"
 import { appleCrayonColorRGB255 } from "./utils/colorUtils.js"
 import { SessionService } from "./sessionServices.js"
 import SessionBootstrapper from "./sessionBootstrapper.js"
-import SpacewalkEventBus from "./spacewalkEventBus.js"
 import { showGlobalSpinner, hideGlobalSpinner } from './utils/utils.js'
 import { defaultColormapName } from "./utils/colorMapManager.js"
 import ThreeJSInitializer from "./initializers/threeJSInitializer.js"
@@ -201,7 +200,6 @@ class App {
         });
 
         this.sessionBootstrapper = new SessionBootstrapper({
-            ensembleManager: this.ensembleManager,
             ensembleIngestionController: this.ensembleIngestionController,
             sessionService: this.sessionService,
         });
@@ -225,8 +223,6 @@ class App {
             const file = new File([bytes], filename);
             try {
                 await this.ensembleIngestionController.ingestEnsemblePath(file, '0', undefined);
-                const payload = this.ensembleManager.createEventBusPayload();
-                SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data: payload });
             } catch (error) {
                 console.error('Failed to load file from postMessage:', error)
                 hideGlobalSpinner()
@@ -262,8 +258,6 @@ class App {
 
             try {
                 await this.ensembleIngestionController.ingestEnsemblePath(file, '0', undefined)
-                const payload = this.ensembleManager.createEventBusPayload()
-                SpacewalkEventBus.globalBus.post({ type: "DidLoadEnsembleFile", data: payload })
             } catch (error) {
                 console.error('Failed to load dropped file:', error)
                 hideGlobalSpinner()

@@ -1,7 +1,6 @@
 import SpacewalkEventBus from './spacewalkEventBus.js'
 import {fitToContainer, getMouseXY} from "./utils/utils"
 import {appleCrayonColorRGB255, rgb255, rgb255String, threeJSColorToRGB255} from "./utils/colorUtils"
-import Ribbon from "./ribbon"
 
 let rgbTexture;
 let alphaTexture;
@@ -88,34 +87,20 @@ class GenomicNavigator {
             const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
 
             if (interpolantWindowList) {
+                this.sceneManager.highlightController.set(interpolantWindowList.map(({ index }) => index), 'navigator')
                 this.sceneManager.delegateGenomicInterpolant({ interpolantList })
 
                 const update = this.igvPanel.browser?.cursorGuide?.updateWithInterpolant
                 if (typeof update === 'function') {
                     update.call(this.igvPanel.browser.cursorGuide, interpolantList[0])
                 }
-
-                if (this.sceneManager.renderStyle === Ribbon.renderStyle) {
-                    this.highlightFromInterpolant(interpolantList)
-                }
             } else {
+                this.sceneManager.highlightController.clear('navigator')
                 this.sceneManager.delegateGenomicInterpolant({})
             }
 
         }
 
-    }
-
-    /**
-     * Highlight the color ramp from an interpolant list.
-     * Called directly by IGVPanel and JuiceboxPanel when their cursors move,
-     * and by this class in Ribbon mode.
-     */
-    highlightFromInterpolant(interpolantList) {
-        const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
-        if (interpolantWindowList) {
-            this.highlightWithInterpolantWindowList(interpolantWindowList.map(({genomicExtent}) => genomicExtent))
-        }
     }
 
     resize(sceneManagerContainer) {
@@ -130,12 +115,20 @@ class GenomicNavigator {
 
     }
 
-    highlightWithInterpolantWindowList(interpolantWindowList) {
-
-        if (interpolantWindowList) {
-            this.paintWithInterpolantWindowList(interpolantWindowList);
+    /**
+     * Render the highlight strip from the shared selection (region indices).
+     * Registered with HighlightController; called on every selection change.
+     * Maps each index to its genomic extent and skips indices with no extent
+     * (gaps in the genomic extent). An empty selection clears the strip.
+     */
+    renderHighlight(selection) {
+        const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
+        if (!genomicExtentList) {
+            this.paintWithInterpolantWindowList([])
+            return
         }
-
+        const windowList = selection.map(index => genomicExtentList[ index ]).filter(Boolean)
+        this.paintWithInterpolantWindowList(windowList)
     }
 
     paintWithInterpolantWindowList(interpolantWindowList) {
