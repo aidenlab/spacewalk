@@ -50,7 +50,7 @@ class HighlightController {
     }
 
     reconcile(source) {
-        console.log(`[highlight] selection [${ this.selection.join(', ') }] <- ${ source }`)
+        // console.log(`[highlight] selection [${ this.selection.join(', ') }] <- ${ source }`)
         for (const renderHighlight of this.renderers) {
             renderHighlight(this.selection)
         }
