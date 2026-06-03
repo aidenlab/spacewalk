@@ -1,10 +1,9 @@
 class BallHighlighter {
 
-    constructor (highlightColor, { ensembleManager, igvPanel, genomicNavigator }) {
+    constructor (highlightColor, { ensembleManager, igvPanel }) {
         this.highlightColor = highlightColor;
         this.ensembleManager = ensembleManager
         this.igvPanel = igvPanel
-        this.genomicNavigator = genomicNavigator
         this.instanceIdList = undefined
         this.balls = undefined
     }
@@ -51,10 +50,6 @@ class BallHighlighter {
             }
 
             this.balls.geometry.attributes.instanceColor.needsUpdate = true
-
-            const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
-            const interpolantWindowList = Array.from(this.instanceIdList).map(instanceId => genomicExtentList[ instanceId ])
-            this.genomicNavigator.highlightWithInterpolantWindowList(interpolantWindowList)
 
         }
 

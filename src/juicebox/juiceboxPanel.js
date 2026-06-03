@@ -214,7 +214,6 @@ class JuiceboxPanel extends Panel {
         }
 
         this.sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolantX, interpolantY ] })
-        this.genomicNavigator.highlightFromInterpolant([ interpolantX, interpolantY ])
     }
 
     configureTabs() {

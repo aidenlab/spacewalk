@@ -201,7 +201,6 @@ class IGVPanel extends Panel {
             }
 
             this.sceneManager.delegateGenomicInterpolant({ interpolantList: [ interpolant ] })
-            this.genomicNavigator.highlightFromInterpolant([ interpolant ])
 
         })
 

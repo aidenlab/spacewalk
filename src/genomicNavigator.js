@@ -1,7 +1,6 @@
 import SpacewalkEventBus from './spacewalkEventBus.js'
 import {fitToContainer, getMouseXY} from "./utils/utils"
 import {appleCrayonColorRGB255, rgb255, rgb255String, threeJSColorToRGB255} from "./utils/colorUtils"
-import Ribbon from "./ribbon"
 
 let rgbTexture;
 let alphaTexture;
@@ -95,10 +94,6 @@ class GenomicNavigator {
                 if (typeof update === 'function') {
                     update.call(this.igvPanel.browser.cursorGuide, interpolantList[0])
                 }
-
-                if (this.sceneManager.renderStyle === Ribbon.renderStyle) {
-                    this.highlightFromInterpolant(interpolantList)
-                }
             } else {
                 this.sceneManager.highlightController.clear('navigator')
                 this.sceneManager.delegateGenomicInterpolant({})
@@ -106,18 +101,6 @@ class GenomicNavigator {
 
         }
 
-    }
-
-    /**
-     * Highlight the color ramp from an interpolant list.
-     * Called directly by IGVPanel and JuiceboxPanel when their cursors move,
-     * and by this class in Ribbon mode.
-     */
-    highlightFromInterpolant(interpolantList) {
-        const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
-        if (interpolantWindowList) {
-            this.highlightWithInterpolantWindowList(interpolantWindowList.map(({genomicExtent}) => genomicExtent))
-        }
     }
 
     resize(sceneManagerContainer) {
@@ -129,14 +112,6 @@ class GenomicNavigator {
         fitToContainer(this.rgb_ctx.canvas)
 
         this.repaint()
-
-    }
-
-    highlightWithInterpolantWindowList(interpolantWindowList) {
-
-        if (interpolantWindowList) {
-            this.paintWithInterpolantWindowList(interpolantWindowList);
-        }
 
     }
 

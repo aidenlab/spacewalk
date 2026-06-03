@@ -57,7 +57,7 @@ class SceneManager {
     }
 
     createHighlighters({ ensembleManager, igvPanel, genomicNavigator }) {
-        this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel, genomicNavigator })
+        this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel })
         this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
 
         // Phase 2: the navigator strip renders from the shared selection,
