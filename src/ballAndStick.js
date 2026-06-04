@@ -58,13 +58,6 @@ class BallAndStick {
         }
     }
 
-    /**
-     * Handle crosshairs hidden event (delegated from SceneManager)
-     */
-    handleHideCrosshairs() {
-        this.pickHighlighter.unhighlight()
-    }
-
     createBalls(trace, materialProvider, ballRadius) {
 
         // canonical ball geometry
