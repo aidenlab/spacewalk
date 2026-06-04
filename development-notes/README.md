@@ -46,6 +46,7 @@ Last groomed: 2026-06 (post Phase 3 DI completion).
 | [local-hic-straw-dev.md](local-hic-straw-dev.md) | Current | When iterating on hic-straw locally and testing in Spacewalk |
 | [testing-npm-dependencies.md](testing-npm-dependencies.md) | Reference | Generic guide to testing an npm dep locally inside a consuming project |
 | [url-shortener-setup.md](url-shortener-setup.md) | Reference | Configuring the `t.3dg.io` TinyURL domain across environments |
+| [remote-sw-hosting.md](remote-sw-hosting.md) | Current | Before adding any remote `.sw` URL (Load From List, session JSONs, demos) — why the host matters for HDF5 range reads, the jsDelivr-compression trap, and the raw.githubusercontent / S3 / R2 decisions |
 | [git-foo/](git-foo/) | Reference | Git worktree cheatsheets and release-branch publishing workflow |
 
 ## Archive

@@ -75,12 +75,10 @@ function createAndConfigureTraceSelectModal(parentElement, traceModalId, fileLoa
                             </div>
                             <select class="form-select" data-live-search="true" title="Select an ensemble" data-width="100%">
                                 <option value="" disabled selected hidden>Please select</option>
-                                <option value="https://www.dropbox.com/scl/fi/slx5xkk540i8si7wr6tv5/A549_chr21-28-30Mb.sw?rlkey=mufheyn60384w0hemlknm53ad&st=gnhzxw34&dl=0">A549 chr21:28-30</option>
-                                <option value="https://www.dropbox.com/scl/fi/6by67mrc3ywm646j6zm8f/HCT116_chr21-28-30Mb_6h_auxin.sw?rlkey=0zrb50erkuznyxvv0fnfzfy48&st=zbir0o2m&dl=0">HCT116 6h_auxin chr21:28-30</option>
-                                <option value="https://www.dropbox.com/scl/fi/sl5q79az2r7sdxtaz6j0g/HCT116_chr21-28-30Mb_untreated.sw?rlkey=8tjwzsgtybwlukyfrt0s5aa5e&st=lrcsoowv&dl=0">HCT116 untreated chr21:28-30</option>
-                                <option value="https://www.dropbox.com/scl/fi/e5hcmfp8a5uzghytdbxwr/IMR90_chr21-18-20Mb.sw?rlkey=6qr9rekct5vc8e3a5c8g2mg3o&st=7imvnbq1&dl=0">IMR90 chr21:18-20</option>
-                                <option value="https://www.dropbox.com/scl/fi/295mfufin32ps41ejffxw/IMR90_chr21-28-30Mb.sw?rlkey=q0lxcfccr4mbh3jtzj8hwuwr7&st=8f8d1n2k&dl=0">IMR90 chr21:28-30</option>
-                                <option value="https://www.dropbox.com/scl/fi/xukd5fxx99syofnrag9zr/K562_chr21-28-30Mb.sw?rlkey=mzbpzf5o72gusgfzqlpye0h5u&st=lfvf6s09&dl=0">K562 chr21:28-30</option>
+                                <option value="https://raw.githubusercontent.com/aidenlab/spacewalk-fixtures/v1.0.0/A549_chr21-28-30Mb.sw">A549 chr21:28-30</option>
+                                <option value="https://raw.githubusercontent.com/aidenlab/spacewalk-fixtures/v1.0.0/HCT116_chr21-28-30Mb_untreated.sw">HCT116 untreated chr21:28-30</option>
+                                <option value="https://raw.githubusercontent.com/aidenlab/spacewalk-fixtures/v1.0.0/IMR90_chr21-18-20Mb.sw">IMR90 chr21:18-20</option>
+                                <option value="https://raw.githubusercontent.com/aidenlab/spacewalk-fixtures/v1.0.0/IMR90_chr21-28-30Mb.sw">IMR90 chr21:28-30</option>
                             </select>
                         </div>
                     </div>
