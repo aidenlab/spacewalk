@@ -125,29 +125,17 @@ class PointCloud {
     }
 
     /**
-     * Handle genomic interpolant events (delegated from SceneManager)
+     * Render the shared highlight selection (region indices -> meshList[index]).
+     * Indices with no mesh (gaps in the genomic extent) are skipped; empty
+     * selection clears. See development-notes/refactor-highlighting-redesign.md.
      */
-    handleGenomicInterpolant(data) {
-        const { interpolantList } = data
-
-        if (interpolantList) {
-            const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
-
-            if (interpolantWindowList) {
-                const objectList = interpolantWindowList.map(({ index }) => this.meshList[ index ])
-                this.pickHighlighter.highlightWithObjectList(objectList)
-            }
-
+    renderHighlight(selection) {
+        if (selection.length > 0) {
+            const objectList = selection.map(index => this.meshList[ index ]).filter(Boolean)
+            this.pickHighlighter.highlightWithObjectList(objectList)
         } else {
             this.pickHighlighter.unhighlight()
         }
-    }
-
-    /**
-     * Handle leave genomic navigator event (delegated from SceneManager)
-     */
-    handleLeaveGenomicNavigator() {
-        this.pickHighlighter.unhighlight()
     }
 
     updateMaterialProvider (materialProvider) {

@@ -16,20 +16,6 @@ class BallHighlighter {
         this.balls = balls
     }
 
-    processHit(hit) {
-        if (false === this.hasInstanceId(hit.instanceId)) {
-            this.configureWithInstanceIdList([hit.instanceId])
-        }
-    }
-
-    hasInstanceId(instanceId) {
-        if (undefined === this.instanceIdList) {
-            return false
-        } else {
-            return this.instanceIdList.has(instanceId)
-        }
-    }
-
     configureWithInstanceIdList(instanceIdList) {
         this.unhighlight()
         this.instanceIdList = new Set()

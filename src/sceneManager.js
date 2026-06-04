@@ -60,9 +60,24 @@ class SceneManager {
         this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel })
         this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
 
-        // Phase 2: the navigator strip renders from the shared selection,
-        // independent of render style. (3D vizzes become renderers in a later phase.)
+        // The navigator strip renders from the shared selection, independent of
+        // render style.
         this.highlightController.addRenderer(selection => genomicNavigator.renderHighlight(selection))
+
+        // The active 3D visualization renders the same selection. This is the one
+        // place the render-style switch lives, replacing the delegate* routers.
+        this.highlightController.addRenderer(selection => this.getActiveVisualization()?.renderHighlight(selection))
+    }
+
+    getActiveVisualization() {
+        if (this.ballAndStick && BallAndStick.renderStyle === this.renderStyle) {
+            return this.ballAndStick
+        } else if (this.pointCloud && PointCloud.renderStyle === this.renderStyle) {
+            return this.pointCloud
+        } else if (this.ribbon && Ribbon.renderStyle === this.renderStyle) {
+            return this.ribbon
+        }
+        return undefined
     }
 
     receiveEvent({ type, data }) {
@@ -78,7 +93,7 @@ class SceneManager {
             }
 
         } else if ('DidLeaveGenomicNavigator' === type) {
-            this.delegateLeaveGenomicNavigator()
+            this.clearHighlight('leaveNavigator')
         } else if ('DidChangeColorMap' === type) {
             if (this.igvPanel.materialProvider === this.colorRampMaterialProvider) {
                 this.updateMaterialProvider(this.colorRampMaterialProvider)
@@ -88,42 +103,14 @@ class SceneManager {
     }
 
     /**
-     * Delegate genomic interpolant events to the active visualization object
+     * Clear the shared highlight selection. The controller reconciles by handing
+     * the empty selection to every registered renderer — the navigator strip and
+     * the active visualization both clear via renderHighlight([]). No per-viz
+     * routing needed: only the active viz is a registered renderer, and inactive
+     * vizzes are already hidden by configureRenderStyle().
      */
-    delegateGenomicInterpolant(data) {
-        if (this.ballAndStick && BallAndStick.renderStyle === this.renderStyle) {
-            this.ballAndStick.handleGenomicInterpolant(data)
-        } else if (this.pointCloud && PointCloud.renderStyle === this.renderStyle) {
-            this.pointCloud.handleGenomicInterpolant(data)
-        } else if (this.ribbon && Ribbon.renderStyle === this.renderStyle) {
-            this.ribbon.handleGenomicInterpolant(data)
-        }
-    }
-
-    /**
-     * Delegate hide crosshairs events to affected visualization objects
-     */
-    delegateHideCrosshairs() {
-        this.highlightController.clear('hideCrosshairs')
-        if (this.ballAndStick && BallAndStick.renderStyle === this.renderStyle) {
-            this.ballAndStick.handleHideCrosshairs()
-        }
-        if (this.ribbon) {
-            this.ribbon.handleHideHighlights()
-        }
-    }
-
-    /**
-     * Delegate leave genomic navigator events
-     */
-    delegateLeaveGenomicNavigator() {
-        this.highlightController.clear('leaveNavigator')
-        if (this.pointCloud && PointCloud.renderStyle === this.renderStyle) {
-            this.pointCloud.handleLeaveGenomicNavigator()
-        }
-        if (this.ribbon) {
-            this.ribbon.handleHideHighlights()
-        }
+    clearHighlight(source) {
+        this.highlightController.clear(source)
     }
 
     setupWithTrace(trace) {

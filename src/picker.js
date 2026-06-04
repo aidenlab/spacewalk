@@ -48,7 +48,6 @@ class Picker {
                 if (hit.instanceId && hit.instanceId !== currentInstanceId) {
                     currentInstanceId = hit.instanceId
                     this.sceneManager.highlightController.set([ hit.instanceId ], 'picker')
-                    this.sceneManager.ballHighlighter.processHit(hit)
                 }
 
             } else {
@@ -56,7 +55,6 @@ class Picker {
                 if (currentInstanceId) {
                     currentInstanceId = undefined
                     this.sceneManager.highlightController.clear('picker')
-                    this.sceneManager.ballHighlighter.unhighlight()
                     this.genomicNavigator.repaint()
                 }
             }

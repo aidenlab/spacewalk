@@ -47,29 +47,15 @@ class BallAndStick {
     }
 
     /**
-     * Handle genomic interpolant events (delegated from SceneManager)
+     * Render the shared highlight selection (region indices == ball instanceIds).
+     * Empty selection clears. See development-notes/refactor-highlighting-redesign.md.
      */
-    handleGenomicInterpolant(data) {
-        const { interpolantList } = data
-
-        if (interpolantList) {
-            const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
-
-            if (interpolantWindowList) {
-                const instanceIdList = interpolantWindowList.map(({ index }) => index)
-                this.pickHighlighter.configureWithInstanceIdList(instanceIdList)
-            }
-
+    renderHighlight(selection) {
+        if (selection.length > 0) {
+            this.pickHighlighter.configureWithInstanceIdList(selection)
         } else {
             this.pickHighlighter.unhighlight()
         }
-    }
-
-    /**
-     * Handle crosshairs hidden event (delegated from SceneManager)
-     */
-    handleHideCrosshairs() {
-        this.pickHighlighter.unhighlight()
     }
 
     createBalls(trace, materialProvider, ballRadius) {
