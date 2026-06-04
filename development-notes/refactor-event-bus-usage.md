@@ -1,9 +1,10 @@
 # Refactor: event-bus usage — keep the broadcasts, kill the disguised calls
 
-> **STATUS: PROPOSAL (RFC).** Not started. Drafted 2026-06-01 as the final item in the
-> architecture-improvement arc (post Phase 3/4 DI + decomposition work). Captures a
-> reconnaissance of how the global event bus is actually used and proposes a phased
-> cleanup. No code changed yet.
+> **STATUS: COMPLETE (2026-06-04).** Drafted 2026-06-01 as the final item in the
+> architecture-improvement arc. **Phases 0–2 shipped** in PRs #62–#64 (dead-code removal, single
+> source for `DidLoadEnsembleFile`, demoting point-to-point "events" to calls). **Phase 3 shipped**
+> as part of the highlighting redesign ([refactor-highlighting-redesign.md](refactor-highlighting-redesign.md)):
+> `DidEnter/LeaveGenomicNavigator` is gone — see that doc and the §3 below.
 
 Date: 2026-06-01
 Branch: _none yet_ (suggest `refactor/event-bus-usage`)
@@ -150,10 +151,15 @@ deepening passes. Phases 0 and 1 are pure cleanup; later phases change call shap
 - `DidEndDrag` → an `onDragEnd(id)` option on `configureDrag`, replacing the global broadcast +
   id-filter in `panel.js`.
 
-### Phase 3 — consolidate the genomic-navigator enter/leave (optional)
-- `DidEnter/LeaveGenomicNavigator` is posted from three places to express one piece of state
-  ("is the pointer in the genomic navigator?"). Either give it a single owner that posts it, or
-  model it as queryable state instead of an event. Lowest priority; revisit after Phases 0–2.
+### Phase 3 — consolidate the genomic-navigator enter/leave ✅ SHIPPED (2026-06-04)
+- `DidEnter/LeaveGenomicNavigator` was posted from three places (navigator, IGV, juicebox) to express
+  one piece of state ("is the pointer in a 1D producer?"), driving `picker.isEnabled` + a clear.
+  **Resolved by dissolving it entirely** rather than consolidating: each producer self-clears on its
+  own boundary, and the picker gates on cursor-over-canvas instead of the flag (the render loop nulls
+  pointer coords on canvas `mouseleave`). This also fixed a latent stale-coordinate picker bug. Done
+  as the final phase of the highlighting redesign — see
+  [refactor-highlighting-redesign.md](refactor-highlighting-redesign.md) and
+  [highlighting-participant-map.md](highlighting-participant-map.md) §6.
 
 ## Open questions
 

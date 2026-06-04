@@ -1,8 +1,8 @@
 # Refactor: highlighting — one state, many writers, one renderer
 
-> **STATUS: BUG FIXED, strip-painter cleanup landed — [PR #65](https://github.com/aidenlab/spacewalk/pull/65)
-> open (2026-06-03), awaiting review.** Drafted 2026-06-02 as the next major piece after the event-bus
-> arc ([refactor-event-bus-usage.md](refactor-event-bus-usage.md), Phases 0–2 shipped in PRs #62–#64).
+> **STATUS: COMPLETE (2026-06-04) — all phases shipped, PRs #65/#66/#68 + final.** Drafted 2026-06-02
+> as the next major piece after the event-bus arc
+> ([refactor-event-bus-usage.md](refactor-event-bus-usage.md), Phases 0–2 shipped in PRs #62–#64).
 > Motivated by a pre-existing point-cloud highlighting bug that no point fix cleanly resolves because
 > the design itself is the defect.
 >
@@ -14,19 +14,20 @@
 >   owner: `highlightFromInterpolant` / `highlightWithInterpolantWindowList`, the ribbon-only gate,
 >   the IGV/Juicebox direct calls, and the `BallHighlighter → genomicNavigator` back-call.
 >
-> **Deferred (optional, not bug-driven):** the rest of the original Phase 3 below — making the 3D
-> vizzes `renderHighlight(selection)` renderers, deleting the `delegate*` routers, and dissolving
-> event-bus Phase 3 (`DidEnter/LeaveGenomicNavigator` + `picker.isEnabled` + `point_cloud` exclusion).
+> **COMPLETE (2026-06-04).** The full arc shipped across four PRs:
+> - **PR #66** — Surface B unified: the 3D vizzes are `renderHighlight(selection)` renderers fanned
+>   out by a single active-viz reconciler, `delegateGenomicInterpolant` deleted. IGV producer rebuilt
+>   as spacewalk-owned ([`igvCursorGuide.js`](../src/igvCursorGuide.js)), since igv v3.8.0's internal
+>   cursor guide is unreliable under our config.
+> - **PR #68** — clear-path collapse: the per-style `delegate*` *clear* routers and per-viz `handle*`
+>   methods replaced by one `sceneManager.clearHighlight()` (the §5 matrix retired).
+> - **final PR** — event-bus Phase 3 dissolved: `DidEnter/LeaveGenomicNavigator` events removed and
+>   `picker.isEnabled` retired; the picker now gates on cursor-over-canvas (also fixing a latent
+>   stale-coordinate bug). The `point_cloud` raycast exclusion is intentionally kept (product choice).
 >
-> **Update — branch `refactor/highlighting-surface-b` (in progress):** the deferred Surface B work
-> is now underway. **Landed:** the 3D vizzes are `renderHighlight(selection)` renderers fanned out
-> by a single active-viz reconciler, and `delegateGenomicInterpolant` is deleted. Separately, the
-> **IGV producer was rebuilt** as spacewalk-owned ([`igvCursorGuide.js`](../src/igvCursorGuide.js)):
-> igv v3.8.0's internal cursor guide is unreliable under our config, so spacewalk now owns both a
-> continuous guide line (IGV's own pointer locator) and the pointer→region highlight producer. The
-> driver/receiver semantics this clarified are recorded in
-> [highlighting-participant-map.md](highlighting-participant-map.md). **Still open:** collapse the
-> `delegate*` *clear* routers (the §5 matrix) and dissolve event-bus Phase 3.
+> The end state — **one state, many writers, one renderer per surface** — is reached. The current map
+> of the shipped design is [highlighting-participant-map.md](highlighting-participant-map.md)
+> (Status: Current). This RFC is retained as the historical plan/rationale.
 
 Date: 2026-06-02
 Branch: `refactor/highlighting-redesign`
