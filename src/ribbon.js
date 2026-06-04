@@ -84,16 +84,6 @@ class Ribbon {
         })
     }
 
-    /**
-     * Handle leave genomic navigator or hide crosshairs events (delegated from SceneManager)
-     */
-    handleHideHighlights() {
-        if (this.highlightBeads) {
-            this.highlightBeads[ 0 ].visible = false
-            this.highlightBeads[ 1 ].visible = false
-        }
-    }
-
     updateMaterialProvider (materialProvider) {
         if (this.spline) {
             const colors = getRGBListWithMaterialAndLength(materialProvider, this.spline.vertexCount)

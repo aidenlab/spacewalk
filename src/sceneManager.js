@@ -93,7 +93,7 @@ class SceneManager {
             }
 
         } else if ('DidLeaveGenomicNavigator' === type) {
-            this.delegateLeaveGenomicNavigator()
+            this.clearHighlight('leaveNavigator')
         } else if ('DidChangeColorMap' === type) {
             if (this.igvPanel.materialProvider === this.colorRampMaterialProvider) {
                 this.updateMaterialProvider(this.colorRampMaterialProvider)
@@ -103,29 +103,14 @@ class SceneManager {
     }
 
     /**
-     * Delegate hide crosshairs events to affected visualization objects
+     * Clear the shared highlight selection. The controller reconciles by handing
+     * the empty selection to every registered renderer — the navigator strip and
+     * the active visualization both clear via renderHighlight([]). No per-viz
+     * routing needed: only the active viz is a registered renderer, and inactive
+     * vizzes are already hidden by configureRenderStyle().
      */
-    delegateHideCrosshairs() {
-        this.highlightController.clear('hideCrosshairs')
-        if (this.ballAndStick && BallAndStick.renderStyle === this.renderStyle) {
-            this.ballAndStick.handleHideCrosshairs()
-        }
-        if (this.ribbon) {
-            this.ribbon.handleHideHighlights()
-        }
-    }
-
-    /**
-     * Delegate leave genomic navigator events
-     */
-    delegateLeaveGenomicNavigator() {
-        this.highlightController.clear('leaveNavigator')
-        if (this.pointCloud && PointCloud.renderStyle === this.renderStyle) {
-            this.pointCloud.handleLeaveGenomicNavigator()
-        }
-        if (this.ribbon) {
-            this.ribbon.handleHideHighlights()
-        }
+    clearHighlight(source) {
+        this.highlightController.clear(source)
     }
 
     setupWithTrace(trace) {

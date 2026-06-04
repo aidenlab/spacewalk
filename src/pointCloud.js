@@ -138,13 +138,6 @@ class PointCloud {
         }
     }
 
-    /**
-     * Handle leave genomic navigator event (delegated from SceneManager)
-     */
-    handleLeaveGenomicNavigator() {
-        this.pickHighlighter.unhighlight()
-    }
-
     updateMaterialProvider (materialProvider) {
 
         for (const mesh of this.meshList) {

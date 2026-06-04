@@ -2,18 +2,20 @@
 
 > **STATUS: Being reconciled mid-migration.** Originally written after the highlighting redesign
 > Phases 1–3 ([refactor-highlighting-redesign.md](refactor-highlighting-redesign.md), PR #65).
-> Since then, on branch `refactor/highlighting-surface-b`, two further changes have landed:
-> (1) **Surface B unification** — the 3D vizzes now render the shared selection via
-> `renderHighlight(selection)` and `delegateGenomicInterpolant` is deleted (the per-style
-> *clear* routers `delegateLeaveGenomicNavigator` / `delegateHideCrosshairs` still exist; their
-> collapse is the next step); (2) **IGV producer rebuilt** — spacewalk owns the IGV cursor guide
-> and highlight producer ([`igvCursorGuide.js`](../src/igvCursorGuide.js)) instead of igv's
-> internal cursor guide, which is unreliable under our config in igv v3.8.0.
+> Since then, three further changes have landed: (1) **Surface B unification** (PR #66) — the 3D
+> vizzes now render the shared selection via `renderHighlight(selection)` and
+> `delegateGenomicInterpolant` is deleted; (2) **IGV producer rebuilt** (PR #66) — spacewalk owns the
+> IGV cursor guide and highlight producer ([`igvCursorGuide.js`](../src/igvCursorGuide.js)) instead of
+> igv's internal cursor guide, which is unreliable under our config in igv v3.8.0; (3) **clear-path
+> collapse** — the per-style *clear* routers `delegateLeaveGenomicNavigator` / `delegateHideCrosshairs`
+> and the per-viz `handle*` clear methods are gone, replaced by one `sceneManager.clearHighlight()`
+> (see §5, now reconciled).
 >
-> §1–§2 and the new **"Directionality — drivers and receivers"** section are current. The §3
-> spine and §4–§5 sequence/clear sections still depict the pre-unification routing
-> (`delegateGenomicInterpolant`) and get a reconciliation pass once the clear-path collapse lands.
-> This is the *map* — the cast of participants and the paths a highlight takes.
+> §1–§2, the **"Directionality — drivers and receivers"** section, and §5 are current. The §3 spine
+> and §4 sequence sections still depict the pre-unification *set* routing
+> (`delegateGenomicInterpolant`) and get a reconciliation pass with the next phase (event-bus Phase 3:
+> dissolving `DidEnter/LeaveGenomicNavigator` + `picker.isEnabled`). This is the *map* — the cast of
+> participants and the paths a highlight takes.
 
 Highlighting is the most multifaceted interaction in Spacewalk. The complexity is combinatorial:
 **two different things get highlighted, four different inputs can drive a highlight, and the 3D
@@ -317,47 +319,44 @@ win — it used to ride the same fragile back-call as the navigator-driven ball 
 
 ---
 
-## 5. Clearing is the subtle part
+## 5. Clearing (now uniform)
 
-Highlighting is easy; *un*-highlighting is where the asymmetry lives. Surface A clears uniformly —
-every path that ends a highlight calls `highlightController.clear`, which runs `renderHighlight([])`.
-**Surface B does not**: which highlighters get cleared depends on *how* the highlight ended, and the
-coverage has holes.
+Clearing *used* to be the subtle part — an asymmetric per-(input × style) matrix of `delegate*`
+routers and per-viz `handle*` methods, with holes where a viz could get stuck highlighted. **That
+matrix has been collapsed.** Every path that ends a highlight now calls
+`sceneManager.clearHighlight(source)` → `highlightController.clear(source)`, the controller runs
+`renderHighlight([])` on every registered renderer, and **both surfaces clear identically** — the
+navigator strip and the active 3D viz, through the exact same pipeline as a *set*. The render-style
+switch lives in one place (`getActiveVisualization()`); inactive vizzes are already hidden by
+`configureRenderStyle()`, so there is nothing per-style left to route.
 
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '16px', 'fontFamily': 'arial'}}}%%
 flowchart TB
-    E1["Navigator mouseleave<br/>(DidLeaveGenomicNavigator)"] --> R1["delegateLeaveGenomicNavigator"]
-    E2["IGV / JB DidHideCrosshairs"] --> R2["delegateHideCrosshairs"]
-    E3["Picker enter/leave navigator<br/>or no-hit"] --> R3["picker handlers"]
-    E4["Gap under cursor<br/>(empty delegate)"] --> R4["delegateGenomicInterpolant({})"]
-    R1 --> HC[("highlightController.clear<br/>strip always clears")]
-    R2 --> HC
-    R3 --> HC
+    E1["Navigator mouseleave<br/>(DidLeaveGenomicNavigator)"] --> CH["sceneManager.clearHighlight"]
+    E2["IGV / JB DidHideCrosshairs"] --> CH
+    E3["Picker no-hit"] --> HC
+    E4["Gap under cursor<br/>(producer reports clear)"] --> HC
+    CH --> HC[("highlightController.clear(source)<br/>reconcile → renderHighlight([])<br/>strip + active viz")]
 ```
 
-The strip side (`HC`) is clean. The structure side is the matrix below — every "no" is a latent
-stuck-highlight:
+| Clear trigger | Path | Result |
+|---|---|---|
+| Navigator mouseleave (`DidLeaveGenomicNavigator`) | `sceneManager.clearHighlight('leaveNavigator')` | strip + active viz clear via reconcile |
+| IGV / Juicebox cursor hide (`DidHideCrosshairs`) | `sceneManager.clearHighlight('hideCrosshairs')` | strip + active viz clear via reconcile |
+| Picker no-hit (raycast misses) | `highlightController.clear('picker')` | strip + active viz clear via reconcile |
+| Gap under a still-hovering cursor | producer reports `clear` (undefined window) | strip + active viz clear via reconcile |
 
-| Clear trigger | Router | Clears strip? | Clears ball? | Clears point cloud? | Clears ribbon? |
-|---|---|---|---|---|---|
-| Navigator mouseleave (`DidLeaveGenomicNavigator`) | `delegateLeaveGenomicNavigator` | ✅ | **no** — done by the picker's `DidLeave` handler instead | ✅ `handleLeaveGenomicNavigator` | ✅ `handleHideHighlights` |
-| IGV / Juicebox cursor hide (`DidHideCrosshairs`) | `delegateHideCrosshairs` | ✅ | ✅ `handleHideCrosshairs` | **no** | ✅ `handleHideHighlights` |
-| Picker: enter/leave navigator, or no-hit | `picker.receiveEvent` / `intersect` | ✅ | ✅ `ballHighlighter.unhighlight` | — | — |
-| Gap under a still-hovering cursor (empty delegate) | `delegateGenomicInterpolant({})` | ✅ (producer also `clear`s) | ✅ `unhighlight` | ✅ `unhighlight` | **no** — `handleGenomicInterpolant` has no else branch |
+The old `delegateHideCrosshairs` / `delegateLeaveGenomicNavigator` routers and the per-viz
+`handleHideCrosshairs` / `handleHideHighlights` / `handleLeaveGenomicNavigator` methods are **gone** —
+`renderHighlight([])` subsumes all of them.
 
-Two consequences worth internalizing:
-
-1. **Ball's navigator-leave clear lives in the *picker*, not the scene manager.** When you leave the
-   navigator, `delegateLeaveGenomicNavigator` clears point cloud and ribbon, but the ball is cleared
-   out-of-band by the picker's `DidLeaveGenomicNavigator` handler (which also re-enables the picker).
-   This split is exactly the kind of per-(input × style) wiring the redesign aims to delete.
-2. **Ribbon does not self-clear on a gap.** `Ribbon.handleGenomicInterpolant` only *shows* beads; it
-   has no else branch, so an empty delegate leaves them where they were. They get hidden on leave
-   (`handleHideHighlights`), not on hovering a gap — a small latent asymmetry, harmless today.
-
-This whole matrix collapses once each viz becomes a `renderHighlight(selection)` renderer: clear
-stops being a separate path and becomes `renderHighlight([])`, the same as the strip.
+**One wrinkle remains, slated for the next phase (event-bus Phase 3).** The picker still toggles
+`picker.isEnabled` and calls `ballHighlighter.unhighlight()` directly on
+`DidEnter/LeaveGenomicNavigator`. The unhighlight is now redundant with the reconcile clear; the
+`isEnabled` gate — suppress 3D raycast picking while the cursor is over a 1D producer — is the real
+remaining behavior. Dissolving `DidEnter/LeaveGenomicNavigator` into producers and retiring
+`isEnabled` is the remaining cleanup.
 
 ---
 

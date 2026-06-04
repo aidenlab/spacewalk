@@ -150,7 +150,7 @@ class JuiceboxPanel extends Panel {
 
         this.browser.eventBus.subscribe('DidHideCrosshairs', {
             receiveEvent: () => {
-                this.sceneManager.delegateHideCrosshairs()
+                this.sceneManager.clearHighlight('hideCrosshairs')
                 this.genomicNavigator.repaint()
             }
         })
