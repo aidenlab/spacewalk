@@ -43,11 +43,21 @@ class ThreeJSInitializer {
 
         this.container.appendChild(threeJSObjects.renderer.domElement);
 
-        // Set up mouse tracking
+        // Pointer tracking for the raycast picker. The picker runs every render
+        // frame, so coordinates must reflect ONLY the canvas: while the pointer is
+        // over a 1D producer (navigator / IGV / Juicebox) it is not over the canvas
+        // (none are descendants of this container), so mouseleave fires, the coords
+        // go null, and Picker.intersect() no-ops — no stand-down flag needed.
         this.container.addEventListener('mousemove', event => {
             const { x, y } = getMouseXY(threeJSObjects.renderer.domElement, event);
             this.mouseX = (x / threeJSObjects.renderer.domElement.clientWidth) * 2 - 1;
             this.mouseY = -(y / threeJSObjects.renderer.domElement.clientHeight) * 2 + 1;
+        });
+
+        this.container.addEventListener('mouseleave', () => {
+            this.mouseX = null;
+            this.mouseY = null;
+            threeJSObjects.picker.onPointerLeftCanvas();
         });
 
         // Create scene

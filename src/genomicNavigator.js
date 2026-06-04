@@ -32,15 +32,11 @@ class GenomicNavigator {
             this.onCanvasMouseMove(canvas, event)
         });
 
-        canvasContainer.addEventListener('mouseenter', event => {
-            event.stopPropagation()
-            SpacewalkEventBus.globalBus.post({ type: 'DidEnterGenomicNavigator', data: 'DidEnterGenomicNavigator' })
-        });
-
+        // Producer self-clears when the pointer leaves the ramp — no broadcast.
         canvasContainer.addEventListener('mouseleave', event => {
             event.stopPropagation()
             this.repaint()
-            SpacewalkEventBus.globalBus.post({ type: 'DidLeaveGenomicNavigator', data: 'DidLeaveGenomicNavigator' })
+            this.sceneManager.highlightController.clear('navigator')
         });
 
         const { r, g, b } = highlightColor
