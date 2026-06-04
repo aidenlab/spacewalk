@@ -1,9 +1,19 @@
 # Highlighting — participants, surfaces, and flows
 
-> **STATUS: Current.** Describes how highlighting works today, after the highlighting redesign
-> Phases 1–3 ([refactor-highlighting-redesign.md](refactor-highlighting-redesign.md), PR #65). This
-> is the *map* — the cast of participants and the paths a highlight takes. The RFC is the *plan*;
-> read this first to understand the moving parts, then the RFC for where they are headed.
+> **STATUS: Being reconciled mid-migration.** Originally written after the highlighting redesign
+> Phases 1–3 ([refactor-highlighting-redesign.md](refactor-highlighting-redesign.md), PR #65).
+> Since then, on branch `refactor/highlighting-surface-b`, two further changes have landed:
+> (1) **Surface B unification** — the 3D vizzes now render the shared selection via
+> `renderHighlight(selection)` and `delegateGenomicInterpolant` is deleted (the per-style
+> *clear* routers `delegateLeaveGenomicNavigator` / `delegateHideCrosshairs` still exist; their
+> collapse is the next step); (2) **IGV producer rebuilt** — spacewalk owns the IGV cursor guide
+> and highlight producer ([`igvCursorGuide.js`](../src/igvCursorGuide.js)) instead of igv's
+> internal cursor guide, which is unreliable under our config in igv v3.8.0.
+>
+> §1–§2 and the new **"Directionality — drivers and receivers"** section are current. The §3
+> spine and §4–§5 sequence/clear sections still depict the pre-unification routing
+> (`delegateGenomicInterpolant`) and get a reconciliation pass once the clear-path collapse lands.
+> This is the *map* — the cast of participants and the paths a highlight takes.
 
 Highlighting is the most multifaceted interaction in Spacewalk. The complexity is combinatorial:
 **two different things get highlighted, four different inputs can drive a highlight, and the 3D
@@ -63,14 +73,46 @@ turns into `{ genomicExtent, index }` windows (or `undefined` for a gap).
 
 | Producer | Site | Trigger → what it computes | Note |
 |---|---|---|---|
-| **Navigator ramp** | `genomicNavigator.onCanvasMouseMove` | mouse-Y on the ramp → one interpolant `1 - yNorm` | also pokes IGV's cursor guide (§6) |
-| **IGV cursor** | `IGVPanel.setCustomCursorGuideMouseHandler` | cursor bp on a genomic track → one interpolant | registered once at init (HMR footgun, §6) |
+| **Navigator ramp** | `genomicNavigator.onCanvasMouseMove` | mouse-Y on the ramp → one interpolant `1 - yNorm` → indices | — |
+| **IGV pointer** | `igvCursorGuide.js` (own `mousemove` on the IGV column container) | pointer x → bp (`refFrame.start + x·bpPerPixel`) → region index (direct `startBP..endBP` lookup) | spacewalk-owned; also draws its own continuous guide line (§6) |
 | **Juicebox crosshairs** | `juiceboxPanel.handleCrosshairs` | crosshair x,y on the contact map → **two** interpolants | the only producer that yields two regions at once |
 | **3D raycast picker** | `picker.intersect` | ray from the mouse into the scene → a hit `instanceId` | **balls only** — point cloud, ribbon, stick are in the raycaster `exclusionSet` |
 
 > **Asymmetry to remember:** direct 3D interaction (the picker) only fires in **ball-and-stick**
 > mode. You cannot click-highlight a point-cloud point or a ribbon segment — those object names are
 > excluded from the raycast. The other three producers work in all three render styles.
+
+---
+
+## Directionality — drivers and receivers
+
+A producer is a **driver** (it writes the shared selection); a surface that reflects the selection
+is a **receiver**. Most confusion about highlighting dissolves once you see which participants are
+which — and that the relationship is deliberately **not symmetric**.
+
+| Participant | Drives the selection? | Reflects the selection? |
+|---|---|---|
+| **Navigator** | yes — ramp hover | yes — strip |
+| **IGV panel** | yes — pointer → region | **no** — its guide line is its own continuous locator (`igvCursorGuide.js`), not a selection renderer |
+| **Juicebox** | yes — crosshairs → two regions | **no** — the crosshair is its own UI |
+| **3D structure** | yes — *ball picker only* | yes — the active viz renders the selection |
+
+Reading the asymmetry:
+
+- **Navigator is the only bidirectional participant** — it both drives (ramp) and reflects (strip),
+  so 3D interaction lights up the strip and a ramp hover lights up the structure.
+- **IGV and Juicebox are one-way drivers.** They push into the strip + 3D structure; nothing pushes
+  back into them. That is exactly why the IGV guide line is driven by IGV's *own* pointer rather
+  than the shared selection — it is a locator for its own input, not a mirror of another producer's.
+  (It is also why a coarse genomic strip must not quantize the line: the line is continuous, the
+  highlight is the discrete region the pointer lands in.)
+- **3D interaction is non-reciprocal.** Hovering a ball drives the strip + the ball; in point cloud
+  there is no direct interaction at all (the picker excludes it), so its highlight only ever arrives
+  *via* a driver. Nothing from the 3D viewer is broadcast to IGV or juicebox — and the consistency
+  argument is the tell: if 3D→IGV existed you would expect 3D→juicebox, and it does not, so neither
+  should.
+- **The 1D↔3D linkage is preserved by IGV-as-driver:** IGV (1D genomic space) drives the 3D
+  structure through the shared selection. Only the reverse line-mirroring is (correctly) absent.
 
 ---
 
@@ -324,18 +366,19 @@ stops being a separate path and becomes `renderHighlight([])`, the same as the s
 A few edges don't fit the clean producer→pipeline story and are worth calling out so they aren't
 mistaken for bugs:
 
-- **The navigator pokes IGV's cursor guide.** On a successful navigator hover,
-  `onCanvasMouseMove` calls `igvPanel.browser.cursorGuide.updateWithInterpolant(...)` so the IGV
-  ruler tracks the ramp. This is a producer reaching sideways into another input's UI — it does not
-  re-enter the highlight pipeline, but it is why mousing the ramp also moves the IGV cursor line.
+- **The IGV cursor guide is spacewalk-owned and continuous.** `igvCursorGuide.js` draws its own
+  vertical line that follows the IGV pointer continuously (from raw bp), independent of the discrete
+  shared selection — so it is *not* a selection renderer and other producers do not move it (see
+  "Directionality"). This replaced a *dead* call into `cursorGuide.updateWithInterpolant`, a method
+  that does not exist in upstream igv v3.8.0, so mousing the ramp never actually moved the IGV line.
 - **`DidEnter` / `DidLeaveGenomicNavigator` gate the picker.** These two events exist mainly to set
   `picker.isEnabled` (don't raycast the 3D model while the user is working the ramp) and to clear the
   ball highlighter on the boundary. The redesign folds these into ordinary producer state, which is
   why event-bus Phase 3 is *subsumed* by the highlighting RFC.
-- **HMR footgun.** IGV's cursor→highlight handler is registered once at init via
-  `browser.setCustomCursorGuideMouseHandler`. Vite HMR leaves the old closure installed, so editing
-  `IGVPanel.js` / `genomicNavigator.js` and hot-swapping makes IGV highlighting look broken until a
-  **full page reload**. Hard-refresh when instrumenting these files.
+- **The old IGV HMR footgun is gone.** The IGV producer no longer registers a once-at-init closure
+  on igv's internal cursor guide. `igvCursorGuide.attach()` uses an `AbortController` and is
+  re-attached on every `configureMouseHandlers` (browser create / session restore), so it survives
+  IGV DOM rebuilds without a full page reload.
 
 ---
 

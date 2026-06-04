@@ -60,19 +60,28 @@ class Ribbon {
     }
 
     /**
-     * Handle genomic interpolant events (delegated from SceneManager)
+     * Render the shared highlight selection. Ribbon shows up to two beads on the
+     * curve; it maps each region index to its interpolant via the genomic-extent
+     * list (skipping indices with no extent), then positions a bead there. Empty
+     * selection hides both beads. See development-notes/refactor-highlighting-redesign.md.
      */
-    handleGenomicInterpolant(data) {
-        const { interpolantList } = data
-
-        if (interpolantList) {
-            for (let interpolant of interpolantList) {
-                const { x, y, z } = this.curve.getPointAt(interpolant)
-                const index = interpolantList.indexOf(interpolant)
-                this.highlightBeads[ index ].position.set(x, y, z)
-                this.highlightBeads[ index ].visible = true
-            }
+    renderHighlight(selection) {
+        if (!this.highlightBeads) {
+            return
         }
+
+        this.highlightBeads[ 0 ].visible = false
+        this.highlightBeads[ 1 ].visible = false
+
+        const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
+        selection.slice(0, 2).forEach((index, i) => {
+            const extent = genomicExtentList[ index ]
+            if (extent) {
+                const { x, y, z } = this.curve.getPointAt(extent.interpolant)
+                this.highlightBeads[ i ].position.set(x, y, z)
+                this.highlightBeads[ i ].visible = true
+            }
+        })
     }
 
     /**
