@@ -48,7 +48,6 @@ class SceneManager {
         this.pointOpacity = 0.375
 
         SpacewalkEventBus.globalBus.subscribe('DidSelectTrace', this);
-        SpacewalkEventBus.globalBus.subscribe('DidLeaveGenomicNavigator', this);
         SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
     }
 
@@ -92,8 +91,6 @@ class SceneManager {
                 this.isLoading = false
             }
 
-        } else if ('DidLeaveGenomicNavigator' === type) {
-            this.clearHighlight('leaveNavigator')
         } else if ('DidChangeColorMap' === type) {
             if (this.igvPanel.materialProvider === this.colorRampMaterialProvider) {
                 this.updateMaterialProvider(this.colorRampMaterialProvider)

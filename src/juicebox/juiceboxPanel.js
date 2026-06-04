@@ -56,15 +56,11 @@ class JuiceboxPanel extends Panel {
         // Stable references for add/removeEventListener
         this._tabEventHandler = (event) => this.assessTab(event.target)
 
-        this.panel.addEventListener('mouseenter', (event) => {
-            event.stopPropagation();
-            SpacewalkEventBus.globalBus.post({ type: 'DidEnterGenomicNavigator', data: 'DidEnterGenomicNavigator' });
-        });
-
+        // Juicebox clears its highlight via DidHideCrosshairs (see
+        // attachMouseHandlersAndEventSubscribers); the panel only refreshes the ramp.
         this.panel.addEventListener('mouseleave', (event) => {
             event.stopPropagation();
             this.genomicNavigator.repaint()
-            SpacewalkEventBus.globalBus.post({ type: 'DidLeaveGenomicNavigator', data: 'DidLeaveGenomicNavigator' });
         });
 
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this)

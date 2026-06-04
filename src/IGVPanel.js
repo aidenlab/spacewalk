@@ -1,5 +1,4 @@
 import igv from 'igv'
-import SpacewalkEventBus from './spacewalkEventBus.js'
 import {installShim} from './igvTrackMaterialProviderShim.js';
 import IGVCursorGuide from './igvCursorGuide.js';
 import MaterialProviderController from './materialProviderController.js';
@@ -50,15 +49,11 @@ class IGVPanel extends Panel {
         // const dragHandle = panel.querySelector('.spacewalk_card_drag_container')
         // makeDraggable(panel, dragHandle)
 
-        this.panel.addEventListener('mouseenter', (event) => {
-            event.stopPropagation();
-            SpacewalkEventBus.globalBus.post({ type: 'DidEnterGenomicNavigator', data: 'DidEnterGenomicNavigator' });
-        });
-
+        // The IGV cursor guide (igvCursorGuide) is the producer and self-clears on
+        // its own column mouseleave; the panel only needs to refresh the ramp.
         this.panel.addEventListener('mouseleave', (event) => {
             event.stopPropagation();
             this.genomicNavigator.repaint()
-            SpacewalkEventBus.globalBus.post({ type: 'DidLeaveGenomicNavigator', data: 'DidLeaveGenomicNavigator' });
         });
     }
 
