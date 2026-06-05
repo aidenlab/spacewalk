@@ -1,9 +1,11 @@
 # Refactor: continuous genomic locator — slide the bead, quantize the highlight
 
-> **STATUS: Proposal (2026-06-05).** Follow-on to the completed highlighting arc
-> ([refactor-highlighting-redesign.md](refactor-highlighting-redesign.md), Historical; current
-> behavior in [highlighting-participant-map.md](highlighting-participant-map.md), Current).
-> Branch: `refactor/continuous-genomic-locator` (proposed).
+> **STATUS: Historical — COMPLETE (PR #70, merged 2026-06-05).** Follow-on to the completed
+> highlighting arc ([refactor-highlighting-redesign.md](refactor-highlighting-redesign.md), Historical).
+> Shipped in three commits on `refactor/continuous-genomic-locator`; the ribbon bead now glides as a
+> continuous locator while the highlight stays quantized. Current behavior is folded into
+> [highlighting-participant-map.md](highlighting-participant-map.md) (Current) — read that for how it
+> works today; this RFC is retained as the plan/rationale.
 
 ## The conceit (why this refactor exists)
 
