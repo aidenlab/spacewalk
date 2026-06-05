@@ -28,6 +28,11 @@
 > The end state — **one state, many writers, one renderer per surface** — is reached. The current map
 > of the shipped design is [highlighting-participant-map.md](highlighting-participant-map.md)
 > (Status: Current). This RFC is retained as the historical plan/rationale.
+>
+> **Follow-on (2026-06-05):** unifying onto the discrete index quantized the ribbon *bead* into hopping
+> window-to-window. [refactor-continuous-genomic-locator.md](refactor-continuous-genomic-locator.md)
+> (Proposal) re-separates the continuous *locator* (the gliding bead) from the discrete *highlight*,
+> with the index derived from a continuous coordinate the producers already compute.
 
 Date: 2026-06-02
 Branch: `refactor/highlighting-redesign`
