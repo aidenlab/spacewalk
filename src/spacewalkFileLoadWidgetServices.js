@@ -5,6 +5,12 @@ let traceSelectModal
 let ensembleGroupModal
 let ensembleGroupSelectElement
 
+// Single source of truth for the "Load From List" picker: a curated JSON array
+// of { name, url } entries living at the root of the Cloudflare R2 bucket. Add a
+// hosted .sw to the picker by editing that file and re-uploading it — no app
+// change or rebuild required. See development-notes/cloudflare-storage/.
+const TRACE_LIST_MANIFEST_URL = 'https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/load-from-list.json'
+
 function createSpacewalkFileLoaders ({ rootContainer, localFileInput, urlLoadModalId, traceModalId, ensembleGroupModalId, dropboxButton, fileLoader, getEnsembleIngestionController }) {
 
     // local file
@@ -73,12 +79,8 @@ function createAndConfigureTraceSelectModal(parentElement, traceModalId, fileLoa
                             <div class="spinner-border" style="display: none;">
                                 <!-- spinner border-radius: .25rem; -->
                             </div>
-                            <select class="form-select" data-live-search="true" title="Select an ensemble" data-width="100%">
+                            <select class="form-select" title="Select an ensemble" data-width="100%">
                                 <option value="" disabled selected hidden>Please select</option>
-                                <option value="https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/A549_chr21-28-30Mb.sw">A549 chr21:28-30</option>
-                                <option value="https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/HCT116_chr21-28-30Mb_untreated.sw">HCT116 untreated chr21:28-30</option>
-                                <option value="https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/IMR90_chr21-18-20Mb.sw">IMR90 chr21:18-20</option>
-                                <option value="https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/IMR90_chr21-28-30Mb.sw">IMR90 chr21:28-30</option>
                             </select>
                         </div>
                     </div>
@@ -96,6 +98,7 @@ function createAndConfigureTraceSelectModal(parentElement, traceModalId, fileLoa
     const modal = new bootstrap.Modal(traceSelectModalElement)
 
     const selectElement = traceSelectModalElement.querySelector('select')
+    const spinner = traceSelectModalElement.querySelector('.spinner-border')
 
     selectElement.addEventListener('change', event => {
 
@@ -109,8 +112,69 @@ function createAndConfigureTraceSelectModal(parentElement, traceModalId, fileLoa
 
     })
 
+    // Lazily fetch the curated manifest the first time the modal opens, then
+    // render each group as an <optgroup> section. The bucket's folder layout
+    // (root traces, olga-dudchenko/ large ensembles, pointcloud/) maps to the
+    // sections. Large files belong here on purpose: .sw is HDF5-indexed, so the
+    // viewer range-reads a small snippet near-real-time regardless of total size.
+    let didPopulate = false
+    traceSelectModalElement.addEventListener('show.bs.modal', async () => {
+
+        if (didPopulate) {
+            return
+        }
+
+        spinner.style.display = 'block'
+
+        try {
+            const response = await fetch(TRACE_LIST_MANIFEST_URL)
+            if (!response.ok) {
+                throw new Error(`${response.status} ${response.statusText}`)
+            }
+            const { groups } = await response.json()
+            populateTraceSelect(selectElement, groups)
+            didPopulate = true
+        } catch (error) {
+            console.error(`Could not load file list from ${TRACE_LIST_MANIFEST_URL}:`, error)
+            const option = document.createElement('option')
+            option.textContent = 'Could not load file list'
+            option.disabled = true
+            selectElement.appendChild(option)
+        } finally {
+            spinner.style.display = 'none'
+        }
+
+    })
+
     return modal
 
+}
+
+// Render the manifest's groups as <optgroup> sections beneath the leading
+// "Please select" placeholder, discarding any previously-rendered sections.
+function populateTraceSelect(selectElement, groups) {
+
+    selectElement.querySelectorAll('optgroup').forEach(group => group.remove())
+
+    for (const { label, files } of groups) {
+
+        const optgroup = document.createElement('optgroup')
+        optgroup.label = label
+
+        // Natural sort so embedded numbers order numerically (chr1, chr2 … chr10),
+        // not lexically (chr1, chr10, chr2). Robust to whatever order the manifest
+        // arrives in, so it survives regeneration.
+        const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+
+        for (const { name, url } of sorted) {
+            const option = document.createElement('option')
+            option.value = url
+            option.textContent = name
+            optgroup.appendChild(option)
+        }
+
+        selectElement.appendChild(optgroup)
+    }
 }
 
 function createAndConfigureEnsembleGroupSelectModal(parentElement, ensembleGroupModalId, getEnsembleIngestionController) {
