@@ -10,6 +10,13 @@
 > and retired `picker.isEnabled` (the picker now gates on cursor-over-canvas). The end state the RFC
 > targeted — **one state, many writers, one renderer per surface** — is reached. This is the *map*:
 > the cast of participants and the paths a highlight takes.
+>
+> **Follow-on shipped (PR #70, continuous genomic locator).** The selection entry is now
+> `{ index, interpolant }`: the discrete `index` drives the quantized surfaces, and a **continuous**
+> `interpolant` ∈ [0,1] drives the ribbon bead so it glides along the curve instead of hopping
+> window-to-window. The conceit: *navigation* is continuous, the *data* is discrete, the index is a
+> projection of the continuous coordinate. See
+> [refactor-continuous-genomic-locator.md](refactor-continuous-genomic-locator.md) and §3/§4b/§7 below.
 
 Highlighting is the most multifaceted interaction in Spacewalk. The complexity is combinatorial:
 **two different things get highlighted, four different inputs can drive a highlight, and the 3D
@@ -50,7 +57,14 @@ The three flavors of Surface B:
 |---|---|---|---|
 | ball-and-stick | `BallHighlighter` | writes `highlightColor` into the balls' `instanceColor` for the hit `instanceId`s | repaints those instances from the material provider |
 | point cloud | `PointCloudHighlighter` | swaps **all** meshes to the deemphasized material, then re-emphasizes the selected meshes | repaints all meshes from the material provider |
-| ribbon | `Ribbon` (no highlighter object) | moves two pre-made `highlightBeads` spheres onto the curve at the hovered interpolant(s) and shows them | hides the two beads |
+| ribbon | `Ribbon` (no highlighter object) | moves two pre-made `highlightBeads` spheres onto the curve at the hovered **continuous interpolant(s)** (`curve.getPointAt`) and shows them — the bead *glides* | hides the two beads |
+
+> **Discrete highlight vs. continuous locator (PR #70).** The ribbon bead is not really a *highlight*
+> of a discrete window — it is a continuous **locator**, the 3D analogue of IGV's continuous guide
+> line. So a selection entry carries both an `index` (discrete; drives the strip band, the lit ball,
+> the point-cloud subset) and an `interpolant` (continuous; drives the bead). Only the bead reads the
+> interpolant; the band and the ball stay quantized to the window, because there is no fractional
+> region to color.
 
 > **The bug we just fixed lived in Surface A.** Before the redesign the strip had *no owner* — it
 > was repainted as a side effect of whichever Surface-B highlighter happened to call back into the
@@ -120,14 +134,14 @@ This is the heart of the design. Every producer is a pure **writer** to a single
 ```mermaid
 %%{init: {'themeVariables': {'fontSize': '17px', 'fontFamily': 'arial'}, 'flowchart': {'nodeSpacing': 45, 'rankSpacing': 55}}}%%
 flowchart TB
-    subgraph P["Producers — compute region indices, then set / clear"]
+    subgraph P["Producers — compute { index, interpolant } entries, then set / clear"]
         NAV["Navigator ramp"]
         IGV["IGV cursor (igvCursorGuide)"]
         JB["Juicebox crosshairs"]
         PICK["3D raycast picker (balls only)"]
     end
 
-    HC["HighlightController<br/>selection: set of region indices<br/>set(indices, source) / clear(source)"]
+    HC["HighlightController<br/>selection: { index, interpolant }[]<br/>set(entries, source) / clear(source)"]
 
     subgraph R["Renderers — one per surface, invoked on every change"]
         RH["genomicNavigator.renderHighlight(selection)"]
@@ -149,12 +163,14 @@ flowchart TB
 
 Read it as four producers feeding one controller, which feeds one renderer per surface:
 
-- **Producers only `set`/`clear`.** Each computes a set of region indices and calls
-  `highlightController.set(indices, source)` or `.clear(source)`. None of them knows the render
+- **Producers only `set`/`clear`.** Each computes `{ index, interpolant }` entries and calls
+  `highlightController.set(entries, source)` or `.clear(source)`. None of them knows the render
   style, touches a highlighter, or paints anything. The picker is no longer special — it writes the
-  same way (it used to reach `ballHighlighter` through a side-door; that's gone).
-- **The controller dedupes and diffs.** On a real change it `reconcile()`s by handing the selection
-  to every registered renderer.
+  same way (it used to reach `ballHighlighter` through a side-door; that's gone). The continuous
+  producers (navigator, IGV, juicebox) report their real interpolant; the discrete picker reports the
+  picked window's center.
+- **The controller diffs and fans out.** On a real change (index *or* interpolant differs) it
+  `reconcile()`s by handing the selection to every registered renderer.
 - **Two renderers, registered in `sceneManager.createHighlighters`:** the navigator strip
   (`genomicNavigator.renderHighlight`) and the active 3D viz
   (`getActiveVisualization()?.renderHighlight`). **The render-style switch exists in exactly one
@@ -222,11 +238,16 @@ sequenceDiagram
     U->>IGV: cursor over track lane
     IGV->>CG: mousemove
     CG->>CG: move continuous guide line (raw bp); reject if outside lane
-    CG->>EM: indexForBP(bp) via genomicExtentList
-    alt index found
-        CG->>HC: set([index], 'igvCursor')
+    CG->>EM: locatorForBP(bp) via genomicExtentList
+    alt inside a region
+        CG->>HC: set([{ index, interpolant }], 'igvCursor')
+        Note over CG,HC: interpolant glides across the region's<br/>ramp extent as bp crosses [startBP, endBP]
         HC->>R: reconcile → renderHighlight(selection)
-    else gap / outside locus
+    else interior gap (no region)
+        CG->>HC: set([{ index: undefined, interpolant: junction }], 'igvCursor')
+        Note over CG,HC: highlight clears (no index) but the<br/>bead dwells at the junction — no blink
+        HC->>R: reconcile → renderHighlight(selection)
+    else outside the modeled span
         CG->>HC: clear('igvCursor')
         HC->>R: reconcile → renderHighlight([])
     end
@@ -235,6 +256,10 @@ sequenceDiagram
 The IGV producer is `igvCursorGuide.js` (spacewalk-owned). On the selection side it is structurally
 identical to the navigator — same `set`/`clear`, same reconcile. It *also* owns a continuous guide
 line that follows the raw pointer independent of the discrete selection (see "Directionality" and §6).
+**`locatorForBP`** is what makes the bead glide with that line: within the region under the pointer it
+maps `bp → interpolant` linearly across the region's ramp extent, so the bead tracks the cursor
+continuously rather than snapping to the window center. IGV is the *only* producer that works in bp
+space, hence the only one that can land in a genomic gap (see §7).
 
 ### 4c. Driven by the Juicebox crosshairs
 
@@ -367,16 +392,31 @@ mistaken for bugs:
 ## 7. Gaps in the genomic extent (a constraint every producer honors)
 
 An ensemble's genomic extent can have **gaps** — stretches with no region (data absent, or a defect
-deliberately ignored). This is independent of render style. The contract:
+deliberately ignored).
 
-- **Producer side:** an interpolant that lands in a gap makes `getGenomicInterpolantWindowList`
-  return `undefined`. Every producer treats that as an explicit **`clear()`**, never a degenerate
-  `set([])`. Hovering a gap highlights nothing; it does not throw and does not highlight a neighbor.
-- **Renderer side:** because the selection holds *indices*, `renderHighlight(selection)` maps
-  `index → genomicExtentList[index]` and `.filter(Boolean)`s indices it has no extent for. The 3D
-  highlighters apply the same tolerance when mapping `index → mesh / instanceId / curve point`.
+**Where gaps actually live (PR #70 clarified this).** The ramp is laid out *by index* — `SWBDatasource`
+assigns each region an equal `1/N` slice of `[0,1]` (`start = i/N`, `end = (i+1)/N`), back-to-back. So
+**there are no gaps in ramp/interpolant space**; gaps exist only in genomic **bp** space. Consequently
+the **only producer that ever meets a gap is IGV** (the only one working in bp). Navigator and juicebox
+work in the ramp coordinate, where every value lands in a region.
 
-See the RFC's "Constraint: gaps in the genomic extent" section for the deeper rationale.
+The contract:
+
+- **Producer side — the quantized highlight:** a coordinate with no region carries `index: undefined`.
+  For navigator/juicebox an interpolant that finds no window (`getGenomicInterpolantWindowList` returns
+  `undefined`) is an explicit **`clear()`**. For IGV an *interior* bp gap reports
+  `{ index: undefined, interpolant: junction }` (and only a bp *outside the modeled span* clears).
+  Hovering a gap highlights nothing; it does not throw and does not highlight a neighbor.
+- **Producer side — the continuous bead:** IGV keeps the bead alive over an interior gap by reporting
+  the junction interpolant with no index. Because a bp gap occupies *zero* ramp space (the two regions
+  are ramp-contiguous), this is a continuous **dwell** at the junction, not a traversal — the bead
+  holds at the boundary as the pointer crosses, then resumes, instead of blinking out.
+- **Renderer side:** the discrete renderers map `index → genomicExtentList[index]` / `mesh` /
+  `instanceId` and skip what they have no handle for (`.filter(Boolean)`, or filtering `undefined`
+  indices in `ballAndStick`). The ribbon renders the bead from `interpolant` regardless of `index`.
+
+See the RFC's gap section and [refactor-continuous-genomic-locator.md](refactor-continuous-genomic-locator.md)
+for the deeper rationale.
 
 ---
 
@@ -394,6 +434,11 @@ intentionally-retained asymmetry is the **`point_cloud` raycast exclusion** (a p
 picker hits balls only; point cloud / ribbon / stick are excluded), and Juicebox's separate
 `DidHideCrosshairs` clear, which is genuine fan-out from the juicebox browser. Nothing left to wire
 wrong by render style.
+
+**Follow-on done (PR #70).** The same one path now carries a continuous `interpolant` alongside the
+discrete `index`, so the ribbon bead glides as a continuous locator while the highlight stays
+quantized. It did not add a second pipeline — it raised the fidelity of the one state. See
+[refactor-continuous-genomic-locator.md](refactor-continuous-genomic-locator.md).
 
 ---
 
