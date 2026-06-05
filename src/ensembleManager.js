@@ -111,7 +111,9 @@ class EnsembleManager {
 
             for (const interpolant of interpolantList) {
                 if ( includes({ a, b, value: interpolant }) ) {
-                    interpolantWindowList.push({ genomicExtent, index: genomicExtentList.indexOf(genomicExtent) })
+                    // Carry the matching continuous interpolant, not just the window index, so a
+                    // producer can drive the gliding ribbon bead. See the continuous-locator RFC.
+                    interpolantWindowList.push({ genomicExtent, index: genomicExtentList.indexOf(genomicExtent), interpolant })
                 }
             }
         }

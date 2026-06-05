@@ -75,10 +75,10 @@ function createAndConfigureTraceSelectModal(parentElement, traceModalId, fileLoa
                             </div>
                             <select class="form-select" data-live-search="true" title="Select an ensemble" data-width="100%">
                                 <option value="" disabled selected hidden>Please select</option>
-                                <option value="https://raw.githubusercontent.com/aidenlab/spacewalk-fixtures/v1.0.0/A549_chr21-28-30Mb.sw">A549 chr21:28-30</option>
-                                <option value="https://raw.githubusercontent.com/aidenlab/spacewalk-fixtures/v1.0.0/HCT116_chr21-28-30Mb_untreated.sw">HCT116 untreated chr21:28-30</option>
-                                <option value="https://raw.githubusercontent.com/aidenlab/spacewalk-fixtures/v1.0.0/IMR90_chr21-18-20Mb.sw">IMR90 chr21:18-20</option>
-                                <option value="https://raw.githubusercontent.com/aidenlab/spacewalk-fixtures/v1.0.0/IMR90_chr21-28-30Mb.sw">IMR90 chr21:28-30</option>
+                                <option value="https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/A549_chr21-28-30Mb.sw">A549 chr21:28-30</option>
+                                <option value="https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/HCT116_chr21-28-30Mb_untreated.sw">HCT116 untreated chr21:28-30</option>
+                                <option value="https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/IMR90_chr21-18-20Mb.sw">IMR90 chr21:18-20</option>
+                                <option value="https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/IMR90_chr21-28-30Mb.sw">IMR90 chr21:28-30</option>
                             </select>
                         </div>
                     </div>
