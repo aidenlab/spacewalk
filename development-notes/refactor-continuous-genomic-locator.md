@@ -76,21 +76,33 @@ A selection entry stops being a bare `number` and becomes:
 
 ### IGV's `bp → interpolant` mapping
 
-The only genuinely new computation. Define it piecewise-linearly over the genomic-extent list:
-interpolate between adjacent extents' `(centerBP, interpolant)` pairs. This (a) is continuous, and
-(b) **slides smoothly across a gap** — between the last extent before the gap and the first after it —
-which is the desired bead behavior. Clamp outside the first/last extent.
+The only genuinely new computation, and `igvCursorGuide.locatorForBP(bp)` (shipped commit 2) does it:
+within the region the pointer falls in, glide the interpolant linearly across that region's ramp extent
+`[start, end]` as `bp` crosses its genomic span `[startBP, endBP]`. **Why per-window and not a single
+global `bp → [0,1]`:** the ramp is assigned *by index*, not by bp — `SWBDatasource` sets
+`start = i·(1/N)`, `end = (i+1)·(1/N)`, so every region gets an equal `1/N` ramp slice regardless of bp
+width, and regions tile `[0,1]` contiguously. The per-window map therefore (a) keeps the bead in the
+same window the strip highlights, and (b) is continuous across contiguous boundaries (`end_i ==
+start_{i+1}`).
 
-### Gaps — the behavior we explicitly want
+### Gaps — the behavior we explicitly want (refined to the index-uniform ramp)
 
-Decided: **the bead slides through a gap; the discrete highlight clears over it.** The curve is a
-continuous `CatmullRomCurve3`, so `getPointAt` is always defined; the bead has no reason to blink out.
-This requires one behavioral change in the producers: over a gap they must **report the interpolant
-with `index: undefined`** rather than calling `clear()`. The discrete renderers already tolerate a
-missing index (the redesign's gap constraint); they just skip it. The bead keeps moving.
+**Discovery while implementing:** because the ramp is index-uniform, *there are no gaps in ramp/
+interpolant space* — every interpolant in `[0,1]` lands in exactly one window. Gaps exist only in
+genomic **bp** space, so the **only producer that ever meets one is IGV** (the only one working in bp).
+Navigator and juicebox work in the ramp coordinate and never hit a gap.
 
-(Today a gap → `getGenomicInterpolantWindowList` returns `undefined` → full `clear()`. That is what we
-change: clear the *highlight*, not the *locator*.)
+Decided behavior: **the bead does not blink out over a gap; the discrete highlight clears.** But since
+a bp gap occupies *no ramp space* (the two regions are ramp-contiguous at the junction), "slide
+through" is precisely a **continuous dwell at the junction**: as the pointer crosses the gap the bead
+holds at the boundary interpolant (`= end_i = start_{i+1}`), then resumes — continuous, no hop, no
+blink. `locatorForBP` returns `{ index: undefined, interpolant: <junction> }` for an interior gap (and
+`undefined` → `clear` only when the pointer is outside the modeled span entirely). The discrete
+renderers skip the `undefined` index (the redesign's gap constraint); the bead renders from the
+interpolant.
+
+(Today, pre-fix: an interior gap → `locatorForBP` returns `undefined` → full `clear()` → the bead
+blinks out and back. The fix clears the *highlight*, not the *locator*.)
 
 ### Scope guard
 
@@ -98,28 +110,29 @@ Only the **bead** goes continuous. The strip band and the lit ball stay quantize
 making *those* sub-window-continuous would be wrong (there is no fractional region to color). This
 keeps the conceit honest: continuous *navigation*, discrete *data*.
 
-## Plan (tiny commits, viewport-verified)
+## Plan (tiny commits, viewport-verified) — ALL SHIPPED on branch `refactor/continuous-genomic-locator`
 
 Each commit is independently visible in the running app — the project's feedback loop.
 
-1. **Widen the entry to `{ index, interpolant }`.** `HighlightController.set/isEqual` carry the pair;
+1. ✅ **Widen the entry to `{ index, interpolant }`.** `HighlightController.set/isEqual` carry the pair;
    all four producers pass their native interpolant (picker uses the window center); discrete renderers
-   read `.index` (byte-for-byte identical output); ribbon reads `.interpolant`. **Result:** navigator
-   and juicebox beads glide immediately (they were already interpolant-native).
-2. **IGV `bp → interpolant`.** Add the piecewise-linear mapping; IGV bead glides too. Verify the guide
-   line and the bead now move in lockstep.
-3. **Gap-sliding.** Producers emit `interpolant` with `index: undefined` over a gap instead of
-   clearing; confirm the bead crosses a gap smoothly while strip/ball clear. Repro fixture:
-   `data/pointcloud/single-trace-multiple-genomic-locations.sw` and any extent with a known gap.
+   read `.index` (output identical); ribbon reads `.interpolant`. **Result:** navigator and juicebox
+   beads glide immediately (they were already interpolant-native). *User-verified.*
+2. ✅ **IGV `bp → interpolant`** (`locatorForBP`, per-window linear; see above). IGV bead glides in
+   lockstep with its guide line. *User-verified.*
+3. ✅ **Gap-sliding (dwell).** `locatorForBP` returns `{ index: undefined, interpolant: <junction> }`
+   for an interior gap so the bead dwells continuously instead of blinking; `ballAndStick.renderHighlight`
+   filters the `undefined` index (strip/point-cloud already filtered via `.filter(Boolean)`).
 
 ## Decided / open
 
 - **Decided:** Option A (enrich the one state) over a parallel locator channel — keeps "one state, one
   renderer."
-- **Decided:** bead slides through gaps.
+- **Decided:** bead does not blink over gaps — with the index-uniform ramp this is a continuous dwell
+  at the junction (a bp gap occupies no ramp space).
 - **Decided:** only the bead is continuous; highlight stays quantized.
-- **Open (minor):** exact `isEqual` tolerance — do we suppress re-render when only the interpolant
-  changes sub-pixel? Likely no (the bead *should* track every move); revisit if it churns.
+- **Resolved (was open):** `isEqual` compares the interpolant too, so every continuous move re-renders
+  — intended (the bead tracks every move). No churn observed in verification; revisit only if it shows.
 
 ## When done
 

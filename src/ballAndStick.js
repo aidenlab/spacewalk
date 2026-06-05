@@ -51,7 +51,9 @@ class BallAndStick {
      * Empty selection clears. See development-notes/refactor-highlighting-redesign.md.
      */
     renderHighlight(selection) {
-        const instanceIdList = selection.map(({ index }) => index)
+        // Skip entries with no index (a gap-dwelling locator carries only an
+        // interpolant for the bead; there is no ball to light).
+        const instanceIdList = selection.map(({ index }) => index).filter(index => undefined !== index)
         if (instanceIdList.length > 0) {
             this.pickHighlighter.configureWithInstanceIdList(instanceIdList)
         } else {
