@@ -7,18 +7,23 @@
  * render-style switch lives inside each renderer, not in the producers.
  * See development-notes/refactor-highlighting-redesign.md.
  *
- * The selection is render-style-agnostic: a set of region indices into the
- * current genomic-extent list. Each renderer maps an index to its own handle
- * (a genomic extent for the navigator strip; a mesh / instanceId for a 3D viz)
- * inside renderHighlight(selection), tolerating indices it has no handle for
- * (gaps in the genomic extent — see the RFC's gap constraint).
+ * The selection is render-style-agnostic. Each entry is { index, interpolant }:
+ *   - index: the discrete region into the current genomic-extent list. Drives
+ *     the quantized surfaces (navigator strip, ball, point cloud). May be
+ *     undefined over a genomic-extent gap (see the RFC's gap constraint).
+ *   - interpolant: the CONTINUOUS curve coordinate in [0,1]. Drives the ribbon
+ *     bead, which glides rather than hopping window-to-window.
  *
- * Phase 2: the genomic-navigator strip is the first registered renderer.
+ * Navigation through genomic space is continuous; the discrete index is a
+ * projection of the continuous interpolant, not the source of truth. Producers
+ * that move continuously (navigator, IGV, juicebox) report their real
+ * interpolant; the 3D picker, which is discrete, reports the picked window's
+ * center. See development-notes/refactor-continuous-genomic-locator.md.
  */
 class HighlightController {
 
     constructor() {
-        // sorted array of region indices; [] means nothing highlighted
+        // array of { index, interpolant }, sorted by index; [] means nothing highlighted
         this.selection = []
         // renderHighlight(selection) callbacks, invoked on every change
         this.renderers = []
@@ -28,8 +33,8 @@ class HighlightController {
         this.renderers.push(renderHighlight)
     }
 
-    set(indices, source = 'unknown') {
-        const next = [ ...new Set(indices) ].sort((a, b) => a - b)
+    set(entries, source = 'unknown') {
+        const next = [ ...entries ].sort((a, b) => a.index - b.index)
         if (this.isEqual(next)) {
             return
         }
@@ -46,11 +51,12 @@ class HighlightController {
     }
 
     isEqual(next) {
-        return next.length === this.selection.length && next.every((value, i) => value === this.selection[ i ])
+        return next.length === this.selection.length && next.every((entry, i) =>
+            entry.index === this.selection[ i ].index && entry.interpolant === this.selection[ i ].interpolant)
     }
 
     reconcile(source) {
-        // console.log(`[highlight] selection [${ this.selection.join(', ') }] <- ${ source }`)
+        // console.log(`[highlight] selection [${ this.selection.map(({ index }) => index).join(', ') }] <- ${ source }`)
         for (const renderHighlight of this.renderers) {
             renderHighlight(this.selection)
         }

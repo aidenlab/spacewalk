@@ -131,7 +131,7 @@ class PointCloud {
      */
     renderHighlight(selection) {
         if (selection.length > 0) {
-            const objectList = selection.map(index => this.meshList[ index ]).filter(Boolean)
+            const objectList = selection.map(({ index }) => this.meshList[ index ]).filter(Boolean)
             this.pickHighlighter.highlightWithObjectList(objectList)
         } else {
             this.pickHighlighter.unhighlight()
