@@ -146,6 +146,156 @@ If `access-control-allow-origin` is missing, re-apply the CORS policy (below).
 
 ---
 
+## The "Load From List" picker manifest
+
+The app's **Load From List** menu is driven by a single curated JSON file at the
+bucket root:
+
+```
+https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/load-from-list.json
+```
+
+`createAndConfigureTraceSelectModal()` (in `src/spacewalkFileLoadWidgetServices.js`)
+fetches it the first time the modal opens and renders each group as an
+`<optgroup>` section. This means **adding a hosted file to the picker is a data
+edit, not a code change** — no rebuild, no redeploy.
+
+### Format — grouped, curated
+
+`groups[]` map to the bucket's folder layout (root traces, `olga-dudchenko/`
+large ensembles, `pointcloud/`). It is a *curated allowlist*, not a dump of the
+whole bucket — you decide what surfaces and what it's called.
+
+```json
+{
+  "groups": [
+    {
+      "label": "Traces — chr21",
+      "files": [
+        { "name": "IMR90 chr21:28-30", "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/IMR90_chr21-28-30Mb.sw" }
+      ]
+    },
+    {
+      "label": "Large ensembles — olga-dudchenko",
+      "files": [
+        { "name": "Woolly Mammoth — Direct Inv (2.4 GB)", "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/olga-dudchenko/Woolly_Mammoth_Direct_Inv.sw" }
+      ]
+    }
+  ]
+}
+```
+
+> **Large files belong in the list on purpose.** `.sw` is HDF5-indexed, so the
+> viewer range-reads a small snippet near-real-time no matter the total size —
+> the multi-GB mammoth ensembles are the showcase for that, not a hazard. Annotate
+> the size in `name` so the click is informed.
+
+The version-controlled source of truth lives in the repo at
+[`load-from-list.json`](./load-from-list.json) — edit it there, then push it to
+the bucket.
+
+### Update the picker (edit → upload)
+
+The manifest is a separate file from the bucket objects — **nothing auto-syncs**,
+so adding/removing a `.sw` and updating the manifest are two independent acts. The
+loop is always **change the JSON → re-upload the JSON.** Current policy is to list
+*everything* in the bucket, so the JSON is normally produced by the
+[regenerate command](#regenerate-the-manifest-from-the-bucket-current-policy-list-everything)
+below rather than hand-edited; the hand-edit steps here are for one-off tweaks
+(e.g. fixing a label) between regenerations.
+
+**Adding a file** (order: object first, then manifest):
+
+1. Upload the `.sw` (`rclone copy …` — see the upload steps above).
+2. Add a `{ "name": …, "url": … }` entry to the right group in
+   `development-notes/cloudflare-storage/load-from-list.json`. Annotate size in
+   `name` for big files. The `url` is `<base>/<key>` — include the folder prefix
+   for nested objects (e.g. `…/olga-dudchenko/<file>.sw`).
+3. Push the manifest:
+
+```bash
+export CLOUDFLARE_ACCOUNT_ID=1eadb18bb8557fd1bd06b1d0310a902e
+wrangler r2 object put "spacewalk-fixtures/load-from-list.json" \
+  --file development-notes/cloudflare-storage/load-from-list.json \
+  --content-type application/json \
+  --remote
+```
+
+**Deleting a file** (reverse order — **manifest first** so the picker never
+points at a missing object):
+
+1. Remove the entry from the JSON → re-upload the manifest (command above).
+2. Then delete the object: `rclone deletefile r2:spacewalk-fixtures/<key>.sw`
+   (or `wrangler r2 object delete "spacewalk-fixtures/<key>" --remote`).
+
+CORS already allows cross-origin `GET`, so the app fetches it directly. Until the
+file exists in the bucket the picker degrades gracefully to "Could not load file
+list" — so push the manifest before relying on it, and don't push a manifest
+entry whose `.sw` upload hasn't finished yet (the entry would 404 on load).
+
+### Watch for drift
+
+Because the manifest is hand-maintained, the two ways it can get out of sync:
+
+- **Manifest entry → deleted/never-uploaded object** = picker shows it, the load
+  **404s**. (This is the one that bites.)
+- **Bucket object not in the manifest** = simply doesn't appear — intended.
+
+This one-liner flags any manifest URL whose object isn't in the bucket (empty
+output = clean; anything printed is a dangling entry to fix):
+
+```bash
+rclone lsf r2:spacewalk-fixtures --recursive --files-only | sort > /tmp/bucket-keys.txt
+jq -r '.groups[].files[].url | sub("https://pub-398373e8d1204c57beab2ae62ef6cc91\\.r2\\.dev/"; "")' \
+  development-notes/cloudflare-storage/load-from-list.json | sort > /tmp/manifest-keys.txt
+comm -23 /tmp/manifest-keys.txt /tmp/bucket-keys.txt
+```
+
+### Regenerate the manifest from the bucket (current policy: list everything)
+
+The picker currently lists **every `.sw` in the bucket**, grouped by folder. That
+makes the manifest a *projection of the bucket*, so the maintenance model is
+"regenerate," not "hand-edit." `wrangler` has no `r2 object list`, so enumerate
+with `rclone lsjson` and shape it with `jq` — this walks all folders, groups by
+the top-level prefix, and derives each `name` from the filename:
+
+```bash
+rclone lsjson r2:spacewalk-fixtures --recursive --files-only \
+| jq '
+  [ .[] | select(.Path | endswith(".sw")) ]
+  | map({
+      dir:  (if (.Path | contains("/")) then (.Path | split("/")[0]) else "" end),
+      name: (.Name | sub("\\.sw$"; "")),
+      url:  ("https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/" + .Path)
+    })
+  | group_by(.dir)
+  | { groups: map({
+        label: (.[0].dir
+                 | if   . == ""               then "Traces — bucket root"
+                   elif . == "olga-dudchenko"  then "Large ensembles — olga-dudchenko"
+                   elif . == "pointcloud"      then "Point clouds — pointcloud"
+                   else . end),
+        files: map({ name, url })
+      }) }
+' > development-notes/cloudflare-storage/load-from-list.json
+```
+
+Then push it with the `wrangler r2 object put` command above. Run this after every
+add/delete and the manifest stays in lockstep with the bucket — drift becomes
+impossible by construction (the drift-check below should always come back clean).
+
+> **Sharp edges of the regenerate model:**
+> - It lists **everything** — there's no curation. To hide a file, you'd delete it
+>   from the bucket, not the manifest. If you ever want a curated subset again,
+>   stop regenerating and hand-maintain instead.
+> - It **clobbers hand-edited names** (back to raw filenames) and the `label`
+>   mapping only covers the three known folders. Prettier names / size
+>   annotations have to be re-applied after each regen, or baked into the `jq`.
+> - It only includes objects that **actually exist** — a file whose upload is
+>   still in flight won't appear until you re-run it (e.g. the 89 GB MiChroM).
+
+---
+
 ## Handy ops
 
 **List what's in the bucket:**

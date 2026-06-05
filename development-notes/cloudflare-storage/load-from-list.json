@@ -1,0 +1,191 @@
+{
+  "groups": [
+    {
+      "label": "Traces — bucket root",
+      "files": [
+        {
+          "name": "A549_chr21-28-30Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/A549_chr21-28-30Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr1-0-249Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr1-0-249Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr10-0-135Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr10-0-135Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr11-0-135Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr11-0-135Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr12-0-134Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr12-0-134Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr13-0-115Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr13-0-115Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr14-0-107Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr14-0-107Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr15-0-102Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr15-0-102Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr16-0-90Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr16-0-90Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr17-0-81Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr17-0-81Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr18-0-78Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr18-0-78Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr19-0-59Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr19-0-59Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr2-0-243Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr2-0-243Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr20-0-63Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr20-0-63Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr21-0-48Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr21-0-48Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr22-0-51Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr22-0-51Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr3-0-198Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr3-0-198Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr4-0-191Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr4-0-191Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr5-0-181Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr5-0-181Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr6-0-171Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr6-0-171Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr7-0-159Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr7-0-159Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr8-0-146Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr8-0-146Mb.sw"
+        },
+        {
+          "name": "H1-hESC_chr9-0-141Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/H1-hESC_chr9-0-141Mb.sw"
+        },
+        {
+          "name": "HCT116_chr21-28-30Mb_6h_auxin",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/HCT116_chr21-28-30Mb_6h_auxin.sw"
+        },
+        {
+          "name": "HCT116_chr21-28-30Mb_untreated",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/HCT116_chr21-28-30Mb_untreated.sw"
+        },
+        {
+          "name": "IMR90_chr21-18-20Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/IMR90_chr21-18-20Mb.sw"
+        },
+        {
+          "name": "IMR90_chr21-28-30Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/IMR90_chr21-28-30Mb.sw"
+        },
+        {
+          "name": "K562_chr21-28-30Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/K562_chr21-28-30Mb.sw"
+        },
+        {
+          "name": "bs-from-multiple-traces-multiple-genomic-locations",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/bs-from-multiple-traces-multiple-genomic-locations.sw"
+        },
+        {
+          "name": "bs-from-pointcloud",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/bs-from-pointcloud.sw"
+        },
+        {
+          "name": "dugla-eight-traces",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/dugla-eight-traces.sw"
+        },
+        {
+          "name": "dugla-hg19-chr21-18-20Mb",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/dugla-hg19-chr21-18-20Mb.sw"
+        },
+        {
+          "name": "dugla-one-trace",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/dugla-one-trace.sw"
+        }
+      ]
+    },
+    {
+      "label": "Large ensembles — olga-dudchenko",
+      "files": [
+        {
+          "name": "GSE268050_Woolly_Mammoth_Direct_Inv",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/olga-dudchenko/GSE268050_Woolly_Mammoth_Direct_Inv.sw"
+        },
+        {
+          "name": "Woolly_Mammoth_Direct_Inv",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/olga-dudchenko/Woolly_Mammoth_Direct_Inv.sw"
+        }
+      ]
+    },
+    {
+      "label": "Point clouds — pointcloud",
+      "files": [
+        {
+          "name": "guy-nir-chr22-walk",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/pointcloud/guy-nir-chr22-walk.sw"
+        },
+        {
+          "name": "guy-nir-chr9-walk",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/pointcloud/guy-nir-chr9-walk.sw"
+        },
+        {
+          "name": "guy-nir-egfr",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/pointcloud/guy-nir-egfr.sw"
+        },
+        {
+          "name": "guy-nir-salmonella-humungous",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/pointcloud/guy-nir-salmonella-humungous.sw"
+        },
+        {
+          "name": "guy-nir-salmonella-pointcloud-21-apr-2026",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/pointcloud/guy-nir-salmonella-pointcloud-21-apr-2026.sw"
+        },
+        {
+          "name": "multiple-traces-multiple-genomic-locations",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/pointcloud/multiple-traces-multiple-genomic-locations.sw"
+        },
+        {
+          "name": "pointcloud",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/pointcloud/pointcloud.sw"
+        },
+        {
+          "name": "single-trace-multiple-genomic-locations",
+          "url": "https://pub-398373e8d1204c57beab2ae62ef6cc91.r2.dev/pointcloud/single-trace-multiple-genomic-locations.sw"
+        }
+      ]
+    }
+  ]
+}
