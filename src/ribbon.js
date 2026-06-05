@@ -61,9 +61,11 @@ class Ribbon {
 
     /**
      * Render the shared highlight selection. Ribbon shows up to two beads on the
-     * curve; it maps each region index to its interpolant via the genomic-extent
-     * list (skipping indices with no extent), then positions a bead there. Empty
-     * selection hides both beads. See development-notes/refactor-highlighting-redesign.md.
+     * curve, positioned from each entry's CONTINUOUS interpolant so they glide
+     * along the ribbon rather than hopping window-to-window. Empty selection (or
+     * an entry with no interpolant) hides the bead. The discrete index is for the
+     * quantized surfaces; the bead is a continuous locator. See
+     * development-notes/refactor-continuous-genomic-locator.md.
      */
     renderHighlight(selection) {
         if (!this.highlightBeads) {
@@ -73,11 +75,9 @@ class Ribbon {
         this.highlightBeads[ 0 ].visible = false
         this.highlightBeads[ 1 ].visible = false
 
-        const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
-        selection.slice(0, 2).forEach((index, i) => {
-            const extent = genomicExtentList[ index ]
-            if (extent) {
-                const { x, y, z } = this.curve.getPointAt(extent.interpolant)
+        selection.slice(0, 2).forEach(({ interpolant }, i) => {
+            if (undefined !== interpolant) {
+                const { x, y, z } = this.curve.getPointAt(interpolant)
                 this.highlightBeads[ i ].position.set(x, y, z)
                 this.highlightBeads[ i ].visible = true
             }

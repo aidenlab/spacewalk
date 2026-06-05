@@ -57,7 +57,9 @@ class Picker {
 
                 if (hit.instanceId && hit.instanceId !== currentInstanceId) {
                     currentInstanceId = hit.instanceId
-                    this.sceneManager.highlightController.set([ hit.instanceId ], 'picker')
+                    // The picker is discrete: the bead sits at the picked window's center.
+                    const { interpolant } = this.sceneManager.ensembleManager.getCurrentGenomicExtentList()[ hit.instanceId ]
+                    this.sceneManager.highlightController.set([ { index: hit.instanceId, interpolant } ], 'picker')
                 }
 
             } else {

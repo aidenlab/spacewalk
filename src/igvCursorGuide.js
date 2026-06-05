@@ -86,7 +86,10 @@ class IGVCursorGuide {
         if (undefined === index) {
             this.highlightController.clear(this.source)
         } else {
-            this.highlightController.set([ index ], this.source)
+            // Commit 1: bead sits at the window center (still snaps). Commit 2 swaps this
+            // for a continuous bp -> interpolant so the IGV bead glides like its guide line.
+            const { interpolant } = this.ensembleManager.getCurrentGenomicExtentList()[ index ]
+            this.highlightController.set([ { index, interpolant } ], this.source)
         }
     }
 

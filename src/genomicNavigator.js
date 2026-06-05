@@ -83,7 +83,8 @@ class GenomicNavigator {
             const interpolantWindowList = this.ensembleManager.getGenomicInterpolantWindowList(interpolantList)
 
             if (interpolantWindowList) {
-                this.sceneManager.highlightController.set(interpolantWindowList.map(({ index }) => index), 'navigator')
+                // The ramp coordinate is continuous; pass it through as the bead interpolant.
+                this.sceneManager.highlightController.set(interpolantWindowList.map(({ index, interpolant }) => ({ index, interpolant })), 'navigator')
             } else {
                 this.sceneManager.highlightController.clear('navigator')
             }
@@ -116,7 +117,7 @@ class GenomicNavigator {
             this.paintWithInterpolantWindowList([])
             return
         }
-        const windowList = selection.map(index => genomicExtentList[ index ]).filter(Boolean)
+        const windowList = selection.map(({ index }) => genomicExtentList[ index ]).filter(Boolean)
         this.paintWithInterpolantWindowList(windowList)
     }
 

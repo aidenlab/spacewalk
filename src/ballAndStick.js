@@ -51,8 +51,9 @@ class BallAndStick {
      * Empty selection clears. See development-notes/refactor-highlighting-redesign.md.
      */
     renderHighlight(selection) {
-        if (selection.length > 0) {
-            this.pickHighlighter.configureWithInstanceIdList(selection)
+        const instanceIdList = selection.map(({ index }) => index)
+        if (instanceIdList.length > 0) {
+            this.pickHighlighter.configureWithInstanceIdList(instanceIdList)
         } else {
             this.pickHighlighter.unhighlight()
         }
