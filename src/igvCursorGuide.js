@@ -121,7 +121,7 @@ class IGVCursorGuide {
                 top: '0',
                 bottom: '0',
                 width: '1px',
-                background: '#3399ff',
+                backgroundImage: 'repeating-linear-gradient(to bottom, rgba(127, 127, 127, 0.76) 0, rgba(127, 127, 127, 0.76) 2px, transparent 2px, transparent 4px)',
                 pointerEvents: 'none',
                 zIndex: '64',
                 display: 'none'
