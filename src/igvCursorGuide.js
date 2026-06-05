@@ -80,16 +80,14 @@ class IGVCursorGuide {
         line.style.left = `${ offset + x }px`
         line.style.display = 'block'
 
-        // Highlight resolves to the discrete region under the pointer.
+        // Resolve the pointer to a continuous locator: the discrete region under it
+        // plus a continuous interpolant that glides across the region as bp does.
         const bp = referenceFrame.start + x * referenceFrame.bpPerPixel
-        const index = this.indexForBP(bp)
-        if (undefined === index) {
+        const locator = this.locatorForBP(bp)
+        if (undefined === locator) {
             this.highlightController.clear(this.source)
         } else {
-            // Commit 1: bead sits at the window center (still snaps). Commit 2 swaps this
-            // for a continuous bp -> interpolant so the IGV bead glides like its guide line.
-            const { interpolant } = this.ensembleManager.getCurrentGenomicExtentList()[ index ]
-            this.highlightController.set([ { index, interpolant } ], this.source)
+            this.highlightController.set([ locator ], this.source)
         }
     }
 
@@ -100,16 +98,24 @@ class IGVCursorGuide {
         this.highlightController.clear(this.source)
     }
 
-    /** First region whose [startBP, endBP] contains bp, or undefined (gap / out of locus). */
-    indexForBP(bp) {
+    /**
+     * Continuous locator for a bp: the region it falls in, plus a continuous
+     * interpolant in [0,1] that glides linearly across the region's ramp extent
+     * [start, end] as bp crosses the region's genomic span [startBP, endBP] — so
+     * the ribbon bead glides with the guide line instead of snapping to the
+     * window center. For contiguous regions (end_i == start_{i+1}) the mapping is
+     * continuous across boundaries too. undefined over a gap / outside the locus.
+     */
+    locatorForBP(bp) {
         const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
         if (!genomicExtentList) {
             return undefined
         }
         for (let i = 0; i < genomicExtentList.length; i++) {
-            const { startBP, endBP } = genomicExtentList[ i ]
+            const { startBP, endBP, start, end } = genomicExtentList[ i ]
             if (bp >= startBP && bp <= endBP) {
-                return i
+                const fraction = endBP === startBP ? 0 : (bp - startBP) / (endBP - startBP)
+                return { index: i, interpolant: start + fraction * (end - start) }
             }
         }
         return undefined
