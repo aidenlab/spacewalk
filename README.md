@@ -12,11 +12,11 @@ Spacewalk is hosted at [Aiden  Lab](https://aidenlab.org). Launch the main by cl
 
 Experience Spacewalk immediately with these demos:
 
-- **[Ball & Stick Demo](https://tinyurl.com/25audeaa)**  
+- **[Ball & Stick Demo](https://t.3dg.io/45t68699)**  
   Chromatin centroids are rendered as balls, each colored according to its genomic location. 
   Sticks (cylinders) connect the balls in the order they appear along the genomic range.
 
-- **[Point Cloud Demo](https://tinyurl.com/23lwr5u6)**  
+- **[Point Cloud Demo](https://t.3dg.io/2p8js9vm)**  
 The point cloud is rendered as a collection of 3D point clusters, each point cluster corresponds to a specific genomic extent and is colored according to the genomic location of that extent.
 
 ## Documentation
