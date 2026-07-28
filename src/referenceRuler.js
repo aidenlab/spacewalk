@@ -54,9 +54,18 @@ class ReferenceRuler {
         configureDrag(this.container, this.container, this.renderContainer, {
             contain: true,
             onDragStart: event => {
+
                 this.container.style.cursor = 'grabbing'
                 this.dragOrigin = { clientX: event.clientX, clientY: event.clientY }
-                // Drag writes left/top; clear the opposite pair so the corner CSS doesn't fight it
+
+                // The drag writes left/top, so the corner pair has to go — but clearing it first
+                // would leave the widget unpositioned and drop it to its static position (which,
+                // following the canvas in the DOM, is off-screen). Pin the current offset as
+                // left/top first, then release. Both pairs must never be set at once: left+right
+                // is merely over-constrained, but top+bottom with height:auto stretches the widget.
+                const { offsetLeft, offsetTop } = this.container
+                this.container.style.left = `${ offsetLeft }px`
+                this.container.style.top = `${ offsetTop }px`
                 this.container.style.right = ''
                 this.container.style.bottom = ''
             },
