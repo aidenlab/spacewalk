@@ -6,6 +6,20 @@ github:
   repository_url: https://github.com/aidenlab/spacewalk
   is_project_page: true
 
+# NOTE: setting `exclude` replaces Jekyll's defaults, so they are repeated here.
+exclude:
+  # Agent-facing scaffolding — internal, never published to the docs site
+  - agents/
+  - adr/
+  # Jekyll defaults
+  - .sass-cache/
+  - .jekyll-cache/
+  - gemfiles/
+  - Gemfile
+  - Gemfile.lock
+  - node_modules/
+  - vendor/
+
 # Enable plugins
 plugins:
   - jekyll-remote-theme
