@@ -2,10 +2,11 @@ const STORAGE_KEY = 'spacewalk-settings'
 
 class SettingsManager {
 
-    constructor({ scene, scaleBarService, sceneFixtures }) {
+    constructor({ scene, scaleBarService, referenceRuler, sceneFixtures }) {
 
         this.scene = scene
         this.scaleBarService = scaleBarService
+        this.referenceRuler = referenceRuler
         this.sceneFixtures = sceneFixtures
 
         // Prevent dropdown from closing when clicking inside it
@@ -37,7 +38,7 @@ class SettingsManager {
         // Reference Ruler toggle
         document.getElementById('spacewalk_ui_manager_reference_ruler').addEventListener('change', e => {
             e.stopPropagation()
-            this.scaleBarService.toggleReferenceRuler()
+            this.referenceRuler.toggle()
             this.save()
         })
 
@@ -83,9 +84,12 @@ class SettingsManager {
         if (this.scaleBarService) {
             const { r, g, b } = this.scaleBarService.color
             settings.scaleBars = { visible: this.scaleBarService.visible, r, g, b }
+        }
 
-            const refColor = this.scaleBarService.referenceRulerColor
-            settings.referenceRuler = { visible: this.scaleBarService.referenceRulerVisible, r: refColor.r, g: refColor.g, b: refColor.b }
+        // Reference Ruler
+        if (this.referenceRuler) {
+            const { r, g, b } = this.referenceRuler.color
+            settings.referenceRuler = { visible: this.referenceRuler.visible, r, g, b }
         }
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))

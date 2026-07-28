@@ -13,6 +13,7 @@ import { configureDrag } from "../utils/draggable.js"
 import GUIManager from "../guiManager.js"
 import SettingsManager from "../settingsManager.js"
 import ScaleBarService from "../scaleBarService.js"
+import ReferenceRuler from "../referenceRuler.js"
 import { showRelease } from "../utils/release.js"
 import { spacewalkConfig } from "../spacewalk-config.js"
 import { presentResourceError } from "../widgets/presentResourceError.js"
@@ -49,13 +50,16 @@ class UIBootstrapper {
             colorMapManager: this.appContext.colorMapManager
         });
 
-        // Initialize scale bar service (after GUI manager, so checkbox exists)
-        this.appContext.assignScaleBarService(this.buildScaleBarService(document.querySelector('#spacewalk-threejs-canvas-container')));
+        // Initialize scale bar service and reference ruler (after GUI manager, so checkboxes exist)
+        const renderContainer = document.querySelector('#spacewalk-threejs-canvas-container');
+        this.appContext.assignScaleBarService(this.buildScaleBarService(renderContainer));
+        this.appContext.assignReferenceRuler(this.buildReferenceRuler(renderContainer));
 
-        // Initialize settings manager (after scale bar service, so all settings targets exist)
+        // Initialize settings manager (after the widgets above, so all settings targets exist)
         uiComponents.settingsManager = new SettingsManager({
             scene: this.appContext.scene,
             scaleBarService: this.appContext.scaleBarService,
+            referenceRuler: this.appContext.referenceRuler,
             sceneFixtures: this.appContext.sceneFixtures
         });
 
@@ -97,12 +101,18 @@ class UIBootstrapper {
         const saved = SettingsManager.load()
         const scaleBarsHidden = saved?.scaleBars ? !saved.scaleBars.visible : ScaleBarService.setScaleBarsHidden()
         const scaleBarsColor = saved?.scaleBars ? new THREE.Color(saved.scaleBars.r, saved.scaleBars.g, saved.scaleBars.b) : undefined
-        const referenceRulerHidden = saved?.referenceRuler ? !saved.referenceRuler.visible : true
-        const referenceRulerColor = saved?.referenceRuler ? new THREE.Color(saved.referenceRuler.r, saved.referenceRuler.g, saved.referenceRuler.b) : undefined
-        const service = new ScaleBarService(renderContainer, scaleBarsHidden, scaleBarsColor, referenceRulerHidden, referenceRulerColor)
+        const service = new ScaleBarService(renderContainer, scaleBarsHidden, scaleBarsColor)
         service.insertScaleBarDOM()
-        service.insertReferenceRulerDOM()
         return service
+    }
+
+    buildReferenceRuler(renderContainer) {
+        const saved = SettingsManager.load()
+        const hidden = saved?.referenceRuler ? !saved.referenceRuler.visible : true
+        const color = saved?.referenceRuler ? new THREE.Color(saved.referenceRuler.r, saved.referenceRuler.g, saved.referenceRuler.b) : undefined
+        const ruler = new ReferenceRuler(renderContainer, hidden, color)
+        ruler.insertDOM()
+        return ruler
     }
 
     async initializeReleaseInfo() {
