@@ -77,10 +77,13 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
         const abortController = new AbortController()
         const { signal } = abortController
 
+        // clientX/clientY are viewport CSS pixels — the same space getBoundingClientRect
+        // reports in. screenX/screenY are screen pixels, which diverge from CSS pixels under
+        // browser zoom or a scaled display, making the target outrun the cursor.
         dragData =
             {
-                dx: x - event.screenX,
-                dy: y - event.screenY,
+                dx: x - event.clientX,
+                dy: y - event.clientY,
                 abortController
             }
 
@@ -107,16 +110,16 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
 
 }
 
-function getConstrainedDragValue(target, container, topConstraint, contain, { screenX, screenY }) {
+function getConstrainedDragValue(target, container, topConstraint, contain, { clientX, clientY }) {
 
     const { x, y, width, height } = container.getBoundingClientRect()
     const { width:w, height:h } = target.getBoundingClientRect()
 
     // x is a viewport coordinate and (width - w) is a size, so the max must be re-based
     // onto x. Existing callers pass a container at x ~ 0, where this is a no-op.
-    let left = clamp(dragData.dx + screenX, x, x + width - w)
+    let left = clamp(dragData.dx + clientX, x, x + width - w)
 
-    let top = dragData.dy + screenY
+    let top = dragData.dy + clientY
 
     if (contain) {
         top = clamp(top, topConstraint || y, y + height - h)

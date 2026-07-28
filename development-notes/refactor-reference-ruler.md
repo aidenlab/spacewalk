@@ -106,6 +106,17 @@ size (`width - w`). It is only correct because both existing callers pass
 `x` is nonzero and varies. Correct form: `clamp(left, x, x + width - w)` — provably a no-op for the
 existing panels.
 
+A second, worse bug surfaced during testing: drag deltas were taken from `event.screenX/screenY`
+(**screen** pixels) but added to an origin from `getBoundingClientRect()` (**viewport CSS** pixels).
+Those two spaces diverge under browser zoom or a scaled display, so the target *outran the cursor* —
+a multiplicative error that grows with distance travelled, not a constant offset at grab time.
+Measured at roughly 1.12× vertically at ~110% zoom. Fixed by using `clientX/clientY` throughout,
+which is the same space `getBoundingClientRect()` reports in.
+
+> ⚠️ `src/widgets/utils/draggable.js` (`makeDraggable`, used by `alertDialog.js`) is a separate,
+> IGV-derived helper carrying the **same** screen-vs-CSS-pixel defect. Out of scope here; fix it if
+> the alert dialog is ever reported drifting under zoom.
+
 Separately, `configureDrag` has no bottom constraint at all (`top = Math.max(top, yy)`), so a target
 can be dragged off the bottom edge. Rather than change panel behavior, containment becomes an
 **opt-in** option that only the ruler requests.

@@ -55,7 +55,7 @@ class ReferenceRuler {
             contain: true,
             onDragStart: event => {
                 this.container.style.cursor = 'grabbing'
-                this.dragOrigin = { screenX: event.screenX, screenY: event.screenY }
+                this.dragOrigin = { clientX: event.clientX, clientY: event.clientY }
                 // Drag writes left/top; clear the opposite pair so the corner CSS doesn't fight it
                 this.container.style.right = ''
                 this.container.style.bottom = ''
@@ -85,10 +85,10 @@ class ReferenceRuler {
 
     static DRAG_SLOP_PX = 3
 
-    wasDragged({ screenX, screenY }) {
+    wasDragged({ clientX, clientY }) {
         if (!this.dragOrigin) return false
-        return Math.abs(screenX - this.dragOrigin.screenX) > ReferenceRuler.DRAG_SLOP_PX ||
-               Math.abs(screenY - this.dragOrigin.screenY) > ReferenceRuler.DRAG_SLOP_PX
+        return Math.abs(clientX - this.dragOrigin.clientX) > ReferenceRuler.DRAG_SLOP_PX ||
+               Math.abs(clientY - this.dragOrigin.clientY) > ReferenceRuler.DRAG_SLOP_PX
     }
 
     // Convert a dropped container-relative position into the nearest corner plus insets
