@@ -110,7 +110,7 @@ class UIBootstrapper {
         const saved = SettingsManager.load()
         const hidden = saved?.referenceRuler ? !saved.referenceRuler.visible : true
         const color = saved?.referenceRuler ? new THREE.Color(saved.referenceRuler.r, saved.referenceRuler.g, saved.referenceRuler.b) : undefined
-        const ruler = new ReferenceRuler(renderContainer, hidden, color)
+        const ruler = new ReferenceRuler(renderContainer, hidden, color, saved?.referenceRuler?.anchor)
         ruler.insertDOM()
         return ruler
     }
@@ -308,6 +308,12 @@ class UIBootstrapper {
             threeJSObjects.renderer.setSize(width, height);
             threeJSObjects.camera.aspect = width / height;
             threeJSObjects.camera.updateProjectionMatrix();
+
+            // Re-clamp the ruler so it stays inside the resized container
+            if (this.appContext.referenceRuler) {
+                this.appContext.referenceRuler.applyAnchor();
+            }
+
             // Trigger a render through the app context
             if (this.appContext.render) {
                 this.appContext.render();

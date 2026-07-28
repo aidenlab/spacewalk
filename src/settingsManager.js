@@ -89,7 +89,7 @@ class SettingsManager {
         // Reference Ruler
         if (this.referenceRuler) {
             const { r, g, b } = this.referenceRuler.color
-            settings.referenceRuler = { visible: this.referenceRuler.visible, r, g, b }
+            settings.referenceRuler = { visible: this.referenceRuler.visible, r, g, b, anchor: this.referenceRuler.anchor }
         }
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
