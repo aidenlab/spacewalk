@@ -11,6 +11,7 @@ import ThreeJSInitializer from "./initializers/threeJSInitializer.js"
 import UIBootstrapper from "./initializers/uiBootstrapper.js"
 import PanelInitializer from "./initializers/panelInitializer.js"
 import EnsembleIngestionController from "./ensembleIngestionController.js"
+import { calculateProjectedBounds, nmPerPixel } from "./utils/projectedBounds.js"
 
 /**
  * Main application class that orchestrates Spacewalk initialization.
@@ -32,6 +33,7 @@ class App {
         this.liveContactMapService = null;
         this.liveDistanceMapService = null;
         this.scaleBarService = null;
+        this.referenceRuler = null;
         this.sceneFixtures = null;
         this.ensembleIngestionController = null;
         this.sessionService = null;
@@ -281,14 +283,21 @@ class App {
 
             const convexHull = this.sceneManager.getConvexHull();
 
-        if (convexHull) {
-                this.scaleBarService.scaleBarAnimationLoopHelper(convexHull.mesh, this.camera);
+            // Project the hull once and hand the same bounds to both widgets
+            if (convexHull && (this.scaleBarService.visible || this.referenceRuler.visible)) {
+                const bounds = calculateProjectedBounds(convexHull.mesh, this.camera, this.renderer.domElement.parentElement);
+                this.scaleBarService.render(bounds);
+                this.referenceRuler.render(nmPerPixel(bounds));
             }
         }
     }
 
     assignScaleBarService(service) {
         this.scaleBarService = service
+    }
+
+    assignReferenceRuler(referenceRuler) {
+        this.referenceRuler = referenceRuler
     }
 
     startRenderLoop() {
