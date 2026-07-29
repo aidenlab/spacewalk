@@ -44,6 +44,7 @@ class SceneManager {
         this.deemphasizedColor = appleCrayonColorThreeJS('magnesium')
         this.isStickVisible = true
         this.ballRadiusIndex = undefined
+        this.stickRadiusIndex = undefined
         this.pointSizeBoundRadiusPercentage = undefined
         this.pointOpacity = 0.375
 
@@ -138,6 +139,7 @@ class SceneManager {
                 stickMaterial: this.stickMaterial,
                 isStickVisible: this.isStickVisible,
                 ballRadiusIndex: this.ballRadiusIndex,
+                stickRadiusIndex: this.stickRadiusIndex,
                 ensembleManager,
                 igvPanel,
                 sceneManager: this
@@ -186,6 +188,7 @@ class SceneManager {
             stickMaterial: this.stickMaterial,
             isStickVisible: this.isStickVisible,
             ballRadiusIndex: this.ballRadiusIndex,
+            stickRadiusIndex: this.stickRadiusIndex,
             ensembleManager,
             igvPanel,
             sceneManager: this
