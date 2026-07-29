@@ -25,7 +25,7 @@ _Avoid_: bin (a Hi-C map concept), locus (that's the whole span)
 _Accepted shorthand_: region, window
 
 **Gap**:
-A stretch of the genomic span with no genomic extent — data absent, or a defect deliberately ignored. Gaps exist only in base-pair space; the ramp is laid out by index, so every interpolant lands in a region.
+A stretch of the genomic span with no genomic extent — data absent, or a defect deliberately ignored. Gaps exist only in base-pair space; the ramp is laid out by index, so every interpolant lands in a region. A **ball** is still drawn at a gap, undersized; a **stick** bridges straight across it.
 
 **Locus**:
 The genomic span the loaded ensemble covers, as a whole.
@@ -50,6 +50,15 @@ _Avoid_: mode, view type
 **Visualization**:
 The object that draws the 3D structure in one render style. The **active visualization** is the one for the current render style — the single place the render-style switch lives.
 _Avoid_: viz (fine in conversation, not in identifiers or issue titles)
+
+**Ball**:
+The sphere drawn at one genomic extent's 3D location — a measured position. One per index, gaps included; a ball at a gap is drawn deliberately undersized, marking data that is absent rather than a location that was measured.
+
+**Stick**:
+The cylinder drawn between two consecutive *present* extents. A stick asserts connectivity along the molecule, not distance, and bridges gaps — it may span an absent extent, joining the two locations on either side. Sticks can be hidden without ceasing to exist.
+
+**Radius step**:
+Ball and stick radii are chosen from a fixed ladder of discrete values; the control moves an index along the ladder and the radius itself is never named by the user. The same conceit as **quantization** — continuous intent, discrete realization.
 
 **Material provider**:
 The source of color for the 3D structure: given an interpolant, it yields a color. The **color-ramp material provider** colors by genomic position; the **track material provider** colors by the data in one or more checked IGV tracks, blended.

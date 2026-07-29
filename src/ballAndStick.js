@@ -1,12 +1,11 @@
 import * as THREE from 'three'
 import { StringUtils } from 'igv-utils'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import {clamp, lerp} from './utils/mathUtils.js'
 import { appleCrayonColorThreeJS } from "./utils/colorUtils.js"
 import EnsembleManager from './ensembleManager.js'
 import ConvexHull from "./utils/convexHull.js"
 import {getPositionArrayWithTrace} from "./utils/utils.js"
-import { removeAndDisposeFromScene } from './utils/disposalUtils.js'
+import { removeAndDisposeFromScene, disposeGeometry, disposeMaterial } from './utils/disposalUtils.js'
 import { spacewalkConfig } from "./spacewalk-config.js"
 
 const stickTesselation = { length: 2, radial: 8 }
@@ -15,7 +14,7 @@ class BallAndStick {
 
     static renderStyle = 'render-style-ball-stick'
 
-    constructor ({ trace, pickHighlighter, stickMaterial, isStickVisible, ballRadiusIndex, ensembleManager, igvPanel, sceneManager }) {
+    constructor ({ trace, pickHighlighter, stickMaterial, isStickVisible, ballRadiusIndex, stickRadiusIndex, ensembleManager, igvPanel, sceneManager }) {
 
         this.pickHighlighter = pickHighlighter
         this.stickMaterial = stickMaterial
@@ -29,7 +28,9 @@ class BallAndStick {
         const averageCurveDistance = computeAverageCurveDistance(stickCurves)
 
         this.stickRadiusTable = generateRadiusTable(0.5e-1 * averageCurveDistance)
-        this.stickRadiusIndex = Math.floor(this.stickRadiusTable.length / 2)
+        this.stickRadiusIndex = stickRadiusIndex === undefined
+            ? Math.floor(this.stickRadiusTable.length / 2)
+            : clamp(stickRadiusIndex, 0, this.stickRadiusTable.length - 1)
         this.sticks = this.createSticks(trace, this.stickRadiusTable[this.stickRadiusIndex])
 
         this.ballRadiusTable = generateRadiusTable(2e-1 * averageCurveDistance)
@@ -117,8 +118,8 @@ class BallAndStick {
 
     createSticks(trace, stickRadius) {
 
-        const geometries = []
-
+        // Missing-data vertices are filtered out, so a stick may span an absent extent,
+        // joining the two locations on either side of the gap.
         const vertices = EnsembleManager.getSingleCentroidVertices(trace, true)
 
         const endPoints = []
@@ -130,36 +131,40 @@ class BallAndStick {
             endPoints.push({ a: vertices[ vertices.length - 1 ], b: vertices[ 0 ] })
         }
 
-        for (let { a, b } of endPoints) {
+        // Canonical stick geometry: unit radius, unit length, aligned to +y. Each instance
+        // matrix carries scale (radius, distance, radius), so a radius change is a matrix
+        // rewrite rather than a geometry rebuild.
+        const geometry = new THREE.CylinderGeometry(1, 1, 1, stickTesselation.radial, stickTesselation.length)
+
+        const material = this.stickMaterial.clone()
+
+        const mesh = new THREE.InstancedMesh(geometry, material, endPoints.length)
+
+        const matrix = new THREE.Matrix4()
+        const point = new THREE.Vector3()
+        const quaternion = new THREE.Quaternion()
+        const scale = new THREE.Vector3()
+        const stickAxis = new THREE.Vector3()
+        const cylinderUpAxis = new THREE.Vector3( 0, 1, 0 )
+
+        endPoints.forEach(({ a, b }, i) => {
 
             // stick has length equal to distance between endpoints
             const distance = a.distanceTo( b )
-            const cylinder = new THREE.CylinderGeometry(stickRadius, stickRadius, distance, stickTesselation.radial, stickTesselation.length)
 
             // stick endpoints define the axis of stick alignment
-            const { x:ax, y:ay, z:az } = a
-            const { x:bx, y:by, z:bz } = b
-            const stickAxis = new THREE.Vector3(bx-ax, by-ay, bz-az).normalize()
-
-            // Use quaternion to rotate cylinder from default to target orientation
-            const quaternion = new THREE.Quaternion()
-            const cylinderUpAxis = new THREE.Vector3( 0, 1, 0 )
+            stickAxis.subVectors(b, a).normalize()
             quaternion.setFromUnitVectors(cylinderUpAxis, stickAxis)
-            cylinder.applyQuaternion(quaternion)
 
-            // Translate oriented stick to location between endpoints
-            cylinder.translate((bx+ax)/2, (by+ay)/2, (bz+az)/2)
+            // oriented stick sits at the location between endpoints
+            point.addVectors(a, b).multiplyScalar(0.5)
 
-            // add to geometry list
-            geometries.push(cylinder)
+            scale.set(stickRadius, distance, stickRadius)
 
-        }
+            matrix.compose(point, quaternion, scale)
+            mesh.setMatrixAt(i, matrix)
+        })
 
-        // Aggregate geometry list into single BufferGeometry
-        const material = this.stickMaterial.clone()
-
-        const bufferGeometry = mergeGeometries(geometries)
-        const mesh = new THREE.Mesh(bufferGeometry, material)
         mesh.name = 'stick';
         return mesh;
 
@@ -184,7 +189,10 @@ class BallAndStick {
             this.balls.getMatrixAt(i, matrix)
             matrix.decompose(pp, qq, ss)
 
-            ss.setScalar(radius)
+            // Missing-data balls keep the undersized marker scale createBalls gave them.
+            const { xyz } = this.ensembleManager.currentTrace[ i ]
+            ss.setScalar(true === xyz.isMissingData ? 1 : radius)
+
             matrix.compose(pp, qq, ss)
             this.balls.setMatrixAt(i, matrix)
         }
@@ -193,8 +201,31 @@ class BallAndStick {
     }
 
     updateStickRadius(increment) {
+
         this.stickRadiusIndex = clamp(this.stickRadiusIndex + increment, 0, this.stickRadiusTable.length - 1)
+        this.sceneManager.stickRadiusIndex = this.stickRadiusIndex
         const radius = this.stickRadiusTable[ this.stickRadiusIndex ]
+
+        const matrix = new THREE.Matrix4()
+        const pp = new THREE.Vector3()
+        const qq = new THREE.Quaternion()
+        const ss = new THREE.Vector3()
+
+        // Instance count is the missing-data-filtered vertex count, plus the closing
+        // stick when circular. It is not trace.length.
+        for (let i = 0; i < this.sticks.count; i++) {
+
+            this.sticks.getMatrixAt(i, matrix)
+            matrix.decompose(pp, qq, ss)
+
+            // y carries the endpoint distance, not the radius. Leave it alone.
+            ss.x = ss.z = radius
+
+            matrix.compose(pp, qq, ss)
+            this.sticks.setMatrixAt(i, matrix)
+        }
+
+        this.sticks.instanceMatrix.needsUpdate = true
     }
 
     updateMaterialProvider (materialProvider) {
@@ -223,8 +254,15 @@ class BallAndStick {
     }
 
     dispose () {
-        removeAndDisposeFromScene(this.scene, this.balls)
-        removeAndDisposeFromScene(this.scene, this.sticks)
+        // Balls and sticks are both InstancedMesh. InstancedMesh.dispose() frees only the
+        // instance buffers, and disposeObject prefers an object's own dispose(), so its
+        // fallback path never reaches geometry or material. Free them here.
+        for (const mesh of [ this.balls, this.sticks ]) {
+            const { geometry, material } = mesh
+            removeAndDisposeFromScene(this.scene, mesh)
+            disposeGeometry(geometry)
+            disposeMaterial(material)
+        }
 
         if (this.hull && this.hull.mesh) {
             removeAndDisposeFromScene(this.scene, this.hull.mesh)
