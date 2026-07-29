@@ -4,11 +4,17 @@ let dragData = undefined
 
 const TOP_CONSTRAINT_BUFFER_PX = 8
 
+// options.contain — the target is a child of container (container is its offsetParent).
+// Keeps the target's full bounding box inside the container, and emits left/top in the
+// container's coordinate space rather than the viewport's. Without it the target is
+// positioned in viewport coordinates, which only coincides with CSS left/top when the
+// offsetParent sits at the viewport origin.
 function configureDrag(targetElement, dragHandleElement, container, options = {}) {
 
     const {
         topConstraint: providedTopConstraint,
         excludeSelector,
+        contain,
         onDragStart,
         onDragEnd
     } = options
@@ -28,7 +34,7 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
             return
         }
 
-        const { left, top } = getConstrainedDragValue(target, container, resolveTopConstraint(), event)
+        const { left, top } = getConstrainedDragValue(target, container, resolveTopConstraint(), contain, event)
         target.style.left = left
         target.style.top  = top
 
@@ -40,7 +46,7 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
             return
         }
 
-        const { left, top } = getConstrainedDragValue(target, container, resolveTopConstraint(), event)
+        const { left, top } = getConstrainedDragValue(target, container, resolveTopConstraint(), contain, event)
         target.style.left = left
         target.style.top  = top
 
@@ -71,10 +77,13 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
         const abortController = new AbortController()
         const { signal } = abortController
 
+        // clientX/clientY are viewport CSS pixels — the same space getBoundingClientRect
+        // reports in. screenX/screenY are screen pixels, which diverge from CSS pixels under
+        // browser zoom or a scaled display, making the target outrun the cursor.
         dragData =
             {
-                dx: x - event.screenX,
-                dy: y - event.screenY,
+                dx: x - event.clientX,
+                dy: y - event.clientY,
                 abortController
             }
 
@@ -101,20 +110,28 @@ function configureDrag(targetElement, dragHandleElement, container, options = {}
 
 }
 
-function getConstrainedDragValue(target, container, topConstraint, { screenX, screenY }) {
+function getConstrainedDragValue(target, container, topConstraint, contain, { clientX, clientY }) {
 
     const { x, y, width, height } = container.getBoundingClientRect()
-    const { width:w } = target.getBoundingClientRect()
+    const { width:w, height:h } = target.getBoundingClientRect()
 
-    let left = dragData.dx + screenX
-    left = clamp(left, x, width - w)
+    // x is a viewport coordinate and (width - w) is a size, so the max must be re-based
+    // onto x. Existing callers pass a container at x ~ 0, where this is a no-op.
+    let left = clamp(dragData.dx + clientX, x, x + width - w)
 
-    let top = dragData.dy + screenY
+    let top = dragData.dy + clientY
 
-    const yy = topConstraint || y
-    top = Math.max(top, yy)
+    if (contain) {
+        top = clamp(top, topConstraint || y, y + height - h)
+    } else {
+        top = Math.max(top, topConstraint || y)
+    }
 
-    return { left: `${ left }px`, top: `${ top }px` }
+    // Express the result in the container's space when the target is parented to it
+    const originX = contain ? x : 0
+    const originY = contain ? y : 0
+
+    return { left: `${ left - originX }px`, top: `${ top - originY }px` }
 }
 
 export { configureDrag }
