@@ -89,10 +89,23 @@ class SessionService {
 
     async loadIGVSession(spacewalk, igv) {
 
+        // Clearing is unconditional, and has to happen before the early return
+        // below: a session carrying no IGV state still has to purge whatever
+        // the previous session left behind, or those tracks survive the restore.
         this.igvPanel.browser.removeAllTracks()
         this.igvPanel.clearMaterialProviderSessionState()
 
         this.trackMaterialProvider.clearAllTracks()
+
+        // A Spacewalk session need not carry an IGV block — saving with no
+        // tracks loaded produces one with only `spacewalk`. igv's loadSession
+        // dereferences its argument immediately, so handing it undefined throws
+        // a TypeError before any fetch, which used to surface as the misleading
+        // "the IGV tracks could not be loaded". Nothing left to restore here;
+        // loadSession applies the session locus to the panel either way.
+        if (!igv) {
+            return
+        }
 
         await this.igvPanel.browser.loadSession(igv)
         this.igvPanel.configureMouseHandlers()
