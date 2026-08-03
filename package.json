@@ -35,11 +35,11 @@
     "bootstrap": "^5.3.3",
     "chroma-js": "^3.2.0",
     "hdf5-indexed-reader": "github:aidenlab/hdf5-indexed-reader#v1.0.3",
-    "hic-straw": "github:aidenlab/hic-straw#v3.0.2",
+    "hic-straw": "github:aidenlab/hic-straw#v4.0.0",
     "igv": "github:igvteam/igv.js#v3.8.0",
     "igv-utils": "github:igvteam/igv-utils#v1.5.8",
     "infinite-table": "github:igvteam/infinite-table#v1.0.0",
-    "juicebox.js": "github:aidenlab/juicebox.js#v3.4.2",
+    "juicebox.js": "github:aidenlab/juicebox.js#v3.6.0",
     "quickhull3d": "^3.1.2",
     "three": "^0.184.0",
     "vanilla-picker": "^2.12.3"

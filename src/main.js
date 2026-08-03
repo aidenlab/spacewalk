@@ -2,6 +2,7 @@
  * Entry point for Spacewalk application.
  */
 import App from "./app.js"
+import hic from 'juicebox.js'
 import * as bootstrap from 'bootstrap'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'juicebox.js/dist/css/juicebox.css'
@@ -30,7 +31,31 @@ window.addEventListener('error', event => {
     }
 })
 
+// Client half of the juicebox.js dev proxy (server half is the Vite plugin in
+// vite.config.mjs). It rewrites reads of WAF-gated hosts — ENCODE among them —
+// onto the dev server, which can send the Origin and User-Agent a browser
+// cannot. Hosts it doesn't claim keep fetching directly, so a genuine CORS
+// problem still surfaces in development exactly as it would in production.
+//
+// The DEV check has to live here, not inside juicebox.js: juicebox ships a
+// production-baked dist whose own `import.meta.env.DEV` is already false. Vite
+// folds this constant away in a production build, taking the dynamic import
+// with it, so production registers no mapper at all — and with none registered
+// juicebox's mapping path hands back the caller's own object.
+//
+// Sessions are unaffected: juicebox serializes the original URLs
+// (`unmappedUrls`), so a session saved in development carries no proxy path.
+async function registerDevURLMapper() {
+    if (import.meta.env.DEV) {
+        const { devMapUrl } = await import('juicebox.js/dev-proxy/map-url')
+        hic.setUrlMapper(devMapUrl)
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async (event) => {
+
+    // Ahead of App, so the mapper is in place before any map or track read.
+    await registerDevURLMapper()
 
     // Build the draggable alert dialog up front. Without this init the
     // AlertSingleton used by presentResourceError (and the file/track/genome
