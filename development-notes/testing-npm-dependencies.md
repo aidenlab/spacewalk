@@ -379,6 +379,37 @@ out of habit.
 `package-lock.json` is gitignored in this repo, so the contradiction never reaches a diff
 where someone might notice it. The only evidence lives in `node_modules`.
 
+### It bites CI too, and there it is worse
+
+Netlify caches `node_modules` between builds. Because the lockfile is gitignored, a
+deploy restores that cache and runs `npm install` against it — which is precisely the
+setup this trap needs. From the actual failing deploy in #79:
+
+```
+Starting to download cache of 166.9MB (Last modified: 2026-07-29 ...)
+Installing npm packages using npm version 10.9.8
+up to date in 449ms                                       <- fetched nothing
+...
+Error: Missing "./dev-proxy/plugin" specifier in "juicebox.js" package
+```
+
+The cache predated the juicebox bump, so the build ran against v3.4.2 while
+`package.json` asked for v3.6.0. Here it happened to fail loudly, because the new version
+had an export the old one lacked. **That was luck.** Had the bump merely changed
+*behavior* rather than adding an export, the deploy would have succeeded and published
+the old code — with a green check.
+
+Two consequences worth holding onto:
+
+1. **A green CI build is not evidence that a pin bump took effect.** Same reasoning as
+   locally, with less visibility.
+2. **After bumping a pin, clear the CI dependency cache** ("Clear cache and deploy site"
+   in Netlify). Otherwise the first deploy after the bump may ship the old dependency.
+
+This is also why nothing dev-only should be reachable from a production build — see the
+`devOnlyPlugins` comment in `vite.config.mjs`. A dev-only plugin took down a production
+build because a *static* import has to resolve even when the plugin is never used.
+
 ### The check
 
 Run this after **any** pin change, before drawing any conclusion from a build or a test

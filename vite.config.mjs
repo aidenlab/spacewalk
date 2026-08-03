@@ -1,16 +1,51 @@
 import { defineConfig } from "vite"
 import { config } from "dotenv"
-import { devProxy } from 'juicebox.js/dev-proxy/plugin'
 
 // Load environment variables from .env file
 config()
 
-export default defineConfig({
-    // Server half of the juicebox.js dev proxy, which is what lets the "ENCODE
-    // Hosted Contact Map" menu work from localhost. `apply: 'serve'`, so it can
-    // never enter a production build; the client half is in src/main.js.
-    // Rationale: development-notes/encode-waf-dev-proxy.md.
-    plugins: [ devProxy() ],
+// Server half of the juicebox.js dev proxy — what lets the "ENCODE Hosted
+// Contact Map" menu work from localhost. The client half is in src/main.js.
+// Rationale: development-notes/encode-waf-dev-proxy.md.
+//
+// Loaded only when serving, and deliberately not as a top-level import. The
+// plugin is `apply: 'serve'`, so a production build has no use for it — but a
+// static import would still have to *resolve* it, which makes `vite build`
+// hard-fail wherever the module isn't present. That is not hypothetical: CI
+// restored a node_modules cache predating the juicebox bump, `npm install`
+// reported "up to date" without fetching (see the tag-pin trap in
+// development-notes/testing-npm-dependencies.md), and the build died on
+// `Missing "./dev-proxy/plugin" specifier` before the config even loaded.
+// Nothing dev-only should be able to break a production build.
+async function devOnlyPlugins(command) {
+
+    if ('serve' !== command) {
+        return []
+    }
+
+    // The specifier is assembled from parts rather than written as a literal,
+    // and that is load-bearing rather than stylistic. Vite *bundles* this config
+    // before running it, and that pass resolves static `import()` specifiers too
+    // — so a literal is resolved before `command` is ever consulted, and fails
+    // the production build exactly as a top-level import would. Assembled, it is
+    // invisible to that pass and resolves through Node at call time, which only
+    // happens when serving.
+    const specifier = [ 'juicebox.js', 'dev-proxy', 'plugin' ].join('/')
+
+    try {
+        const { devProxy } = await import(specifier)
+        return [ devProxy() ]
+    } catch (e) {
+        // Dev-only convenience: never take the dev server down over it. The cost
+        // of it being absent is that ENCODE-hosted maps won't load from
+        // localhost — worth a warning, not a crash.
+        console.warn(`Dev proxy unavailable (${e.message}). ENCODE-hosted contact maps will not load from localhost.`)
+        return []
+    }
+}
+
+export default defineConfig(async ({ command }) => ({
+    plugins: await devOnlyPlugins(command),
     define: {
         'process.env.TINYURL_API_KEY': JSON.stringify(process.env.TINYURL_API_KEY)
     },
@@ -49,4 +84,4 @@ export default defineConfig({
         exclude: ['hic-straw']
     }
 
-})
+}))
