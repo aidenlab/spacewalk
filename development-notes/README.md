@@ -47,7 +47,7 @@ Last groomed: 2026-06 (post Phase 3 DI completion).
 | Document | Status | When to read |
 |---|---|---|
 | [local-hic-straw-dev.md](local-hic-straw-dev.md) | Current | When iterating on hic-straw locally and testing in Spacewalk |
-| [testing-npm-dependencies.md](testing-npm-dependencies.md) | Reference | Generic guide to testing an npm dep locally inside a consuming project |
+| [testing-npm-dependencies.md](testing-npm-dependencies.md) | Reference | Testing an npm dep locally inside a consuming project — and, before **any** `github:#vX.Y.Z` pin bump, the trap where `npm install` reports success and leaves the old version on disk |
 | [url-shortener-setup.md](url-shortener-setup.md) | Reference | Configuring the `t.3dg.io` TinyURL domain across environments |
 | [remote-sw-hosting.md](remote-sw-hosting.md) | Current | Before adding any remote `.sw` URL (Load From List, session JSONs, demos) — why the host matters for HDF5 range reads, the jsDelivr-compression trap, and the raw.githubusercontent / S3 / R2 decisions |
 | [encode-waf-dev-proxy.md](encode-waf-dev-proxy.md) | Current | When an ENCODE-hosted map fails in local development, or before touching the dev proxy in `vite.config.mjs` / `src/main.js` — why a bot challenge arrives as a bare `405`, and why the DEV check can't live in juicebox.js |
