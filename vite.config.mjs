@@ -6,15 +6,10 @@ import { devProxy } from 'juicebox.js/dev-proxy/plugin'
 config()
 
 export default defineConfig({
-    // ENCODE fronts www.encodeproject.org with a WAF that answers any request
-    // whose Origin is not on its allowlist with a bot challenge — surfacing as a
-    // misleading 405. localhost is never on that allowlist, so the "ENCODE Hosted
-    // Contact Map" menu cannot work in development without this. The plugin is
-    // `apply: 'serve'`, so it can never enter a production build; the client half
-    // that rewrites URLs onto it is registered in main.js, gated on DEV.
-    //
-    // Production is unaffected either way: Spacewalk is served from the
-    // allowlisted aidenlab.org.
+    // Server half of the juicebox.js dev proxy, which is what lets the "ENCODE
+    // Hosted Contact Map" menu work from localhost. `apply: 'serve'`, so it can
+    // never enter a production build; the client half is in src/main.js.
+    // Rationale: development-notes/encode-waf-dev-proxy.md.
     plugins: [ devProxy() ],
     define: {
         'process.env.TINYURL_API_KEY': JSON.stringify(process.env.TINYURL_API_KEY)
