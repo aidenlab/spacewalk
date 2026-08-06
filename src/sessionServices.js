@@ -5,6 +5,7 @@ import { shortenURL } from "./share/shareHelper.js"
 import { SpacewalkGlobals } from './spacewalkGlobals.js'
 import GUIManager from "./guiManager.js"
 import { presentResourceError, presentResourceErrors } from "./widgets/presentResourceError.js"
+import { isHicMapLoaded } from "./juicebox/hicMapState.js"
 
 class SessionService {
 
@@ -155,7 +156,7 @@ class SessionService {
             const igvCompressedSession = this.igvPanel.browser.compressedSession()
 
             let juiceboxCompressedSession
-            if (this.juiceboxPanel.browser.dataset && undefined === this.juiceboxPanel.browser.dataset.isLiveContactMapDataSet) {
+            if (isHicMapLoaded(this.juiceboxPanel.browser)) {
                 // Note format is: session=blob:${BGZip.compressString(jsonString)}
                 juiceboxCompressedSession = hic.compressedSession()
             }
@@ -226,7 +227,7 @@ class SessionService {
 
         const json = { spacewalk, igv }
 
-        if (this.juiceboxPanel.browser.dataset && undefined === this.juiceboxPanel.browser.dataset.isLiveContactMapDataSet) {
+        if (isHicMapLoaded(this.juiceboxPanel.browser)) {
             json.juicebox = hic.toJSON()
         }
 
