@@ -165,14 +165,28 @@ class SessionService {
             const index = path.indexOf("?")
             const prefix = index > 0 ? path.substring(0, index) : path
 
-            // Encode blob values so special chars (=, &, etc.) in compressed data don't break URL parsing
-            const spacewalkParam = encodeURIComponent(`blob:${spacewalkCompressedSession}`)
-            const igvParam = encodeURIComponent(`blob:${igvCompressedSession}`)
-
-            let url = `${prefix}?spacewalkSessionURL=${spacewalkParam}&sessionURL=${igvParam}`
+            // All three values are written **raw**. `BGZip.compressString`
+            // emits URL-safe output -- no '=', no '&', no '/' -- so the
+            // encodeURIComponent that used to wrap them was defensive against a
+            // character the compressor cannot produce, and it cost the juicebox
+            // parameter its readability: `session=blob%3A...` does not start
+            // with `blob:`, so juicebox's own decoder sniffed it as
+            // not-compressed and tried to *fetch* it as a document.
+            //
+            // Raw for all three rather than only for the juicebox one. One
+            // parameter spelled differently from its two neighbours on the same
+            // URL, for a reason no future reader could reconstruct, is how this
+            // class of bug is made.
+            //
+            // Links already shared still read: launchIntent decodes the whole
+            // query once before splitting it, and that pass stays.
+            //
+            // See juicebox.js docs/adr/0011-session-string-is-the-cross-host-contract.md
+            // decision 4.
+            let url = `${prefix}?spacewalkSessionURL=blob:${spacewalkCompressedSession}&sessionURL=blob:${igvCompressedSession}`
             if (juiceboxCompressedSession) {
                 const [jKey, jVal] = juiceboxCompressedSession.split('=', 2)
-                url += `&${jKey}=${encodeURIComponent(jVal)}`
+                url += `&${jKey}=${jVal}`
             }
 
             return shortenURL(url)

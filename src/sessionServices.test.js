@@ -6,10 +6,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // serialized. That guard sat inert for eighteen months (issue #84) because it
 // tested a juicebox.js property that no longer exists, and nothing exercised it.
 
+// `compressedSession()` returns the whole parameter, prefix and all — the
+// `blob:` is load-bearing here rather than decoration: it is the character
+// sequence a percent-encoding regression would mangle into `blob%3A`, and the
+// mock carried no colon at all until #86, so the encoding was untestable.
 vi.mock('juicebox.js', () => ({
     default: {
         toJSON: () => ({ url: 'map.hic' }),
-        compressedSession: () => 'session=JUICEBOXBLOB'
+        compressedSession: () => 'session=blob:JUICEBOXBLOB'
     }
 }))
 
@@ -84,7 +88,7 @@ describe('SessionService.getShareURL', () => {
 
     it('includes the juicebox session param when a Hi-C map is loaded', async () => {
         const url = await createService(hicDataset).getShareURL()
-        expect(url).toContain('session=JUICEBOXBLOB')
+        expect(url).toContain('session=blob:JUICEBOXBLOB')
     })
 
     it('omits the juicebox session param when a live contact map is loaded', async () => {
@@ -96,6 +100,36 @@ describe('SessionService.getShareURL', () => {
     it('omits the juicebox session param when no map is loaded', async () => {
         const url = await createService(undefined).getShareURL()
         expect(url).not.toContain('JUICEBOXBLOB')
+    })
+
+    /**
+     * The live defect behind #86. `encodeURIComponent` turned every value into
+     * `blob%3A…`, which juicebox's decoder cannot read: it tests
+     * `startsWith('blob:')`, sniffs a percent-encoded value as *not* compressed,
+     * and tries to fetch `blob%3A…` as a document. The encoding was defensive
+     * against characters `BGZip.compressString` cannot emit.
+     *
+     * Asserted on all three parameters, not just juicebox's. One parameter
+     * spelled differently from its two neighbours is the shape of the bug, so
+     * the sameness is what the test pins.
+     *
+     * @see juicebox.js docs/adr/0011-session-string-is-the-cross-host-contract.md
+     *   decision 4
+     */
+    describe('the three session values are written raw', () => {
+
+        it('percent-encodes nothing', async () => {
+            const url = await createService(hicDataset).getShareURL()
+            expect(url).not.toContain('%3A')
+            expect(url).not.toContain('%')
+        })
+
+        it('spells all three prefixes the way a decoder sniffs them', async () => {
+            const url = await createService(hicDataset).getShareURL()
+            expect(url).toContain('spacewalkSessionURL=blob:SPACEWALKBLOB')
+            expect(url).toContain('sessionURL=blob:IGVBLOB')
+            expect(url).toContain('session=blob:JUICEBOXBLOB')
+        })
     })
 
 })

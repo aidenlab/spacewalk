@@ -1,5 +1,6 @@
 import { defineConfig } from "vite"
 import { config } from "dotenv"
+import { fileURLToPath } from "node:url"
 
 // Load environment variables from .env file
 config()
@@ -76,6 +77,19 @@ export default defineConfig(async ({ command }) => ({
                 ],
             },
         },
+    },
+    // Read by Vitest, ignored by Vite. `igv-utils` declares only `module` --
+    // no `main`, no `exports` -- which Vite's dev/build resolver honours and
+    // Vitest's node-side resolver does not, so an unmocked import of it fails
+    // with "Failed to resolve entry for package". Every test before
+    // sessionURLCodec.test.js mocked igv-utils away and never met this; that
+    // one exercises the real BGZip against juicebox's shared fixture corpus,
+    // which is the point of it. Aliased to the file the `module` field names,
+    // matching what juicebox.js's own vitest config does.
+    test: {
+        alias: {
+            'igv-utils': fileURLToPath(new URL('./node_modules/igv-utils/src/index.js', import.meta.url))
+        }
     },
     optimizeDeps: {
         // Skip pre-bundling hic-straw so local rebuilds of its dist propagate
