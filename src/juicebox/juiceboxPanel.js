@@ -4,6 +4,7 @@ import Panel from '../panel.js'
 import LiveMapView from './liveMapView.js'
 import {appleCrayonColorRGB255, rgb255String} from "../utils/colorUtils"
 import { presentResourceError } from "../widgets/presentResourceError.js"
+import { applyPanelDimensions } from "./panelDimensions.js"
 
 class JuiceboxPanel extends Panel {
 
@@ -91,11 +92,7 @@ class JuiceboxPanel extends Panel {
         this.detachMouseHandlers()
 
         try {
-            const [ browser ] = session.browsers
-            if ('{}' === browser) {
-                const { width, height} = JuiceboxPanel.defaultConfig
-                session = { browsers: [ { width, height, queryParametersSupported: false } ] }
-            }
+            applyPanelDimensions(session, JuiceboxPanel.defaultConfig)
             await hic.restoreSession(document.querySelector('#spacewalk_juicebox_root_container'), session)
             this.browser = hic.getCurrentBrowser()
 
