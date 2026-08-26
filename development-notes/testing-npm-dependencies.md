@@ -263,6 +263,24 @@ When actively developing and testing:
 3. **Restart dev server**
 4. **Hard refresh browser** (Ctrl+Shift+R)
 
+### Issue: A version bump appears to do nothing
+
+**Symptoms**: Changed a `github:owner/repo#vX.Y.Z` pin, `npm install` reported success
+("up to date" / "added 1 package"), but the new code's behavior is nowhere to be seen —
+no new API, no new bug, no new anything. Builds and tests pass.
+
+**Cause**: npm did not fetch the new tag. It left the old version in `node_modules` and
+said so in language that reads like success.
+
+**Check**:
+```bash
+node -e "console.log(require('./node_modules/hic-straw/package.json').version)"
+```
+
+**Solution**: `rm -rf node_modules/<pkg>` then install the tag explicitly. Full
+explanation in [Bumping a GitHub Tag Pin](#bumping-a-github-tag-pin) above — read it
+before trusting any build or test result that follows a pin change.
+
 ### Issue: Source maps point to wrong files
 
 **Symptoms**: Breakpoints work but show wrong file or line numbers
@@ -295,6 +313,149 @@ When done testing, revert to the remote dependency:
    rm -rf node_modules package-lock.json
    npm install
    ```
+
+   Note that deleting `node_modules` here is not just tidiness — it is what makes this
+   recipe safe. See the next section.
+
+## Bumping a GitHub Tag Pin
+
+**`npm install` will tell you it succeeded and leave the old version on disk.**
+
+Most of Spacewalk's dependencies are pinned to GitHub tags rather than published npm
+versions — `hic-straw`, `juicebox.js`, `igv`, `igv-utils`, `infinite-table`,
+`hdf5-indexed-reader`. Changing one of those pins and running `npm install` frequently
+does nothing at all, and says so in language that reads like success.
+
+### The trap, reproduced
+
+Edit the pin:
+
+```diff
+- "hic-straw": "github:aidenlab/hic-straw#v3.0.2"
++ "hic-straw": "github:aidenlab/hic-straw#v4.0.0"
+```
+
+Run `npm install`:
+
+```
+up to date, audited 9 packages in 295ms
+found 0 vulnerabilities
+```
+
+Exit code 0. No warning. But nothing was fetched:
+
+```
+node_modules says:     3.0.2      <- the old code is still on disk
+lockfile spec:         #v4.0.0    <- "we were asked for v4.0.0"
+lockfile version:      3.0.2      <- "we installed 3.0.2"
+```
+
+The lockfile contradicts itself in two adjacent places and npm calls that "up to date."
+
+### Why
+
+For a semver dependency (`"three": "^0.184.0"`) npm can compare version numbers and see
+that what's installed no longer satisfies the request.
+
+A GitHub pin is not a version number. It is a label pointing into someone else's git
+history, and resolving it to a commit costs a network round-trip. npm skips that: it sees
+a package by the right *name* already installed, decides that satisfies the requirement,
+and reports success. It never asks the question that would reveal the difference.
+
+### Why it matters more than it sounds
+
+The failure is silent and everything downstream inherits it:
+
+- `npm run build` passes — against the old code.
+- `npm test` passes — against the old code.
+- The `package.json` diff, which is all a reviewer sees, says v4.0.0.
+- The app runs correctly, because the old version runs correctly.
+
+You conclude that a major version bump was painless. That conclusion is worthless, because
+the new code never executed. This is exactly what happened during the hic-straw
+v3.0.2 → v4.0.0 bump in #77; it surfaced only because the installed version was printed
+out of habit.
+
+`package-lock.json` is gitignored in this repo, so the contradiction never reaches a diff
+where someone might notice it. The only evidence lives in `node_modules`.
+
+### It bites CI too, and there it is worse
+
+Netlify caches `node_modules` between builds. Because the lockfile is gitignored, a
+deploy restores that cache and runs `npm install` against it — which is precisely the
+setup this trap needs. From the actual failing deploy in #79:
+
+```
+Starting to download cache of 166.9MB (Last modified: 2026-07-29 ...)
+Installing npm packages using npm version 10.9.8
+up to date in 449ms                                       <- fetched nothing
+...
+Error: Missing "./dev-proxy/plugin" specifier in "juicebox.js" package
+```
+
+The cache predated the juicebox bump, so the build ran against v3.4.2 while
+`package.json` asked for v3.6.0. Here it happened to fail loudly, because the new version
+had an export the old one lacked. **That was luck.** Had the bump merely changed
+*behavior* rather than adding an export, the deploy would have succeeded and published
+the old code — with a green check.
+
+Two consequences worth holding onto:
+
+1. **A green CI build is not evidence that a pin bump took effect.** Same reasoning as
+   locally, with less visibility.
+2. **After bumping a pin, clear the CI dependency cache** ("Clear cache and deploy site"
+   in Netlify). Otherwise the first deploy after the bump may ship the old dependency.
+
+This is also why nothing dev-only should be reachable from a production build — see the
+`devOnlyPlugins` comment in `vite.config.mjs`. A dev-only plugin took down a production
+build because a *static* import has to resolve even when the plugin is never used.
+
+### The check
+
+Run this after **any** pin change, before drawing any conclusion from a build or a test
+run. `node_modules` is the only place that reflects what will actually execute — do not
+trust the lockfile, and do not trust npm's summary line:
+
+```bash
+node -e "console.log(require('./node_modules/hic-straw/package.json').version)"
+```
+
+Several at once:
+
+```bash
+for p in hic-straw juicebox.js igv igv-utils; do
+    node -e "console.log('$p', require('./node_modules/$p/package.json').version)"
+done
+```
+
+### The fix
+
+Delete the package directory, then install the tag explicitly. Removing the directory
+takes away the thing npm was matching against, so it is forced to fetch:
+
+```bash
+rm -rf node_modules/hic-straw node_modules/juicebox.js
+npm install github:aidenlab/hic-straw#v4.0.0 github:aidenlab/juicebox.js#v3.6.0
+```
+
+Then run the check above again and confirm before moving on.
+
+`rm -rf node_modules package-lock.json && npm install` also works and is the blunter
+option — that is why the "Reverting to Remote Dependency" recipe above is safe as written.
+It costs a full reinstall of every dependency, so the targeted version is usually
+preferable during active work.
+
+### Related
+
+This is a distinct problem from the Vite dep-cache staleness described in
+`local-hic-straw-dev.md`, though the symptom rhymes — in both cases you are running code
+you did not think you were running. The distinction:
+
+- **This trap:** the wrong bytes are in `node_modules`. Affects builds *and* the dev server.
+- **Vite dep cache:** the right bytes are in `node_modules`, but the dev server serves a
+  stale pre-bundled copy. Affects only `npm run dev`.
+
+Check `node_modules` first — if that is wrong, clearing the Vite cache will not help.
 
 ## Advantages of This Approach
 

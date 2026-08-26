@@ -30,7 +30,26 @@ window.addEventListener('error', event => {
     }
 })
 
+// Client half of the juicebox.js dev proxy; the server half is the Vite plugin
+// in vite.config.mjs. Why it exists, and why the DEV check lives in Spacewalk
+// rather than in juicebox: development-notes/encode-waf-dev-proxy.md.
+//
+// Everything dev-only is inside the gate, imports included, so a production
+// build folds the whole branch away and registers no mapper at all.
+async function registerDevURLMapper() {
+    if (import.meta.env.DEV) {
+        const [ { default: hic }, { devMapUrl } ] = await Promise.all([
+            import('juicebox.js'),
+            import('juicebox.js/dev-proxy/map-url')
+        ])
+        hic.setUrlMapper(devMapUrl)
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async (event) => {
+
+    // Ahead of App, so the mapper is in place before any map or track read.
+    await registerDevURLMapper()
 
     // Build the draggable alert dialog up front. Without this init the
     // AlertSingleton used by presentResourceError (and the file/track/genome

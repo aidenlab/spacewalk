@@ -1,6 +1,7 @@
 import { LiveContactMap } from 'hic-straw'
 import SpacewalkEventBus from '../spacewalkEventBus.js'
 import { buildLiveContactMapConfig } from './liveContactMapConfig.js'
+import { isHicMapLoaded } from './hicMapState.js'
 
 class LiveContactMapService {
 
@@ -139,8 +140,7 @@ class LiveContactMapService {
             // sits at the same locus (both driven to ensembleManager.locus), so skip it
             // and leave the Hi-C dataset intact.
             const browser = this.getJuiceboxBrowser()
-            const hasHicMap = browser?.activeDataset && !browser.activeDataset.isLive
-            if (!hasHicMap) {
+            if (!isHicMapLoaded(browser)) {
                 const locusStr = `${chr}:${genomicStart}-${genomicEnd}`
                 await browser.loadLiveContactMap({
                     liveContactMap: this.lcm,

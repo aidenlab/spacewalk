@@ -5,6 +5,7 @@ import { shortenURL } from "./share/shareHelper.js"
 import { SpacewalkGlobals } from './spacewalkGlobals.js'
 import GUIManager from "./guiManager.js"
 import { presentResourceError, presentResourceErrors } from "./widgets/presentResourceError.js"
+import { isHicMapLoaded } from "./juicebox/hicMapState.js"
 
 class SessionService {
 
@@ -89,10 +90,23 @@ class SessionService {
 
     async loadIGVSession(spacewalk, igv) {
 
+        // Clearing is unconditional, and has to happen before the early return
+        // below: a session carrying no IGV state still has to purge whatever
+        // the previous session left behind, or those tracks survive the restore.
         this.igvPanel.browser.removeAllTracks()
         this.igvPanel.clearMaterialProviderSessionState()
 
         this.trackMaterialProvider.clearAllTracks()
+
+        // A Spacewalk session need not carry an IGV block — saving with no
+        // tracks loaded produces one with only `spacewalk`. igv's loadSession
+        // dereferences its argument immediately, so handing it undefined throws
+        // a TypeError before any fetch, which used to surface as the misleading
+        // "the IGV tracks could not be loaded". Nothing left to restore here;
+        // loadSession applies the session locus to the panel either way.
+        if (!igv) {
+            return
+        }
 
         await this.igvPanel.browser.loadSession(igv)
         this.igvPanel.configureMouseHandlers()
@@ -142,7 +156,7 @@ class SessionService {
             const igvCompressedSession = this.igvPanel.browser.compressedSession()
 
             let juiceboxCompressedSession
-            if (this.juiceboxPanel.browser.dataset && undefined === this.juiceboxPanel.browser.dataset.isLiveContactMapDataSet) {
+            if (isHicMapLoaded(this.juiceboxPanel.browser)) {
                 // Note format is: session=blob:${BGZip.compressString(jsonString)}
                 juiceboxCompressedSession = hic.compressedSession()
             }
@@ -151,14 +165,28 @@ class SessionService {
             const index = path.indexOf("?")
             const prefix = index > 0 ? path.substring(0, index) : path
 
-            // Encode blob values so special chars (=, &, etc.) in compressed data don't break URL parsing
-            const spacewalkParam = encodeURIComponent(`blob:${spacewalkCompressedSession}`)
-            const igvParam = encodeURIComponent(`blob:${igvCompressedSession}`)
-
-            let url = `${prefix}?spacewalkSessionURL=${spacewalkParam}&sessionURL=${igvParam}`
+            // All three values are written **raw**. `BGZip.compressString`
+            // emits URL-safe output -- no '=', no '&', no '/' -- so the
+            // encodeURIComponent that used to wrap them was defensive against a
+            // character the compressor cannot produce, and it cost the juicebox
+            // parameter its readability: `session=blob%3A...` does not start
+            // with `blob:`, so juicebox's own decoder sniffed it as
+            // not-compressed and tried to *fetch* it as a document.
+            //
+            // Raw for all three rather than only for the juicebox one. One
+            // parameter spelled differently from its two neighbours on the same
+            // URL, for a reason no future reader could reconstruct, is how this
+            // class of bug is made.
+            //
+            // Links already shared still read: launchIntent decodes the whole
+            // query once before splitting it, and that pass stays.
+            //
+            // See juicebox.js docs/adr/0011-session-string-is-the-cross-host-contract.md
+            // decision 4.
+            let url = `${prefix}?spacewalkSessionURL=blob:${spacewalkCompressedSession}&sessionURL=blob:${igvCompressedSession}`
             if (juiceboxCompressedSession) {
                 const [jKey, jVal] = juiceboxCompressedSession.split('=', 2)
-                url += `&${jKey}=${encodeURIComponent(jVal)}`
+                url += `&${jKey}=${jVal}`
             }
 
             return shortenURL(url)
@@ -213,7 +241,7 @@ class SessionService {
 
         const json = { spacewalk, igv }
 
-        if (this.juiceboxPanel.browser.dataset && undefined === this.juiceboxPanel.browser.dataset.isLiveContactMapDataSet) {
+        if (isHicMapLoaded(this.juiceboxPanel.browser)) {
             json.juicebox = hic.toJSON()
         }
 

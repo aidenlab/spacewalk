@@ -103,3 +103,6 @@ A distance matrix computed on demand from the same traces, rendered by Spacewalk
 
 **Session**:
 The restorable state of the app — loaded ensemble, render style, camera, tracks, checked material-provider tracks.
+
+**Session string** vs **session parameter**:
+A *session string* is the payload — `blob:<BGZip>`, `data:<BGZip>`, or `data:application/gzip;base64,…`. A *session parameter* is a query parameter carrying one; a Spacewalk launch URL composes three of them, `spacewalkSessionURL`, `sessionURL` (igv) and `session` (juicebox), and every value is written **raw**. The session string is the contract Spacewalk shares with juicebox — both apps read the same payload set, and neither owes the other its query string, so a whole URL is not portable between them. `uncompressSessionURL` reads strings for that reason, and refuses a session **URL** by name: juicebox fetches one and sniffs the document, Spacewalk does not and is not gaining the arm. See juicebox.js `docs/adr/0011-session-string-is-the-cross-host-contract.md` and `src/sessionURLCodec.test.js`, which runs juicebox's own fixture corpus against this decoder.
