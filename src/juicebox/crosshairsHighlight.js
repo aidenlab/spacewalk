@@ -14,7 +14,7 @@ import { locatorForBP } from '../genomicLocator.js'
  * nothing; an empty list means there is nothing to highlight.
  *
  * @param {{chr1: string, xBP: number, chr2: string, yBP: number}} position
- * @param {{chr: string, genomicExtentList: Array}} ensemble - the ensemble locus's chromosome and its extents
+ * @param {{chr: string, genomicExtentList: Array}} ensembleLocus - the locus's chromosome and its genomic extents
  * @returns {Array<{index: number|undefined, interpolant: number}>}
  */
 function crosshairsHighlightEntries({ chr1, xBP, chr2, yBP }, { chr, genomicExtentList }) {

@@ -238,7 +238,8 @@ sequenceDiagram
     U->>IGV: cursor over track lane
     IGV->>CG: mousemove
     CG->>CG: move continuous guide line (raw bp); reject if outside lane
-    CG->>EM: locatorForBP(genomicExtentList, bp) — genomicLocator.js
+    CG->>EM: getCurrentGenomicExtentList()
+    CG->>CG: locatorForBP(genomicExtentList, bp) — genomicLocator.js
     alt inside a region
         CG->>HC: set([{ index, interpolant }], 'igvCursor')
         Note over CG,HC: interpolant glides across the region's<br/>ramp extent as bp crosses [startBP, endBP]

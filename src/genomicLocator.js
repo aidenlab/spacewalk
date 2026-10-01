@@ -15,7 +15,7 @@
  * undefined (bead hidden).
  *
  * Shared by every producer that starts from a bp (IGV cursor guide, Juicebox
- * crosshairs). See development-notes/refactor-continuous-genomic-locator.md.
+ * crosshairs). See development-notes/highlighting-participant-map.md.
  */
 function locatorForBP(genomicExtentList, bp) {
     if (!genomicExtentList || 0 === genomicExtentList.length) {

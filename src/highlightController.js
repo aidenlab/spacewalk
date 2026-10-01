@@ -23,7 +23,7 @@
 class HighlightController {
 
     constructor() {
-        // array of { index, interpolant }, sorted by index; [] means nothing highlighted
+        // array of { index, interpolant }, in ramp order; [] means nothing highlighted
         this.selection = []
         // renderHighlight(selection) callbacks, invoked on every change
         this.renderers = []
@@ -34,7 +34,8 @@ class HighlightController {
     }
 
     set(entries, source = 'unknown') {
-        const next = [ ...entries ].sort((a, b) => a.index - b.index)
+        // By interpolant, not index: index is undefined over a gap, and the two agree otherwise.
+        const next = [ ...entries ].sort((a, b) => a.interpolant - b.interpolant)
         if (this.isEqual(next)) {
             return
         }

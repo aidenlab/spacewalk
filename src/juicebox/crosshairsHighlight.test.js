@@ -13,12 +13,12 @@ const genomicExtentList = [ 0, 1, 2, 3 ].map(i => ({
     end: (i + 1) / 4
 }))
 
-const ensemble = { chr: 'chr2', genomicExtentList }
+const ensembleLocus = { chr: 'chr2', genomicExtentList }
 
 describe('crosshairsHighlightEntries', () => {
 
     it('yields one entry per axis, each located by its own bp', () => {
-        const entries = crosshairsHighlightEntries({ chr1: 'chr2', xBP: 10_500_000, chr2: 'chr2', yBP: 13_250_000 }, ensemble)
+        const entries = crosshairsHighlightEntries({ chr1: 'chr2', xBP: 10_500_000, chr2: 'chr2', yBP: 13_250_000 }, ensembleLocus)
 
         expect(entries).toEqual([
             { index: 0, interpolant: 0.125 },
@@ -26,39 +26,38 @@ describe('crosshairsHighlightEntries', () => {
         ])
     })
 
-    it('locates against the ensemble locus, whatever the contact map is zoomed to', () => {
-        const position = { chr1: 'chr2', xBP: 12_000_000, chr2: 'chr2', yBP: 12_000_000 }
-        const zoomedIn = { startXBP: 11_900_000, endXBP: 12_100_000, startYBP: 11_900_000, endYBP: 12_100_000 }
-        const zoomedOut = { startXBP: 0, endXBP: 240_000_000, startYBP: 0, endYBP: 240_000_000 }
+    it('locates against the ensemble locus, not the map viewport the position came from', () => {
+        // Map zoomed to 11.9 - 12.1 Mb. x is a quarter of the way across that viewport (a
+        // viewport fraction of 0.25) but at 11.95 Mb it is just under halfway along the locus.
+        const extents = { startXBP: 11_900_000, endXBP: 12_100_000, startYBP: 11_900_000, endYBP: 12_100_000 }
 
-        const a = crosshairsHighlightEntries({ ...position, extents: zoomedIn }, ensemble)
-        const b = crosshairsHighlightEntries({ ...position, extents: zoomedOut }, ensemble)
+        const entries = crosshairsHighlightEntries({ chr1: 'chr2', xBP: 11_950_000, chr2: 'chr2', yBP: 12_000_000, extents }, ensembleLocus)
 
-        expect(a).toEqual(b)
-        expect(a[0].interpolant).toBeCloseTo(0.5)
+        expect(entries[0]).toEqual({ index: 1, interpolant: 0.4875 })
+        expect(entries[1].interpolant).toBeCloseTo(0.5)
     })
 
     it('drops an axis whose bp is outside the ensemble locus, keeping the other', () => {
-        const entries = crosshairsHighlightEntries({ chr1: 'chr2', xBP: 9_000_000, chr2: 'chr2', yBP: 11_500_000 }, ensemble)
+        const entries = crosshairsHighlightEntries({ chr1: 'chr2', xBP: 9_000_000, chr2: 'chr2', yBP: 11_500_000 }, ensembleLocus)
 
         expect(entries).toEqual([ { index: 1, interpolant: 0.375 } ])
     })
 
     it('drops an axis on another chromosome, though its bp would fall in the locus', () => {
-        const entries = crosshairsHighlightEntries({ chr1: 'chr2', xBP: 11_500_000, chr2: 'chr7', yBP: 11_500_000 }, ensemble)
+        const entries = crosshairsHighlightEntries({ chr1: 'chr2', xBP: 11_500_000, chr2: 'chr7', yBP: 11_500_000 }, ensembleLocus)
 
         expect(entries).toEqual([ { index: 1, interpolant: 0.375 } ])
     })
 
     it('matches a chromosome the map spells without the chr prefix', () => {
-        const entries = crosshairsHighlightEntries({ chr1: '2', xBP: 10_500_000, chr2: '2', yBP: 10_500_000 }, ensemble)
+        const entries = crosshairsHighlightEntries({ chr1: '2', xBP: 10_500_000, chr2: '2', yBP: 10_500_000 }, ensembleLocus)
 
         expect(entries).toHaveLength(2)
     })
 
     it('yields nothing when neither axis is on the ensemble locus', () => {
-        expect(crosshairsHighlightEntries({ chr1: 'chr7', xBP: 10_500_000, chr2: 'chr7', yBP: 10_500_000 }, ensemble)).toEqual([])
-        expect(crosshairsHighlightEntries({ chr1: 'chr2', xBP: 1, chr2: 'chr2', yBP: 99_000_000 }, ensemble)).toEqual([])
+        expect(crosshairsHighlightEntries({ chr1: 'chr7', xBP: 10_500_000, chr2: 'chr7', yBP: 10_500_000 }, ensembleLocus)).toEqual([])
+        expect(crosshairsHighlightEntries({ chr1: 'chr2', xBP: 1, chr2: 'chr2', yBP: 99_000_000 }, ensembleLocus)).toEqual([])
     })
 
     it('yields nothing before an ensemble is loaded', () => {
