@@ -34,9 +34,9 @@ This doc is the honest answer to "are we using events well, and where can we imp
 - `post({ type, data })` — synchronous; iterates subscribers in **registration order**.
 - `unsubscribe`, `hold`/`release`/`isHeld` + a `stack`/`_hold` batching mechanism.
 
-Separately, the vendored igv/juicebox `browser.eventBus` is subscribed once
-(`juiceboxPanel.js:151`, `DidHideCrosshairs`). That one is out of scope — it's the vendor's bus,
-not ours.
+Separately, the vendored igv/juicebox `browser.eventBus` was subscribed once
+(`juiceboxPanel.js`, `DidHideCrosshairs`) — out of scope here, the vendor's bus, not ours. That
+subscription is gone since #98: the panel now hears `onCrosshairsHide` on the juicebox coordinator.
 
 ## The actual event graph
 

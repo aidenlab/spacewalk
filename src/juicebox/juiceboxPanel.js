@@ -5,6 +5,7 @@ import LiveMapView from './liveMapView.js'
 import {appleCrayonColorRGB255, rgb255String} from "../utils/colorUtils"
 import { presentResourceError } from "../widgets/presentResourceError.js"
 import { applyPanelDimensions } from "./panelDimensions.js"
+import { crosshairsHighlightEntries } from "./crosshairsHighlight.js"
 
 class JuiceboxPanel extends Panel {
 
@@ -57,7 +58,7 @@ class JuiceboxPanel extends Panel {
         // Stable references for add/removeEventListener
         this._tabEventHandler = (event) => this.assessTab(event.target)
 
-        // Juicebox clears its highlight via DidHideCrosshairs (see
+        // Juicebox clears its highlight via onCrosshairsHide (see
         // attachMouseHandlersAndEventSubscribers); the panel only refreshes the ramp.
         this.panel.addEventListener('mouseleave', (event) => {
             event.stopPropagation();
@@ -141,13 +142,6 @@ class JuiceboxPanel extends Panel {
 
     attachMouseHandlersAndEventSubscribers() {
 
-        this.browser.eventBus.subscribe('DidHideCrosshairs', {
-            receiveEvent: () => {
-                this.sceneManager.clearHighlight('hideCrosshairs')
-                this.genomicNavigator.repaint()
-            }
-        })
-
         this.browser.coordinator.addCallback('onMapLoaded', async ({ dataset, state, datasetType }) => {
             const activeTabButton = this.container.querySelector('button.nav-link.active')
             this.assessTab(activeTabButton)
@@ -177,32 +171,28 @@ class JuiceboxPanel extends Panel {
             }
         })
 
-        this.browser.setCustomCrosshairsHandler(args => this.handleCrosshairs(args))
+        this.browser.coordinator.addCallback('onCrosshairsMove', position => this.handleCrosshairs(position))
+
+        this.browser.coordinator.addCallback('onCrosshairsHide', () => {
+            this.sceneManager.clearHighlight('hideCrosshairs')
+            this.genomicNavigator.repaint()
+        })
 
         this.configureTabs()
     }
 
-    handleCrosshairs({ xBP, yBP, startXBP, startYBP, endXBP, endYBP, interpolantX, interpolantY }) {
+    handleCrosshairs(position) {
 
         const em = this.ensembleManager
         if (undefined === em || undefined === em.locus) {
             return
         }
 
-        const { genomicStart, genomicEnd } = em.locus
-
-        const trivialRejection = startXBP > genomicEnd || endXBP < genomicStart || startYBP > genomicEnd || endYBP < genomicStart
-        if (trivialRejection) return
-
-        const xRejection = xBP < genomicStart || xBP > genomicEnd
-        const yRejection = yBP < genomicStart || yBP > genomicEnd
-        if (xRejection || yRejection) return
-
-        // A crosshair over a gap in the genomic extent yields no window -> clear, don't highlight.
-        const windowList = em.getGenomicInterpolantWindowList([ interpolantX, interpolantY ])
-        if (windowList) {
+        // Located by bp against the ensemble locus, not the map's viewport. See crosshairsHighlight.js.
+        const entries = crosshairsHighlightEntries(position, { chr: em.locus.chr, genomicExtentList: em.getCurrentGenomicExtentList() })
+        if (entries.length > 0) {
             // Each crosshair carries its own continuous interpolant -> two gliding beads.
-            this.sceneManager.highlightController.set(windowList.map(({ index, interpolant }) => ({ index, interpolant })), 'juiceboxCrosshairs')
+            this.sceneManager.highlightController.set(entries, 'juiceboxCrosshairs')
         } else {
             this.sceneManager.highlightController.clear('juiceboxCrosshairs')
         }

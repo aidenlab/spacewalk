@@ -85,7 +85,7 @@ turns into `{ genomicExtent, index }` windows (or `undefined` for a gap).
 |---|---|---|---|
 | **Navigator ramp** | `genomicNavigator.onCanvasMouseMove` | mouse-Y on the ramp → one interpolant `1 - yNorm` → indices | — |
 | **IGV pointer** | `igvCursorGuide.js` (own `mousemove` on the IGV column container) | pointer x → bp (`refFrame.start + x·bpPerPixel`) → region index (direct `startBP..endBP` lookup) | spacewalk-owned; also draws its own continuous guide line (§6) |
-| **Juicebox crosshairs** | `juiceboxPanel.handleCrosshairs` | crosshair x,y on the contact map → **two** interpolants | the only producer that yields two regions at once |
+| **Juicebox crosshairs** | `juiceboxPanel.handleCrosshairs` | juicebox `onCrosshairsMove` → locus per axis (`chr`, bp) → `locatorForBP` against the ensemble locus → up to **two** `{ index, interpolant }` | the only producer that yields two regions at once; correct at any map zoom (#98) |
 | **3D raycast picker** | `picker.intersect` | ray from the mouse into the scene → a hit `instanceId` | **balls only** — point cloud, ribbon, stick are in the raycaster `exclusionSet` |
 
 > **Asymmetry to remember:** direct 3D interaction (the picker) only fires in **ball-and-stick**
@@ -238,7 +238,7 @@ sequenceDiagram
     U->>IGV: cursor over track lane
     IGV->>CG: mousemove
     CG->>CG: move continuous guide line (raw bp); reject if outside lane
-    CG->>EM: locatorForBP(bp) via genomicExtentList
+    CG->>EM: locatorForBP(genomicExtentList, bp) — genomicLocator.js
     alt inside a region
         CG->>HC: set([{ index, interpolant }], 'igvCursor')
         Note over CG,HC: interpolant glides across the region's<br/>ramp extent as bp crosses [startBP, endBP]
@@ -275,21 +275,25 @@ sequenceDiagram
     participant HC as HighlightController
     participant R as renderers (strip + active viz)
     U->>JB: crosshairs over contact map
-    JB->>JP: handleCrosshairs({interpolantX, interpolantY})
-    JP->>JP: reject if either axis outside locus
-    JP->>EM: getGenomicInterpolantWindowList([iX, iY])
-    alt window(s) found
-        JP->>HC: set(indices, 'juiceboxCrosshairs')
-        HC->>R: reconcile → renderHighlight(selection): two regions
-    else gap
+    JB->>JP: onCrosshairsMove({chr1, xBP, chr2, yBP, extents})
+    JP->>EM: locus.chr + getCurrentGenomicExtentList()
+    JP->>JP: crosshairsHighlightEntries — per axis: same chromosome? locatorForBP(bp)
+    alt at least one axis on the locus
+        JP->>HC: set(entries, 'juiceboxCrosshairs')
+        HC->>R: reconcile → renderHighlight(selection): up to two regions
+    else neither axis on the locus
         JP->>HC: clear('juiceboxCrosshairs')
         HC->>R: reconcile → renderHighlight([])
     end
 ```
 
-The two interpolants flow through unchanged: the strip paints two bands, ball/point-cloud highlight
-two regions, and ribbon's two `highlightBeads` are exactly why there are *two* of them. (Juicebox
-also clears via its own `DidHideCrosshairs` → `sceneManager.clearHighlight('hideCrosshairs')`; see §5.)
+Each axis is located by its **bp against the ensemble locus** (`src/juicebox/crosshairsHighlight.js`,
+sharing `locatorForBP` with the IGV producer) — not by its fraction of the contact map's viewport,
+which agreed with the locus only while the map showed exactly the ensemble's span. An axis on another
+chromosome or outside the modeled span contributes nothing; over an interior gap it dwells at the
+junction, like IGV. The strip paints two bands, ball/point-cloud highlight two regions, and ribbon's
+two `highlightBeads` are exactly why there are *two* of them. (Juicebox also clears via its
+`onCrosshairsHide` coordinator callback → `sceneManager.clearHighlight('hideCrosshairs')`; see §5.)
 
 ### 4d. Driven by direct 3D interaction (the raycast picker)
 
@@ -343,7 +347,7 @@ switch lives in one place (`getActiveVisualization()`); inactive vizzes are alre
 flowchart TB
     E1["Navigator mouseleave<br/>(self-clear)"] --> HC
     E2["IGV column mouseleave<br/>(igvCursorGuide.clear)"] --> HC
-    E3["Juicebox DidHideCrosshairs"] --> CH["sceneManager.clearHighlight"]
+    E3["Juicebox onCrosshairsHide"] --> CH["sceneManager.clearHighlight"]
     E4["Picker no-hit / pointer left canvas"] --> HC
     E5["Gap under cursor<br/>(producer reports clear)"] --> HC
     CH --> HC[("highlightController.clear(source)<br/>reconcile → renderHighlight([])<br/>strip + active viz")]
@@ -355,7 +359,7 @@ Every clear is the same path with an empty selection — each producer reports i
 |---|---|---|
 | Navigator mouseleave | `highlightController.clear('navigator')` (self-clear) | strip + active viz clear via reconcile |
 | IGV column mouseleave / pointer outside lane | `igvCursorGuide.clear()` → `highlightController.clear('igvCursor')` | strip + active viz clear via reconcile |
-| Juicebox crosshairs hidden (`DidHideCrosshairs`) | `sceneManager.clearHighlight('hideCrosshairs')` | strip + active viz clear via reconcile |
+| Juicebox crosshairs hidden (`onCrosshairsHide`) | `sceneManager.clearHighlight('hideCrosshairs')` | strip + active viz clear via reconcile |
 | Picker no-hit, or pointer left the canvas | `highlightController.clear('picker' / 'pickerLeftCanvas')` | strip + active viz clear via reconcile |
 | Gap under a still-hovering cursor | producer reports `clear` (undefined window) | strip + active viz clear via reconcile |
 
@@ -432,7 +436,7 @@ The redesign is complete. There is **one path, four producers wide and one rende
 mutators, the `DidEnter/LeaveGenomicNavigator` events, and `picker.isEnabled` are all gone. The only
 intentionally-retained asymmetry is the **`point_cloud` raycast exclusion** (a product decision — the
 picker hits balls only; point cloud / ribbon / stick are excluded), and Juicebox's separate
-`DidHideCrosshairs` clear, which is genuine fan-out from the juicebox browser. Nothing left to wire
+`onCrosshairsHide` clear, which is genuine fan-out from the juicebox browser. Nothing left to wire
 wrong by render style.
 
 **Follow-on done (PR #70).** The same one path now carries a continuous `interpolant` alongside the
