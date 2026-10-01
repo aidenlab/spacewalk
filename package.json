@@ -39,7 +39,7 @@
     "chroma-js": "^3.2.0",
     "hic-straw": "^4.0.1",
     "igv": "^3.8.9",
-    "juicebox.js": "github:aidenlab/juicebox.js#9e80589d4cefc02d8c4efa28f5c451aac16597a8",
+    "juicebox.js": "github:aidenlab/juicebox.js#master",
     "quickhull3d": "^3.1.2",
     "three": "^0.184.0",
     "vanilla-picker": "^2.12.3"
