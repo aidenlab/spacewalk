@@ -148,6 +148,22 @@ where the user would name a value (a color) or a choice (render style).
   them across Rooms and out of shareable URLs.
 - 24h idle expiry; an expired Room stays expired; a protocol version in the join handshake.
 
+**Viewer settings** (grilled 2026-10-28, before #113). `localStorage` was a single-user design —
+the viewer page shares an origin with the full app, so it silently inherited the app's settings.
+- **Shared, not personal.** Background, axes, ground plane, ruler visibility and color are a fact
+  about the scene: one change repaints every page in the Room, and `read_viewer_state` has one true
+  answer. Per-person preferences layered over the Room are deferred until someone asks.
+- **The ruler's anchor is per-page**, like overlay open/closed. It is a corner plus a pixel offset —
+  a fact about one window — so a Driver's wide Workspace and a Guest's narrow side panel must not
+  fight over it. It never enters the Room.
+- **The full app keeps `localStorage`** — single user, unchanged. Settings stay out of session files.
+- **The M0 viewer page persists nothing**: defaults on every load, changes last the page. It behaves
+  as the M1 viewer will before first sync, and builds no store users would come to rely on.
+- **One owner, pluggable store** (#123): a single viewer-settings object, injected, replaces four
+  independent `SettingsManager.load()` readers and the `spacewalk-settings-changed` document event.
+  Stores: `localStorage` (app), none (viewer), the Room (M1) — which is why the owner must accept
+  changes *in*, not only persist them *out*.
+
 **Shared rooms (M3).** geenee's model: one Driver conversation, Guests joining by Room link as
 equals; no roles. Everything is shared except hover highlighting and overlay open/closed. The
 camera is shared and live — a throttled (~150 ms) unversioned channel during a drag, one committed

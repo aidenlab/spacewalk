@@ -23,9 +23,10 @@ Wave 3                #109 one viewer assembly ◀─────┘            
 Wave 4                #110 viewer-only page                                     │
                           │                                                     │
 Wave 5 (parallel)     #111 toolbar     #112 ☰ widget overlay     #113 ⚙ settings overlay ◀┘
+                                                                  #123 viewer-settings owner
 ```
 
-Working alone, take them in number order: **105 → 106 → 107 → 108 → 109 → 110 → 111 → 112 → 113.**
+Working alone, take them in number order: **105 → 106 → 107 → 108 → 109 → 110 → 111 → 112 → 113 → 123.**
 
 ## Tickets
 
@@ -40,6 +41,7 @@ Working alone, take them in number order: **105 → 106 → 107 → 108 → 109 
 | 7 | #111 | Viewer toolbar: trace select and reset camera | #110 | ☐ |
 | 8 | #112 | Widget panel as an overlay from the floating ☰ | #110 | ☐ |
 | 9 | #113 | Settings as a ⚙ overlay in the viewer | #108, #110 | ☐ |
+| 10 | #123 | One owner for viewer settings, with a pluggable store | #109 | ☐ |
 
 ### Prefactors (full app, no visible change)
 
@@ -72,6 +74,10 @@ Working alone, take them in number order: **105 → 106 → 107 → 108 → 109 
   closed by default. Checked by eye.
 - **#113 — ⚙ settings overlay.** Background, axes, ground plane, reference ruler as an overlay, no
   Scale Bars row. Checked by eye.
+- **#123 — One owner for viewer settings.** Added after a grilling on #113: `localStorage` assumed one
+  user. One injected owner with a pluggable store — `localStorage` in the app, none on the viewer page,
+  the Room in M1. The ruler's anchor moves to its own key; it is per-window, not a viewer setting.
+  Independent of #113 — either order.
 
 ## Verification at each step
 
