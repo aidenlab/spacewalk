@@ -1,4 +1,3 @@
-import * as THREE from "three"
 import EnsembleManager from "./ensembleManager.js"
 import ColorMapManager, { defaultColormapName } from "./utils/colorMapManager.js"
 import TrackMaterialProvider from "./trackMaterialProvider.js"
@@ -7,8 +6,10 @@ import { appleCrayonColorRGB255, highlightColor } from "./utils/colorUtils.js"
 import ThreeJSInitializer from "./initializers/threeJSInitializer.js"
 import EnsembleIngestionController from "./ensembleIngestionController.js"
 import GUIManager from "./guiManager.js"
-import SettingsManager from "./settingsManager.js"
-import ReferenceRuler from "./referenceRuler.js"
+import SettingsMenu from "./settingsMenu.js"
+import ViewerSettings, { viewerSettingsStore } from "./viewerSettings.js"
+import ReferenceRuler, { referenceRulerAnchorStore } from "./referenceRuler.js"
+import { noStore } from "./utils/jsonStorageStore.js"
 import TraceSelector from "./traceSelector.js"
 import GenomicNavigator from "./genomicNavigator.js"
 import { calculateProjectedBounds, nmPerPixel } from "./utils/projectedBounds.js"
@@ -67,9 +68,13 @@ class Viewer {
  *
  * @param {HTMLElement} canvasContainer - holds the WebGL canvas
  * @param {HTMLElement} traceContainer  - canvas + navigator; resizing it resizes the viewer
+ * @param {Storage} [storage]           - where viewer settings and the ruler's anchor persist
+ *                                        (localStorage in the full app); omit to persist nothing
  * @returns {Promise<Viewer>}
  */
-async function assembleViewer({ canvasContainer, traceContainer }) {
+async function assembleViewer({ canvasContainer, traceContainer, storage }) {
+
+    const viewerSettings = new ViewerSettings({ store: storage ? viewerSettingsStore(storage) : noStore });
 
     // Core managers
     const ensembleManager = new EnsembleManager();
@@ -86,10 +91,11 @@ async function assembleViewer({ canvasContainer, traceContainer }) {
     const threeJSInitializer = new ThreeJSInitializer(canvasContainer);
     const { sceneManager, picker, renderer, cameraLightingRig, camera, scene, sceneFixtures } = threeJSInitializer.initialize({
         colorRampMaterialProvider,
-        ensembleManager
+        ensembleManager,
+        viewerSettings
     });
 
-    // Widget panel (creates the checkbox the reference ruler needs)
+    // Widget panel
     const guiManager = new GUIManager({
         settingsButton: document.querySelector('#spacewalk-threejs-settings-button-container'),
         panel: document.querySelector('#spacewalk_ui_manager_panel'),
@@ -98,10 +104,10 @@ async function assembleViewer({ canvasContainer, traceContainer }) {
         colorMapManager
     });
 
-    const referenceRuler = buildReferenceRuler(canvasContainer);
+    const referenceRuler = new ReferenceRuler(canvasContainer, viewerSettings, storage ? referenceRulerAnchorStore(storage) : noStore);
+    referenceRuler.insertDOM();
 
-    // After the widgets above, so all settings targets exist
-    const settingsManager = new SettingsManager({ scene, referenceRuler, sceneFixtures });
+    const settingsMenu = new SettingsMenu(viewerSettings);
 
     const traceSelector = new TraceSelector(document.querySelector('#spacewalk_trace_select_input'), ensembleManager);
     const genomicNavigator = new GenomicNavigator(
@@ -139,7 +145,8 @@ async function assembleViewer({ canvasContainer, traceContainer }) {
         sceneFixtures,
         guiManager,
         referenceRuler,
-        settingsManager,
+        viewerSettings,
+        settingsMenu,
         traceSelector,
         genomicNavigator,
         ensembleIngestionController,
@@ -149,15 +156,6 @@ async function assembleViewer({ canvasContainer, traceContainer }) {
     viewer.resizeObserver = observeResize(traceContainer, canvasContainer, viewer);
 
     return viewer;
-}
-
-function buildReferenceRuler(renderContainer) {
-    const saved = SettingsManager.load()
-    const hidden = saved?.referenceRuler ? !saved.referenceRuler.visible : true
-    const color = saved?.referenceRuler ? new THREE.Color(saved.referenceRuler.r, saved.referenceRuler.g, saved.referenceRuler.b) : undefined
-    const ruler = new ReferenceRuler(renderContainer, hidden, color, saved?.referenceRuler?.anchor)
-    ruler.insertDOM()
-    return ruler
 }
 
 function initializeHomeButton(cameraLightingRig) {

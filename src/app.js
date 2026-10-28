@@ -46,7 +46,7 @@ class App {
         // The 3D viewer, whole on its own
         const canvasContainer = document.getElementById('spacewalk-threejs-canvas-container')
         const traceContainer = document.getElementById('spacewalk-threejs-trace-navigator-container');
-        this.viewer = await assembleViewer({ canvasContainer, traceContainer });
+        this.viewer = await assembleViewer({ canvasContainer, traceContainer, storage: localStorage });
         this.assignViewer(this.viewer);
 
         // Enable drag-and-drop of .sw files onto the 3D viewer

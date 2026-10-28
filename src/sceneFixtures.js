@@ -3,62 +3,80 @@ import GroundPlane from './groundPlane.js'
 import Gnomon from './gnomon.js'
 import { appleCrayonColorThreeJS } from './utils/colorUtils.js'
 import { register, updateSwatch } from './utils/sharedColorPicker.js'
-import SettingsManager from './settingsManager.js'
 
 /**
  * Owns the per-trace scene fixtures: HemisphereLight, GroundPlane, Gnomon.
  * Registers their color pickers once at construction; builds/disposes the
- * scene objects per trace via setupForBounds / dispose.
+ * scene objects per trace via setupForBounds / dispose. Their colors and
+ * visibility come from, and follow, the viewer settings.
  */
 class SceneFixtures {
 
-    constructor(scene) {
+    constructor(scene, viewerSettings) {
         this.scene = scene
+        this.viewerSettings = viewerSettings
 
-        const saved = SettingsManager.load()
+        const { groundPlane, gnomon } = viewerSettings.get()
 
         register(
-            document.querySelector(`div[data-colorpicker='groundplane']`),
-            saved?.groundPlane ? new THREE.Color(saved.groundPlane.r, saved.groundPlane.g, saved.groundPlane.b) : appleCrayonColorThreeJS('iron'),
-            () => this.getGroundPlane()?.color ?? appleCrayonColorThreeJS('iron'),
-            color => this.getGroundPlane()?.setColor(color)
+            groundPlaneSwatch(),
+            colorOf(groundPlane),
+            () => colorOf(viewerSettings.get().groundPlane),
+            ({ r, g, b }) => viewerSettings.update({ groundPlane: { r, g, b } })
         )
 
         register(
-            document.querySelector(`div[data-colorpicker='gnomon']`),
-            saved?.gnomon ? new THREE.Color(saved.gnomon.r, saved.gnomon.g, saved.gnomon.b) : appleCrayonColorThreeJS('iron'),
-            () => this.getGnomon()?.color ?? appleCrayonColorThreeJS('iron'),
-            color => this.getGnomon()?.setColor(color)
+            gnomonSwatch(),
+            colorOf(gnomon),
+            () => colorOf(viewerSettings.get().gnomon),
+            ({ r, g, b }) => viewerSettings.update({ gnomon: { r, g, b } })
         )
+
+        viewerSettings.subscribe(values => this.apply(values))
+    }
+
+    // Repaint the live fixtures (if a trace has built them) and their swatches
+    apply({ groundPlane, gnomon }) {
+
+        const groundPlaneInstance = this.getGroundPlane()
+        if (groundPlaneInstance) {
+            groundPlaneInstance.setColor(colorOf(groundPlane))
+            groundPlaneInstance.setVisibility(groundPlane.visible ? 'visible' : 'hidden')
+        }
+        updateSwatch(groundPlaneSwatch(), colorOf(groundPlane))
+
+        const gnomonInstance = this.getGnomon()
+        if (gnomonInstance) {
+            gnomonInstance.setColor(colorOf(gnomon))
+            gnomonInstance.setVisibility(gnomon.visible ? 'visible' : 'hidden')
+        }
+        updateSwatch(gnomonSwatch(), colorOf(gnomon))
     }
 
     setupForBounds({ min, max, center, boundingDiameter }) {
         this.scene.add(createHemisphereLight())
 
-        const saved = SettingsManager.load()
+        const settings = this.viewerSettings.get()
 
         const groundPlaneConfig = {
             size: boundingDiameter,
             divisions: 16,
             position: new THREE.Vector3(center.x, min.y, center.z),
-            color: saved?.groundPlane ? new THREE.Color(saved.groundPlane.r, saved.groundPlane.g, saved.groundPlane.b) : appleCrayonColorThreeJS('iron'),
+            color: colorOf(settings.groundPlane),
             opacity: 0.25,
-            isHidden: saved?.groundPlane ? !saved.groundPlane.visible : GroundPlane.setGroundPlaneHidden()
+            isHidden: !settings.groundPlane.visible
         }
-        const groundPlane = new GroundPlane(groundPlaneConfig)
-        this.scene.add(groundPlane)
-        updateSwatch(document.querySelector(`div[data-colorpicker='groundplane']`), groundPlaneConfig.color)
+        this.scene.add(new GroundPlane(groundPlaneConfig))
 
         const gnomonConfig = {
             min,
             max,
             boundingDiameter,
-            color: saved?.gnomon ? new THREE.Color(saved.gnomon.r, saved.gnomon.g, saved.gnomon.b) : appleCrayonColorThreeJS('iron'),
-            isHidden: saved?.gnomon ? !saved.gnomon.visible : Gnomon.setGnomonHidden()
+            color: colorOf(settings.gnomon),
+            isHidden: !settings.gnomon.visible
         }
         const gnomon = new Gnomon(gnomonConfig)
         gnomon.addToScene(this.scene)
-        updateSwatch(document.querySelector(`div[data-colorpicker='gnomon']`), gnomonConfig.color)
     }
 
     dispose() {
@@ -86,6 +104,18 @@ class SceneFixtures {
     getGroundPlane() {
         return this.scene.getObjectByName('groundplane')
     }
+}
+
+function colorOf({ r, g, b }) {
+    return new THREE.Color(r, g, b)
+}
+
+function groundPlaneSwatch() {
+    return document.querySelector(`div[data-colorpicker='groundplane']`)
+}
+
+function gnomonSwatch() {
+    return document.querySelector(`div[data-colorpicker='gnomon']`)
 }
 
 function createHemisphereLight() {

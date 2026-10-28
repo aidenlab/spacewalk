@@ -1,5 +1,7 @@
-import { appleCrayonColorThreeJS, rgb255String, threeJSColorToRGB255 } from "./utils/colorUtils.js"
-import { register } from "./utils/sharedColorPicker.js"
+import * as THREE from "three"
+import { rgb255String, threeJSColorToRGB255 } from "./utils/colorUtils.js"
+import { register, updateSwatch } from "./utils/sharedColorPicker.js"
+import { jsonStorageStore, noStore } from "./utils/jsonStorageStore.js"
 import { configureDrag } from "./utils/draggable.js"
 import { clamp } from "./utils/mathUtils.js"
 
@@ -12,20 +14,39 @@ const DEFAULT_ANCHOR = { corner: 'bottom-right', dx: 20, dy: 20 }
 
 const CORNERS = new Set(['bottom-right', 'bottom-left', 'top-left', 'top-right'])
 
+// The anchor is a fact about one window, not a viewer setting, so it has its own key.
+// Nothing else reads or writes it.
+const ANCHOR_STORAGE_KEY = 'spacewalk-reference-ruler-anchor'
+
+function referenceRulerAnchorStore(storage) {
+    return jsonStorageStore(storage, ANCHOR_STORAGE_KEY)
+}
+
 // A fixed-length legend parked in a corner of the render container. The ruler never
 // moves with the camera — it answers the single question "what does 128px mean right
 // now?" It is furniture: the user can drag it anywhere, and it stays where they put it.
 class ReferenceRuler {
 
-    constructor(renderContainer, isHidden, initialColor, anchor) {
+    // Visibility and color are viewer settings; the anchor is the ruler's own, kept in anchorStore
+    constructor(renderContainer, viewerSettings, anchorStore = noStore) {
+
+        const { visible, r, g, b } = viewerSettings.get().referenceRuler
 
         this.renderContainer = renderContainer
-        this.color = initialColor ?? appleCrayonColorThreeJS('iron')
-        this.visible = !(isHidden)
-        this.anchor = ReferenceRuler.sanitizeAnchor(anchor)
+        this.color = new THREE.Color(r, g, b)
+        this.visible = visible
+        this.anchorStore = anchorStore
+        this.anchor = ReferenceRuler.sanitizeAnchor(anchorStore.load())
         this.placed = false
 
-        register(document.querySelector(`div[data-colorpicker='reference-ruler']`), this.color, () => this.color, color => this.setColor(color))
+        this.swatch = document.querySelector(`div[data-colorpicker='reference-ruler']`)
+        register(this.swatch, this.color, () => this.color, ({ r, g, b }) => viewerSettings.update({ referenceRuler: { r, g, b } }))
+
+        viewerSettings.subscribe(({ referenceRuler: { visible, r, g, b } }) => {
+            this.setColor(new THREE.Color(r, g, b))
+            updateSwatch(this.swatch, this.color)
+            if (visible !== this.visible) this.setVisibility(visible ? 'visible' : 'hidden')
+        })
     }
 
     insertDOM() {
@@ -76,7 +97,7 @@ class ReferenceRuler {
                 // user's stored inset.
                 if (this.wasDragged(event)) {
                     this.anchor = this.anchorFromOffset(parseFloat(left), parseFloat(top))
-                    ReferenceRuler.notifyPlacementChanged()
+                    this.anchorStore.save(this.anchor)
                 }
 
                 this.applyAnchor()
@@ -141,7 +162,7 @@ class ReferenceRuler {
     resetAnchor() {
         this.anchor = { ...DEFAULT_ANCHOR }
         this.applyAnchor()
-        ReferenceRuler.notifyPlacementChanged()
+        this.anchorStore.save(this.anchor)
     }
 
     setColor(color) {
@@ -172,30 +193,20 @@ class ReferenceRuler {
         label.textContent = ReferenceRuler.formatNMLabel(RULER_LENGTH_PX * nmPerPixel)
     }
 
-    toggle() {
-        this.setVisibility(this.visible ? 'hidden' : 'visible')
-    }
-
     setVisibility(visibilityString) {
         this.visible = 'visible' === visibilityString
+        if (!this.container) return
         this.container.style.display = this.visible ? 'block' : 'none'
         // A hidden widget can't be measured, so the anchor lands on show rather than at construction
         if (this.visible) this.applyAnchor()
-        const input = document.getElementById('spacewalk_ui_manager_reference_ruler')
-        if (input) input.checked = this.visible
     }
 
-    // Records written before the ruler was placeable have no anchor; they get the default
+    // No stored anchor (a first launch, the viewer page, or a record that won't parse) gets the default
     static sanitizeAnchor(anchor) {
         if (!anchor || !CORNERS.has(anchor.corner) || !isFinite(anchor.dx) || !isFinite(anchor.dy)) {
             return { ...DEFAULT_ANCHOR }
         }
         return { corner: anchor.corner, dx: anchor.dx, dy: anchor.dy }
-    }
-
-    // SettingsManager already persists on this event
-    static notifyPlacementChanged() {
-        document.dispatchEvent(new Event('spacewalk-settings-changed'))
     }
 
     static formatNMLabel(nm) {
@@ -208,4 +219,5 @@ class ReferenceRuler {
 
 }
 
+export { referenceRulerAnchorStore }
 export default ReferenceRuler

@@ -69,36 +69,17 @@ class GroundPlane extends THREE.GridHelper {
         // Color updates handled by setColor()
     }
 
-    toggle() {
-        this.visible = !this.visible;
-        GroundPlane.setGroundPlaneWidgetVisibilityStatus(this.visible);
-    }
-
     present() {
         this.visible = true;
-        GroundPlane.setGroundPlaneWidgetVisibilityStatus(this.visible);
     }
 
     dismiss() {
         this.visible = false;
-        GroundPlane.setGroundPlaneWidgetVisibilityStatus(this.visible);
     }
 
     dispose() {
         this.geometry.dispose()
         this.material.dispose()
-    }
-
-    static setGroundPlaneHidden() {
-        const input = document.getElementById('spacewalk_ui_manager_groundplane');
-        return !(input && input.checked);
-    }
-
-    static setGroundPlaneWidgetVisibilityStatus(status) {
-        const input = document.getElementById('spacewalk_ui_manager_groundplane');
-        if (input) {
-            input.checked = status;
-        }
     }
 
 }

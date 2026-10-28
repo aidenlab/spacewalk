@@ -39,8 +39,6 @@ function register(container, initialColor, getColor, setColor) {
             const [b] = tail.split(')')
 
             setColor(rgb255ToThreeJSColor(parseInt(r), parseInt(g), parseInt(b)))
-
-            document.dispatchEvent(new Event('spacewalk-settings-changed'))
         }
 
         p.movePopup({ parent: container, color: [currentRGB.r, currentRGB.g, currentRGB.b, 1] }, true)
