@@ -1,27 +1,28 @@
 import GUIManager from './guiManager.js'
 import PointCloud from './pointCloud.js'
 import SpacewalkEventBus from './spacewalkEventBus.js'
-import { unsetDataMaterialProviderCheckbox } from './utils/utils.js'
 
 /**
  * Orchestrates loading an ensemble (or switching ensemble groups) into the app.
- * Coordinates EnsembleManager, SceneManager, IGVPanel, and the color-ramp
- * material provider. This isn't scene management per se — it's app-level glue
- * that used to live on SceneManager and made it harder to read.
+ * Coordinates EnsembleManager, SceneManager, and the color-ramp material
+ * provider. This isn't scene management per se — it's app-level glue that used
+ * to live on SceneManager and made it harder to read.
+ *
+ * It has no knowledge of IGV. IGVPanel follows a load (genome swap, locus,
+ * checkbox reset) by listening for DidLoadEnsembleFile.
  */
 class EnsembleIngestionController {
 
-    constructor({ ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider, genomicNavigator, trackMaterialProvider }) {
+    constructor({ ensembleManager, sceneManager, colorRampMaterialProvider, genomicNavigator, trackMaterialProvider }) {
         this.ensembleManager = ensembleManager
         this.sceneManager = sceneManager
-        this.igvPanel = igvPanel
         this.colorRampMaterialProvider = colorRampMaterialProvider
         this.genomicNavigator = genomicNavigator
         this.trackMaterialProvider = trackMaterialProvider
     }
 
     async ingestEnsemblePath(url, traceKey, ensembleGroupKey) {
-        const { ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider, genomicNavigator, trackMaterialProvider } = this
+        const { ensembleManager, sceneManager, colorRampMaterialProvider, genomicNavigator, trackMaterialProvider } = this
         sceneManager.isLoading = true
         try {
             await ensembleManager.loadURL(url, traceKey, ensembleGroupKey)
@@ -35,19 +36,11 @@ class EnsembleIngestionController {
             // navigator repaint below.
             trackMaterialProvider.clearAllTracks()
 
-            unsetDataMaterialProviderCheckbox(igvPanel)
             // Flip the viewer off the now-empty trackMaterialProvider before
             // anyone repaints through it (including the in-method repaint below
             // and the DidLoadEnsembleFile subscribers we notify at the end).
             sceneManager.setMaterialProvider(colorRampMaterialProvider)
             genomicNavigator.repaint()
-
-            if (ensembleManager.genomeAssembly !== igvPanel.browser.genome.id) {
-                console.log(`Genome swap from ${ igvPanel.browser.genome.id } to ${ ensembleManager.genomeAssembly }. Call igv_browser.loadGenome`)
-                await igvPanel.browser.loadGenome(ensembleManager.genomeAssembly)
-            }
-
-            await igvPanel.locusDidChange(ensembleManager.locus)
 
             this.announceDidLoadEnsembleFile()
         } catch (error) {
@@ -65,7 +58,7 @@ class EnsembleIngestionController {
     }
 
     async ingestEnsembleGroup(ensembleGroupKey) {
-        const { ensembleManager, sceneManager, igvPanel, colorRampMaterialProvider, genomicNavigator } = this
+        const { ensembleManager, sceneManager, colorRampMaterialProvider, genomicNavigator } = this
         sceneManager.isLoading = true
         try {
             await ensembleManager.loadEnsembleGroup(ensembleGroupKey)
@@ -73,11 +66,8 @@ class EnsembleIngestionController {
             sceneManager.setupWithTrace(ensembleManager.currentTrace)
             sceneManager.configureRenderStyle(ensembleManager.isPointCloud === true ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
 
-            unsetDataMaterialProviderCheckbox(igvPanel)
             sceneManager.setMaterialProvider(colorRampMaterialProvider)
             genomicNavigator.repaint()
-
-            await igvPanel.locusDidChange(ensembleManager.locus)
 
             this.announceDidLoadEnsembleFile()
         } catch (error) {

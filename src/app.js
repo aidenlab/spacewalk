@@ -176,7 +176,6 @@ class App {
         this.ensembleIngestionController = new EnsembleIngestionController({
             ensembleManager: this.ensembleManager,
             sceneManager: this.sceneManager,
-            igvPanel: this.igvPanel,
             colorRampMaterialProvider: this.colorRampMaterialProvider,
             genomicNavigator: this.genomicNavigator,
             trackMaterialProvider: this.trackMaterialProvider,

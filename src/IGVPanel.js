@@ -4,6 +4,9 @@ import IGVCursorGuide from './igvCursorGuide.js';
 import MaterialProviderController from './materialProviderController.js';
 import {createIGVTrackEnvironment} from './igvTrackEnvironment.js';
 import Panel from './panel.js';
+import SpacewalkEventBus from './spacewalkEventBus.js';
+import { unsetDataMaterialProviderCheckbox } from './utils/utils.js';
+import { presentResourceError } from './widgets/presentResourceError.js';
 import { getPathsWithTrackRegistry, updateTrackMenusWithTrackConfigurations } from './widgets/trackWidgets.js'
 import genomes from './resources/genomes.json'
 import trackRegistry from './resources/tracks/trackRegistry.json'
@@ -46,6 +49,11 @@ class IGVPanel extends Panel {
                 this.genomicNavigator.repaint();
             }
         });
+
+        // IGV follows ensemble loads (full load and group switch) as a listener;
+        // ingestion has no knowledge of IGV. See followEnsemble().
+        this.ensembleFollow = Promise.resolve();
+        SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this);
 
         // const dragHandle = panel.querySelector('.spacewalk_card_drag_container')
         // makeDraggable(panel, dragHandle)
@@ -141,6 +149,36 @@ class IGVPanel extends Panel {
 
     receiveEvent({ type, data }) {
         super.receiveEvent({ type, data });
+
+        if ('DidLoadEnsembleFile' === type) {
+            this.ensembleFollow = this.followEnsemble(data);
+        }
+    }
+
+    // Bring IGV in line with a freshly loaded ensemble. The bus doesn't await
+    // subscribers, so the in-flight follow is kept on ensembleFollow for callers
+    // that must not touch the browser until it settles (session restore calls
+    // browser.loadSession, which would race loadGenome). Never rejects — a
+    // failure here is IGV's to report, and the ensemble itself loaded fine.
+    async followEnsemble({ genomeAssembly, chr, genomicStart, genomicEnd }) {
+
+        // Synchronously, before the first await: the prior ensemble's checked
+        // tracks are stale. Clear them before loadGenome removes tracks, or
+        // trackremoved would re-select the (now empty) track provider and
+        // repaint through it.
+        unsetDataMaterialProviderCheckbox(this);
+
+        try {
+            if (genomeAssembly !== this.browser.genome.id) {
+                console.log(`Genome swap from ${ this.browser.genome.id } to ${ genomeAssembly }. Call igv_browser.loadGenome`)
+                await this.browser.loadGenome(genomeAssembly)
+            }
+        } catch (error) {
+            presentResourceError(error, { what: `the ${ genomeAssembly } genome in IGV` })
+            return
+        }
+
+        await this.locusDidChange({ chr, genomicStart, genomicEnd })
     }
 
     async locusDidChange({ chr, genomicStart, genomicEnd }) {
