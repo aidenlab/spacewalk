@@ -75,130 +75,130 @@
                     <div id="spacewalk-trace-navigator-footer"></div>
                 </div>
             </div>
-        </div>
 
-        <!-- Render Settings Button -->
-        <div id="spacewalk-threejs-settings-button-container">
-            <button id="spacewalk-threejs-settings-button" type="button" class="btn btn-default">
-                <i class="fas fa-bars fa-lg"></i>
-            </button>
-        </div>
+            <!-- widget panel: the ☰ floats over the top-left of the canvas and opens the panel as an overlay -->
+            <div id="spacewalk-threejs-settings-button-container">
+                <button id="spacewalk-threejs-settings-button" type="button" class="btn btn-default" title="Widgets" aria-label="Widgets" aria-controls="spacewalk_ui_manager_panel" aria-expanded="false">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+            </div>
 
-        <!-- Render Settings Panel -->
-        <div id="spacewalk_ui_manager_panel" class="card" style="display: none;">
-            <ul class="list-group list-group-flush">
+            <!-- widget panel: closed by default; ☰ or Escape dismisses it -->
+            <div id="spacewalk_ui_manager_panel" class="card" style="display: none;">
+                <ul class="list-group list-group-flush">
 
-                <!-- PointCloud render style -->
-                <li id="spacewalk_ui_manager_pointcloud_render_style" class="list-group-item">
-                    <!--  Point Size-->
-                    <div id="spacewalk_ui_manager_pointcloud_point_size">
-                        <div id="spacewalk_ui_manager_pointcloud_point_size_label">
-                            Point Size
-                        </div>
-                        <div>
-                            <i class="fas fa-minus-circle"></i>
-                        </div>
-                        <div>
-                            <i class="fas fa-plus-circle"></i>
-                        </div>
-                    </div>
-
-                    <!--  Point Transparency -->
-                    <div id="spacewalk_ui_manager_pointcloud_point_transparency">
-                        <div>
-                            Point Transparency
-                        </div>
-                        <div>
-                            <i class="fas fa-minus-circle"></i>
-                        </div>
-                        <div>
-                            <i class="fas fa-plus-circle"></i>
-                        </div>
-                    </div>
-
-                    <div id="spacewalk-pc-color-map-control" class="spacewalk-color-map-control">
-                        <div>
-                            Color Ramp
-                        </div>
-                        <div class="dropdown">
-                            <button class="btn btn-sm dropdown-toggle" type="button" id="spacewalk-pc-color-map-button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img class="spacewalk-color-map-swatch" alt="">
-                            </button>
-                            <ul class="dropdown-menu" id="spacewalk-pc-color-map-menu" aria-labelledby="spacewalk-pc-color-map-button"></ul>
-                        </div>
-                    </div>
-                </li>
-
-                <!-- Ball & Stick and Ribbon render styles -->
-                <li id="spacewalk_ui_manager_render_styles" class="list-group-item">
-                    <div>
-                        <div class="form-check">
-                            <input name="spacewalk-render-style" id="spacewalk-render-style-ball-stick" class="form-check-input" type="radio" checked>
-                            <label class="form-check-label" for="spacewalk-render-style-ball-stick">Ball & Stick</label>
-                        </div>
-
-                        <div id="spacewalk-ball-radius-control" class="spacewalk-ball-stick-control">
-                            <div>
-                                Ball Radius
+                    <!-- PointCloud render style -->
+                    <li id="spacewalk_ui_manager_pointcloud_render_style" class="list-group-item">
+                        <!--  Point Size-->
+                        <div id="spacewalk_ui_manager_pointcloud_point_size">
+                            <div id="spacewalk_ui_manager_pointcloud_point_size_label">
+                                Point Size
                             </div>
                             <div>
                                 <i class="fas fa-minus-circle"></i>
+                            </div>
+                            <div>
                                 <i class="fas fa-plus-circle"></i>
                             </div>
                         </div>
 
-                        <div id="spacewalk-stick-radius-control" class="spacewalk-ball-stick-control">
+                        <!--  Point Transparency -->
+                        <div id="spacewalk_ui_manager_pointcloud_point_transparency">
                             <div>
-                                Stick Radius
+                                Point Transparency
                             </div>
                             <div>
                                 <i class="fas fa-minus-circle"></i>
+                            </div>
+                            <div>
                                 <i class="fas fa-plus-circle"></i>
                             </div>
                         </div>
 
-                        <div id="spacewalk-stick-visibility-control" class="spacewalk-ball-stick-control">
-                            <div>
-                                Show Sticks
-                            </div>
-                            <div>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="spacewalk-stick-visibility-switch" checked>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-check">
-                            <input name="spacewalk-render-style" id="spacewalk-render-style-ribbon" class="form-check-input" type="radio">
-                            <label class="form-check-label" for="spacewalk-render-style-ribbon">Ribbon</label>
-                        </div>
-
-                        <div id="spacewalk-circular-geometry-control">
-                            <div>
-                                Circular Genome
-                            </div>
-                            <div>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="spacewalk-circular-geometry-switch">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="spacewalk-color-map-control" class="spacewalk-color-map-control">
+                        <div id="spacewalk-pc-color-map-control" class="spacewalk-color-map-control">
                             <div>
                                 Color Ramp
                             </div>
                             <div class="dropdown">
-                                <button class="btn btn-sm dropdown-toggle" type="button" id="spacewalk-color-map-button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <button class="btn btn-sm dropdown-toggle" type="button" id="spacewalk-pc-color-map-button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
                                     <img class="spacewalk-color-map-swatch" alt="">
                                 </button>
-                                <ul class="dropdown-menu" id="spacewalk-color-map-menu" aria-labelledby="spacewalk-color-map-button"></ul>
+                                <ul class="dropdown-menu" id="spacewalk-pc-color-map-menu" aria-labelledby="spacewalk-pc-color-map-button"></ul>
                             </div>
                         </div>
-                    </div>
-                </li>
+                    </li>
 
-            </ul>
+                    <!-- Ball & Stick and Ribbon render styles -->
+                    <li id="spacewalk_ui_manager_render_styles" class="list-group-item">
+                        <div>
+                            <div class="form-check">
+                                <input name="spacewalk-render-style" id="spacewalk-render-style-ball-stick" class="form-check-input" type="radio" checked>
+                                <label class="form-check-label" for="spacewalk-render-style-ball-stick">Ball & Stick</label>
+                            </div>
+
+                            <div id="spacewalk-ball-radius-control" class="spacewalk-ball-stick-control">
+                                <div>
+                                    Ball Radius
+                                </div>
+                                <div>
+                                    <i class="fas fa-minus-circle"></i>
+                                    <i class="fas fa-plus-circle"></i>
+                                </div>
+                            </div>
+
+                            <div id="spacewalk-stick-radius-control" class="spacewalk-ball-stick-control">
+                                <div>
+                                    Stick Radius
+                                </div>
+                                <div>
+                                    <i class="fas fa-minus-circle"></i>
+                                    <i class="fas fa-plus-circle"></i>
+                                </div>
+                            </div>
+
+                            <div id="spacewalk-stick-visibility-control" class="spacewalk-ball-stick-control">
+                                <div>
+                                    Show Sticks
+                                </div>
+                                <div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="spacewalk-stick-visibility-switch" checked>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-check">
+                                <input name="spacewalk-render-style" id="spacewalk-render-style-ribbon" class="form-check-input" type="radio">
+                                <label class="form-check-label" for="spacewalk-render-style-ribbon">Ribbon</label>
+                            </div>
+
+                            <div id="spacewalk-circular-geometry-control">
+                                <div>
+                                    Circular Genome
+                                </div>
+                                <div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="spacewalk-circular-geometry-switch">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="spacewalk-color-map-control" class="spacewalk-color-map-control">
+                                <div>
+                                    Color Ramp
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm dropdown-toggle" type="button" id="spacewalk-color-map-button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false">
+                                        <img class="spacewalk-color-map-swatch" alt="">
+                                    </button>
+                                    <ul class="dropdown-menu" id="spacewalk-color-map-menu" aria-labelledby="spacewalk-color-map-button"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                </ul>
+            </div>
         </div>
 
         <!-- general purpose spinner -->

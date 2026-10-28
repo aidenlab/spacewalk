@@ -12,16 +12,21 @@ class GUIManager {
         this.ensembleManager = ensembleManager
         this.colorMapManager = colorMapManager
 
+        this.panel = panel
+
+        // settingsButton is the ☰'s container; aria-expanded belongs on the button itself
+        this.panelToggle = settingsButton.querySelector('button')
+
         // Present/Dismiss Settings Panel via Settings Button
         settingsButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            panel.style.display = 'none' === panel.style.display ? 'block' : 'none'
+            this.setPanelPresented(!this.isPanelPresented())
         })
 
         // Dismiss Settings Panel by "clicking away"
         document.getElementById('spacewalk-root-container').addEventListener('click', (e) => {
             if (e.target === e.currentTarget){
-                panel.style.display = 'none'
+                this.setPanelPresented(false)
             }
         })
 
@@ -79,6 +84,20 @@ class GUIManager {
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this);
         SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
 
+    }
+
+    isPanelPresented() {
+        return 'none' !== this.panel.style.display
+    }
+
+    setPanelPresented(presented) {
+        this.panel.style.display = presented ? 'block' : 'none'
+        this.panelToggle.setAttribute('aria-expanded', String(presented))
+    }
+
+    // A color-ramp menu is open over the panel
+    isPanelMenuOpen() {
+        return null !== this.panel.querySelector('.dropdown-menu.show')
     }
 
     configureColorMapControl() {

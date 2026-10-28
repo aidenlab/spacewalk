@@ -111,15 +111,22 @@ body.spacewalk-viewer-page {
     overflow: hidden;
   }
 
-  // Above the full-window viewer, which would otherwise paint over them.
+  // The ☰ and the widget panel are overlays inside the viewer (see viewer.html):
+  // positioned against it, so they never take space from the canvas.
   #spacewalk-threejs-settings-button-container {
     z-index: 1024;
     top: $spacewalk-viewer-page-bar-height + 8px;
     left: 8px;
   }
 
+  // Fits a narrow or short window: never wider than the viewer, and scrolls
+  // rather than running off the bottom. The color-ramp menus are fixed-position
+  // (viewer.html) so the scrolling panel doesn't clip them.
   #spacewalk_ui_manager_panel.card {
     top: $spacewalk-viewer-page-bar-height + 48px;
     left: 8px;
+    max-width: calc(100% - 16px);
+    max-height: calc(100% - #{$spacewalk-viewer-page-bar-height + 48px + 8px});
+    overflow-y: auto;
   }
 }
