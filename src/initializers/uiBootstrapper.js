@@ -5,6 +5,7 @@ import { createTrackWidgetsWithTrackRegistry } from '../widgets/trackWidgets.js'
 import { createSpacewalkFileLoaders } from '../spacewalkFileLoadWidgetServices.js'
 import { createShareWidgets, shareWidgetConfigurator } from '../share/shareWidgets.js'
 import { configureDrag } from "../utils/draggable.js"
+import Panel from "../panel.js"
 import { showRelease } from "../utils/release.js"
 import { spacewalkConfig } from "../spacewalk-config.js"
 import { presentResourceError } from "../widgets/presentResourceError.js"
@@ -34,6 +35,9 @@ class UIBootstrapper {
 
         // Initialize session widgets
         this.initializeSessionWidgets();
+
+        // View menu: show/hide the companion panels
+        this.initializePanelToggles();
 
         // Initialize drag functionality
         this.initializeDragControls(container);
@@ -142,6 +146,17 @@ class UIBootstrapper {
             },
             () => this.appContext.sessionService.toJSON()
         );
+    }
+
+    initializePanelToggles() {
+        const checkboxDropdownMenu = document.querySelector('#spacewalk-viewers-dropdown-menu')
+
+        for (const inputElement of checkboxDropdownMenu.querySelectorAll('input')) {
+            inputElement.addEventListener('change', event => {
+                event.stopPropagation()
+                Panel.toggleById(inputElement.dataset.target)
+            })
+        }
     }
 
     initializeDragControls(container) {

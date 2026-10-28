@@ -1,6 +1,9 @@
 # Spacewalk MCP: carving out the 3D viewer for geenee
 
-> **STATUS: Proposal.** Designed in a grilling session, 2026-10-27/28; nothing built yet.
+> **STATUS: In progress (M0).** Designed in a grilling session, 2026-10-27/28. Prefactors done
+> (#105–#109). The viewer-only page exists: `viewer.html` → `src/viewerMain.js`, loading `?file=`;
+> `build/viewerBoundary.mjs` fails `vite build` if its bundle reaches `igv` or `juicebox.js` (#110).
+> Toolbar and overlays (#111–#113) next.
 > Carves a 3D-viewer-only Spacewalk out of this app, hosts it as a self-contained MCP server
 > (`spacewalk-mcp`), and integrates it into geenee (`~/AidenLabDevelopment/geenee`) beside
 > igvjs-mcp and juicebox-mcp. Read before touching material-provider ownership, building a

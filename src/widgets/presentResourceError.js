@@ -99,4 +99,21 @@ function presentResourceErrors(problems) {
     }
 }
 
-export { presentResourceError, presentResourceErrors }
+// Global safety net: anything that escapes a call site — an unhandled promise
+// rejection or an uncaught exception — lands here instead of dying silently on
+// the console with the spinner left spinning. Resource (img/script) load errors
+// arrive on the 'error' event with no .error; leave those to their own handlers.
+function installGlobalErrorNet() {
+
+    window.addEventListener('unhandledrejection', event => {
+        presentResourceError(event.reason, {})
+    })
+
+    window.addEventListener('error', event => {
+        if (event.error instanceof Error) {
+            presentResourceError(event.error, {})
+        }
+    })
+}
+
+export { presentResourceError, presentResourceErrors, installGlobalErrorNet }
