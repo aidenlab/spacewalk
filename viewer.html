@@ -24,9 +24,33 @@
         <!-- three-js container: fills the window -->
         <div id="spacewalk-threejs-container">
 
-            <!-- top bar -->
-            <div id="spacewalk-threejs-drag-container">
-                <button id="spacewalk-threejs-home-button" type="button" title="Reset view">
+            <!-- toolbar: [ ☰ ] [ − ][ trace # ][ + ] ……… [ ⚙ ] [ ⌂ ] -->
+            <div id="spacewalk-threejs-drag-container" class="spacewalk-viewer-toolbar" role="toolbar" aria-label="Viewer">
+
+                <!-- widget panel: placeholder until #112 -->
+                <button id="spacewalk-viewer-toolbar-widgets-button" class="spacewalk-viewer-toolbar-button" type="button" title="Widgets" aria-label="Widgets" disabled>
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <!-- trace select -->
+                <div class="spacewalk-viewer-toolbar-trace-select">
+                    <button id="spacewalk_trace_select_button_minus" class="spacewalk-viewer-toolbar-button" type="button" title="Previous trace" aria-label="Previous trace">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <input type="text" id="spacewalk_trace_select_input" title="Trace (type a number, then Return)" aria-label="Trace">
+                    <button id="spacewalk_trace_select_button_plus" class="spacewalk-viewer-toolbar-button" type="button" title="Next trace" aria-label="Next trace">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+
+                <div class="spacewalk-viewer-toolbar-spacer"></div>
+
+                <!-- settings: placeholder until #113 -->
+                <button id="spacewalk-viewer-toolbar-settings-button" class="spacewalk-viewer-toolbar-button" type="button" title="Settings" aria-label="Settings" disabled>
+                    <i class="fas fa-cog"></i>
+                </button>
+
+                <button id="spacewalk-threejs-home-button" class="spacewalk-viewer-toolbar-button" type="button" title="Reset view" aria-label="Reset view">
                     <i class="fas fa-home"></i>
                 </button>
             </div>
@@ -189,15 +213,10 @@
 
         <!--
             Viewer DOM not yet presented on this page. assembleViewer() wires
-            these, so they must exist; the toolbar (#111) and the settings
-            overlay (#113) give them a place.
+            these, so they must exist; the settings overlay (#113) gives them
+            a place.
         -->
         <div hidden>
-
-            <!-- trace select -->
-            <input type="text" id="spacewalk_trace_select_input">
-            <button id="spacewalk_trace_select_button_minus" type="button"></button>
-            <button id="spacewalk_trace_select_button_plus" type="button"></button>
 
             <!-- settings -->
             <ul id="spacewalk-settings-dropdown">

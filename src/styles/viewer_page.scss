@@ -15,11 +15,91 @@ body.spacewalk-viewer-page {
     bottom: 0;
   }
 
-  // The top bar. No grip and no dragging here; it becomes the toolbar (#111).
-  #spacewalk-threejs-drag-container {
+  // The top bar is the toolbar (see viewer.html): no grip and no dragging here.
+  #spacewalk-threejs-drag-container.spacewalk-viewer-toolbar {
     flex: 0 0 $spacewalk-viewer-page-bar-height;
     height: $spacewalk-viewer-page-bar-height;
     cursor: default;
+
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    min-width: 0;
+
+    // In the full app the home button floats at the bar's right edge; here it
+    // takes its place in the row.
+    #spacewalk-threejs-home-button {
+      position: static;
+      transform: none;
+    }
+  }
+
+  .spacewalk-viewer-toolbar-button {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 24px;
+    height: 24px;
+    padding: 0;
+
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(0, 0, 0, 0.1);
+
+      i {
+        color: black;
+      }
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.4;
+    }
+  }
+
+  .spacewalk-viewer-toolbar-trace-select {
+    flex: 0 1 auto;
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    gap: 2px;
+
+    margin-left: 8px;
+
+    input {
+      flex: 0 1 auto;
+      width: 10em;
+      min-width: 4em;
+      height: 22px;
+      padding: 0 4px;
+
+      font-size: 12px;
+      text-align: center;
+      color: #333;
+
+      background-color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      border-radius: 4px;
+
+      &:focus {
+        outline: none;
+        background-color: white;
+        border-color: rgba(0, 0, 0, 0.35);
+      }
+    }
+  }
+
+  .spacewalk-viewer-toolbar-spacer {
+    flex: 1 1 auto;
   }
 
   // Sized by the window, not by the user: no resize corner, no borders.
