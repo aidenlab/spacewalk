@@ -13,7 +13,7 @@
 | Milestone | Where | Delivers | Ticket doc | Status |
 |---|---|---|---|---|
 | **M0** — carve out the 3D viewer | `spacewalk` (this repo) | a viewer-only page with no IGV or Juicebox inside it | [m0-viewer-carve-out.md](m0-viewer-carve-out.md) | **Done** (2026-10-28) |
-| **M1** — the MCP server, single user | `spacewalk-mcp` (new repo) + `spacewalk-remote` here | the model drives the viewer page through a Room | — | Not started |
+| **M1** — the MCP server, single user | `spacewalk-mcp` (Worker + `spacewalk-remote`) + the viewer page here | the model drives the viewer page through a Room | [m1-server-single-user.md](m1-server-single-user.md) | Designed (2026-10-28); tickets drafted |
 | **M2** — geenee integration | `geenee` | Spacewalk is the third viewer in geenee — **v1 done** | — | Not started |
 | **M3** — shared Rooms | `spacewalk-mcp` + `spacewalk` | Guests join a Room link and share one live 3D view | — | Not started |
 
@@ -59,47 +59,64 @@ its bundle; the full app behaves exactly as before.
 
 ## M1 — The MCP server, single user
 
-**Goal.** A model in Claude can open the viewer, load an ensemble, and change what it shows; every
-reply tells the model the full viewer state and what the user changed by hand.
+**Goal.** A model in Claude or ChatGPT can open the viewer, load an ensemble, and change what it
+shows; every reply tells the model the full viewer state and what the user changed by hand.
 
-**Where.** A new repo, `spacewalk-mcp` (Cloudflare Worker), plus `spacewalk-remote` in this repo.
-The viewer page is deployed to Cloudflare Pages.
+**Where.** A new repo, `spacewalk-mcp` (Cloudflare Worker, plus `@aidenlab/spacewalk-remote` and the
+wire protocol in its `remote/` workspace, published to npm), and the viewer page in this repo, which
+pins `spacewalk-remote` and is deployed to Cloudflare Pages. See `spacewalk-mcp` ADR 0003.
+
+**Design** (grilled 2026-10-28; vocabulary in `spacewalk-mcp/GLOSSARY.md`, decisions in its
+`docs/adr/`):
+
+- **Viewer state** — the Room's one structured, versioned record: the ensemble (URL, group, trace,
+  kind), render style, **structure appearance** (radius steps, sticks, point size and transparency,
+  color ramp, circular genome), viewer settings, camera. The session string appears only at the
+  edges: `get_shareable_url` writes one, `load_session` reads one.
+- **The Room applies every proposal**, relative steps included, so a tool call takes effect with no
+  Viewer open (the reply says it is not shown yet).
+- **Replies** carry the full viewer state, the number of connected Viewers, and the changes the model
+  did not cause, in plain phrases. They wait up to 20 s for **realized**, else "applied, still
+  drawing". A second Viewer is allowed without promises: the first to realize answers, any failure
+  surfaces.
+- **Room id** is a tool argument (`open_viewer` aside); under ChatGPT it is HMAC(`x-openai-session`).
+  An expired Room never gets its contents back; `open_viewer` may start it over, empty, under the
+  same id.
 
 **Tasks.**
 
-1. **Repo scaffold** — modelled on igvjs-mcp's *shape*: TypeScript, zod 4, `/mcp` (Streamable HTTP)
-   and `/ws` (WebSocket), a Room Durable Object, the command-tools table, wrangler environments for
-   dev and prod, a deploy wizard. Docs layout from day one: `GLOSSARY.md` (geenee's terms — Room,
-   Room link, Driver, Guest, Viewer), `docs/adr/`.
-2. **ADRs** — 0001 *the Room is authoritative*; 0002 *viewer settings stored beside the session*.
-3. **The Room's state document** — one versioned document: session string (Spacewalk's existing
-   format, unchanged) + viewer settings + camera. Pages and tool calls propose changes; the Room
-   applies, versions and broadcasts them. Reconnect is resync. 24h idle expiry; an expired Room
-   stays expired.
+1. **Repo scaffold** — done (`5afcf9c`). The scaffold's `viewer/` workspace becomes `remote/`.
+2. **ADRs** — done: 0001 *the Room is authoritative*; 0002 *viewer settings beside the session*;
+   0003 *`spacewalk-remote` and the protocol live in `spacewalk-mcp`*.
+3. **The viewer state** — apply, version, broadcast; relative steps; 24h idle expiry.
 4. **The protocol** — join handshake with a protocol version (mismatch → "reload the viewer");
-   proposed changes; state broadcasts; pages report a change as **realized** (loaded, drawn, or
-   failed).
-5. **`spacewalk-remote`** — the browser library that attaches the viewer page to a Room: applies
-   broadcast state, proposes hand changes (debounced at gesture end), reports realized/failed.
-6. **Viewer settings out of `localStorage`** for the MCP viewer, into the Room.
-7. **Tools** — `open_viewer`; `load_ensemble`, `list_example_ensembles`, `select_ensemble_group`;
-   `set_render_style`, ball radius up/down, stick radius up/down; `reset_camera`,
-   `set_background_color` (named colors), `adjust_background`; `read_viewer_state`,
-   `get_shareable_url`, `load_session`. Glossary vocabulary in names and descriptions.
-8. **Replies** — every reply carries the full viewer state (*observe everything, control a few*) and
-   what changed in the viewer since the model last looked; replies wait for "realized", with a
-   timeout.
+   proposals; state broadcasts; Viewers report a version **realized** (drawn or failed), with the
+   ensemble's kind.
+5. **`spacewalk-remote`** — attaches the viewer page to a Room: applies broadcast state, proposes hand
+   changes (debounced at gesture end), reports realized/failed. Published by GitHub release.
+6. **In `spacewalk`:** structure appearance joins the session format (full app too; old sessions
+   load with defaults); the viewer page reads a snapshot URL (session parameter + viewer-settings
+   parameter); the viewer page attaches through `spacewalk-remote`, with the Room as the
+   viewer-settings store.
+7. **Tools** — `open_viewer`; `load_ensemble`, `list_example_ensembles` (the Load From List file,
+   fetched from R2), `select_ensemble_group`; `set_render_style` (refused on a known point cloud),
+   ball radius up/down, stick radius up/down; `reset_camera`, `set_background_color` (crayon name or
+   hex), `adjust_background`; `read_viewer_state` (also geenee's connection probe),
+   `get_shareable_url` (a Room-free snapshot of the viewer page, shortened), `load_session` (either
+   app's URL or a bare session string; Spacewalk part only, says what it ignored).
+8. **Replies** — as above.
 9. **Join card** — the MCP App card with an Open button for the viewer.
-10. **Deploy** — Worker and viewer page to dev, with the origin allow-list.
-11. **Tests** — the state document (apply, version, order), the changed-since-last-look diff, the
-    handshake and version refusal, realized/timeout handling, relative steps. The page is checked
-    by eye.
+10. **Deploy** — one wizard: Worker `spacewalk-mcp-dev.3dg.io`, Pages `spacewalk-viewer-dev.3dg.io`
+    (built from `../spacewalk`), `SESSION_HMAC_SECRET`, `VIEWER_ORIGINS`.
+11. **Tests** — the viewer state (apply, version, order), relative steps, the changed-since-last-look
+    diff, the handshake and version refusal, realized/timeout handling. The page is checked by eye.
 
-**Done when.** In Claude, connected directly to the dev `spacewalk-mcp`: "show me an example
-chromatin trace", "switch to ribbon", "make the balls bigger", "darken the background" all work;
-a hand change in the viewer appears in the next reply; a shareable URL reopens the same view.
+**Done when.** Connected directly to the dev `spacewalk-mcp` from Claude desktop, claude.ai,
+ChatGPT desktop and ChatGPT web: "show me an example chromatin trace", "switch to ribbon", "make the
+balls bigger", "darken the background" all work; a hand change in the viewer appears in the next
+reply; a shareable URL reopens the same view.
 
-**Out of scope.** Multiple pages in one Room. Any port wiring.
+**Out of scope.** Multiple pages in one Room, beyond tolerating a second. Any port wiring.
 
 ---
 
@@ -113,7 +130,8 @@ a hand change in the viewer appears in the next reply; a shareable URL reopens t
 
 1. `SPACEWALK_UPSTREAM_URL` in geenee's configuration, pointing at the dev `spacewalk-mcp`.
 2. Serve Spacewalk's tools with the `spacewalk_` prefix; hide `open_viewer` behind `open_geenee`;
-   pass the Room id the way igvjs-mcp expects it.
+   withhold `get_shareable_url` (as for igv); pass the Room id as an argument
+   (`roomGoesIn: 'argument'`); probe the connection with `read_viewer_state`.
 3. A third tab in the geenee Workspace, with the viewer page embedded and its connection state shown.
 4. Update geenee's server instructions so the model knows when the 3D viewer is the right one.
 5. Any small changes the viewer page needs for embedding (geenee's `&embedded` convention).
