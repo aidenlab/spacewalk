@@ -12,7 +12,6 @@ import { createShareWidgets, shareWidgetConfigurator } from '../share/shareWidge
 import { configureDrag } from "../utils/draggable.js"
 import GUIManager from "../guiManager.js"
 import SettingsManager from "../settingsManager.js"
-import ScaleBarService from "../scaleBarService.js"
 import ReferenceRuler from "../referenceRuler.js"
 import { showRelease } from "../utils/release.js"
 import { spacewalkConfig } from "../spacewalk-config.js"
@@ -40,7 +39,7 @@ class UIBootstrapper {
         // Initialize popovers
         this.initializePopovers();
 
-        // Initialize GUI manager first (creates the checkbox that ScaleBarService needs)
+        // Initialize GUI manager first (creates the checkbox that ReferenceRuler needs)
         const settingsButton = document.querySelector('#spacewalk-threejs-settings-button-container');
         uiComponents.guiManager = new GUIManager({
             settingsButton,
@@ -50,15 +49,13 @@ class UIBootstrapper {
             colorMapManager: this.appContext.colorMapManager
         });
 
-        // Initialize scale bar service and reference ruler (after GUI manager, so checkboxes exist)
+        // Initialize reference ruler (after GUI manager, so its checkbox exists)
         const renderContainer = document.querySelector('#spacewalk-threejs-canvas-container');
-        this.appContext.assignScaleBarService(this.buildScaleBarService(renderContainer));
         this.appContext.assignReferenceRuler(this.buildReferenceRuler(renderContainer));
 
         // Initialize settings manager (after the widgets above, so all settings targets exist)
         uiComponents.settingsManager = new SettingsManager({
             scene: this.appContext.scene,
-            scaleBarService: this.appContext.scaleBarService,
             referenceRuler: this.appContext.referenceRuler,
             sceneFixtures: this.appContext.sceneFixtures
         });
@@ -94,15 +91,6 @@ class UIBootstrapper {
         document.querySelector('.navbar').style.display = '';
 
         return uiComponents;
-    }
-
-    buildScaleBarService(renderContainer) {
-        const saved = SettingsManager.load()
-        const scaleBarsHidden = saved?.scaleBars ? !saved.scaleBars.visible : ScaleBarService.setScaleBarsHidden()
-        const scaleBarsColor = saved?.scaleBars ? new THREE.Color(saved.scaleBars.r, saved.scaleBars.g, saved.scaleBars.b) : undefined
-        const service = new ScaleBarService(renderContainer, scaleBarsHidden, scaleBarsColor)
-        service.insertScaleBarDOM()
-        return service
     }
 
     buildReferenceRuler(renderContainer) {

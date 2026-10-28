@@ -2,10 +2,9 @@ const STORAGE_KEY = 'spacewalk-settings'
 
 class SettingsManager {
 
-    constructor({ scene, scaleBarService, referenceRuler, sceneFixtures }) {
+    constructor({ scene, referenceRuler, sceneFixtures }) {
 
         this.scene = scene
-        this.scaleBarService = scaleBarService
         this.referenceRuler = referenceRuler
         this.sceneFixtures = sceneFixtures
 
@@ -28,13 +27,6 @@ class SettingsManager {
             this.save()
         })
 
-        // Scale Bars toggle
-        document.getElementById('spacewalk_ui_manager_scale_bars').addEventListener('change', e => {
-            e.stopPropagation()
-            this.scaleBarService.toggle()
-            this.save()
-        })
-
         // Reference Ruler toggle
         document.getElementById('spacewalk_ui_manager_reference_ruler').addEventListener('change', e => {
             e.stopPropagation()
@@ -47,7 +39,6 @@ class SettingsManager {
         if (saved) {
             document.getElementById('spacewalk_ui_manager_gnomon').checked = saved.gnomon.visible
             document.getElementById('spacewalk_ui_manager_groundplane').checked = saved.groundPlane.visible
-            document.getElementById('spacewalk_ui_manager_scale_bars').checked = saved.scaleBars.visible
             if (saved.referenceRuler) {
                 document.getElementById('spacewalk_ui_manager_reference_ruler').checked = saved.referenceRuler.visible
             }
@@ -78,12 +69,6 @@ class SettingsManager {
         if (groundPlane) {
             const { r, g, b } = groundPlane.color
             settings.groundPlane = { visible: groundPlane.visible, r, g, b }
-        }
-
-        // Scale Bars
-        if (this.scaleBarService) {
-            const { r, g, b } = this.scaleBarService.color
-            settings.scaleBars = { visible: this.scaleBarService.visible, r, g, b }
         }
 
         // Reference Ruler
