@@ -44,7 +44,7 @@ Deriving a discrete index from a continuous interpolant. The governing conceit o
 ### Rendering the structure
 
 **Render style**:
-Which of the three mutually exclusive ways the 3D structure is drawn: **ball-and-stick**, **ribbon**, or **point cloud**. Exactly one is active.
+Which of the three mutually exclusive ways the 3D structure is drawn: **ball-and-stick**, **ribbon**, or **point cloud**. Exactly one is active. Point cloud is dictated by the ensemble, not chosen: a point-cloud ensemble is always drawn as a point cloud, and the user chooses between ball-and-stick and ribbon only for a trace ensemble.
 _Avoid_: mode, view type
 
 **Visualization**:
@@ -72,7 +72,7 @@ The single shared highlight state — a list of `{ index, interpolant }` entries
 Something that reflects the selection. There are two: the **navigator strip** (the band on the color ramp) and the **3D structure**.
 
 **Producer**:
-An input that converts a pointer position into selection entries and writes them. There are four: the navigator ramp, the IGV pointer, the Juicebox crosshairs, and the 3D raycast picker.
+An input that converts a pointer position into selection entries and writes them. There are four: the navigator ramp, the IGV pointer, the Juicebox crosshairs, and the 3D raycast picker. The picker picks balls only, so it produces nothing in ribbon or point cloud. Every producer is a pointer under direct user interaction: highlighting exists to link a gesture in genomic space to the corresponding place in 3D space, and nothing that is not a user's pointer writes the selection.
 _Avoid_: source, input (as nouns for this role)
 
 **Driver / receiver**:
@@ -98,6 +98,12 @@ A contact map computed on demand from the loaded ensemble's traces, rendered by 
 
 **Live distance map**:
 A distance matrix computed on demand from the same traces, rendered by Spacewalk. Derived alongside the live contact map, never separately.
+
+### Linkage
+
+**Port**:
+A named boundary where data crosses between the 3D viewer and a companion viewer (IGV, Juicebox), defined by the shape of what crosses, not by who is on the other side. There are three: a 1D signal over genomic positions comes **in** (feeds the track material provider); a contact matrix goes **out** (becomes a live contact map); a genomic selection, in base pairs, goes **in and out** (highlight sync). A port may be unconnected — the viewer is whole without it.
+_Avoid_: link, bridge, integration (as nouns for this boundary)
 
 ### Persistence
 
