@@ -27,7 +27,11 @@ function packagesReachableFrom(entry) {
             const specifier = match[1] ?? match[2] ?? match[3]
             if (specifier.startsWith('.')) {
                 const target = resolve(dirname(file), specifier)
-                if (target.endsWith('.js') && existsSync(target)) pending.push(target)
+                if (!/\.m?js$/.test(target) && /\.\w+$/.test(target)) continue   // .json, .css, .scss assets
+                const candidates = /\.m?js$/.test(target) ? [ target ] : [ `${ target }.js`, resolve(target, 'index.js') ]
+                const found = candidates.find(candidate => existsSync(candidate))
+                if (!found) throw new Error(`Unresolved import '${ specifier }' in ${ file }`)
+                pending.push(found)
             } else if (!packages.has(specifier)) {
                 packages.set(specifier, file)
             }
