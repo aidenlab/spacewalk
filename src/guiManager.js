@@ -2,7 +2,6 @@ import SpacewalkEventBus from './spacewalkEventBus.js'
 import { StringUtils } from 'igv-utils'
 import Ribbon from "./ribbon.js";
 import BallAndStick from "./ballAndStick.js";
-import Panel from "./panel.js";
 import { spacewalkConfig } from "./spacewalk-config.js";
 
 class GUIManager {
@@ -28,17 +27,6 @@ class GUIManager {
 
         // panel.addEventListener('click', (e) => e.stopPropagation());
         // panel.addEventListener('mousemove', (e) => e.stopPropagation());
-
-        const checkboxDropdownMenu = document.querySelector('#spacewalk-viewers-dropdown-menu')
-
-        for (const inputElement of checkboxDropdownMenu.querySelectorAll('input')) {
-
-            inputElement.addEventListener('change', event => {
-                event.stopPropagation()
-                Panel.toggleById(inputElement.dataset.target)
-            })
-
-        }
 
         configureRenderStyleControl(document.getElementById('spacewalk-render-style-ball-stick'), BallAndStick.renderStyle, sceneManager);
 

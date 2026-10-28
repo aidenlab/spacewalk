@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Spacewalk 3D viewer" />
+    <title>Spacewalk Viewer</title>
+
+    <link rel="icon" href="./favicon.ico" />
+
+    <!-- Font Awesome -->
+    <!-- Douglass Turner personal Font Awesome account -->
+    <script src="https://kit.fontawesome.com/534c6029c1.js" crossorigin="anonymous"></script>
+
+    <!--  Viewer-only entrypoint: the 3D viewer, no IGV, no Juicebox, no navbar  -->
+    <script type="module" src="src/viewerMain.js"></script>
+</head>
+<body class="spacewalk-viewer-page">
+
+<main id="spacewalk-main" role="main">
+
+    <div id="spacewalk-root-container">
+
+        <!-- three-js container: fills the window -->
+        <div id="spacewalk-threejs-container">
+
+            <!-- top bar -->
+            <div id="spacewalk-threejs-drag-container">
+                <button id="spacewalk-threejs-home-button" type="button" title="Reset view">
+                    <i class="fas fa-home"></i>
+                </button>
+            </div>
+
+            <!-- three-js canvas | trace-navigator -->
+            <div id="spacewalk-threejs-trace-navigator-container">
+                <!-- three-js canvas container -->
+                <div id="spacewalk-threejs-canvas-container">
+
+                    <div id="spacewalk-threejs-canvas-center-dot" style="display: none;"></div>
+
+                </div>
+
+                <!-- trace navigator -->
+                <div id="spacewalk-trace-navigator-container">
+                    <!-- header -->
+                    <div id="spacewalk-trace-navigator-header"></div>
+
+                    <!-- widget -->
+                    <div id="spacewalk-trace-navigator-widget">
+                        <canvas id="spacewalk_color_ramp_canvas_highlight"></canvas>
+                        <canvas id="spacewalk_color_ramp_canvas_rgb"></canvas>
+                        <canvas id="spacewalk_color_ramp_canvas_alpha"></canvas>
+                    </div>
+
+                    <!-- footer -->
+                    <div id="spacewalk-trace-navigator-footer"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Render Settings Button -->
+        <div id="spacewalk-threejs-settings-button-container">
+            <button id="spacewalk-threejs-settings-button" type="button" class="btn btn-default">
+                <i class="fas fa-bars fa-lg"></i>
+            </button>
+        </div>
+
+        <!-- Render Settings Panel -->
+        <div id="spacewalk_ui_manager_panel" class="card" style="display: none;">
+            <ul class="list-group list-group-flush">
+
+                <!-- PointCloud render style -->
+                <li id="spacewalk_ui_manager_pointcloud_render_style" class="list-group-item">
+                    <!--  Point Size-->
+                    <div id="spacewalk_ui_manager_pointcloud_point_size">
+                        <div id="spacewalk_ui_manager_pointcloud_point_size_label">
+                            Point Size
+                        </div>
+                        <div>
+                            <i class="fas fa-minus-circle"></i>
+                        </div>
+                        <div>
+                            <i class="fas fa-plus-circle"></i>
+                        </div>
+                    </div>
+
+                    <!--  Point Transparency -->
+                    <div id="spacewalk_ui_manager_pointcloud_point_transparency">
+                        <div>
+                            Point Transparency
+                        </div>
+                        <div>
+                            <i class="fas fa-minus-circle"></i>
+                        </div>
+                        <div>
+                            <i class="fas fa-plus-circle"></i>
+                        </div>
+                    </div>
+
+                    <div id="spacewalk-pc-color-map-control" class="spacewalk-color-map-control">
+                        <div>
+                            Color Ramp
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm dropdown-toggle" type="button" id="spacewalk-pc-color-map-button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <img class="spacewalk-color-map-swatch" alt="">
+                            </button>
+                            <ul class="dropdown-menu" id="spacewalk-pc-color-map-menu" aria-labelledby="spacewalk-pc-color-map-button"></ul>
+                        </div>
+                    </div>
+                </li>
+
+                <!-- Ball & Stick and Ribbon render styles -->
+                <li id="spacewalk_ui_manager_render_styles" class="list-group-item">
+                    <div>
+                        <div class="form-check">
+                            <input name="spacewalk-render-style" id="spacewalk-render-style-ball-stick" class="form-check-input" type="radio" checked>
+                            <label class="form-check-label" for="spacewalk-render-style-ball-stick">Ball & Stick</label>
+                        </div>
+
+                        <div id="spacewalk-ball-radius-control" class="spacewalk-ball-stick-control">
+                            <div>
+                                Ball Radius
+                            </div>
+                            <div>
+                                <i class="fas fa-minus-circle"></i>
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                        </div>
+
+                        <div id="spacewalk-stick-radius-control" class="spacewalk-ball-stick-control">
+                            <div>
+                                Stick Radius
+                            </div>
+                            <div>
+                                <i class="fas fa-minus-circle"></i>
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                        </div>
+
+                        <div id="spacewalk-stick-visibility-control" class="spacewalk-ball-stick-control">
+                            <div>
+                                Show Sticks
+                            </div>
+                            <div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="spacewalk-stick-visibility-switch" checked>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-check">
+                            <input name="spacewalk-render-style" id="spacewalk-render-style-ribbon" class="form-check-input" type="radio">
+                            <label class="form-check-label" for="spacewalk-render-style-ribbon">Ribbon</label>
+                        </div>
+
+                        <div id="spacewalk-circular-geometry-control">
+                            <div>
+                                Circular Genome
+                            </div>
+                            <div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="spacewalk-circular-geometry-switch">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="spacewalk-color-map-control" class="spacewalk-color-map-control">
+                            <div>
+                                Color Ramp
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm dropdown-toggle" type="button" id="spacewalk-color-map-button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img class="spacewalk-color-map-swatch" alt="">
+                                </button>
+                                <ul class="dropdown-menu" id="spacewalk-color-map-menu" aria-labelledby="spacewalk-color-map-button"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+
+            </ul>
+        </div>
+
+        <!-- general purpose spinner -->
+        <div class="spacewalk-spinner-container d-flex justify-content-center align-items-center" style="background-color:transparent;">
+            <div id="spacewalk-spinner" class="spinner-border text-secondary" style="display:none; width: 8rem; height: 8rem;"></div>
+        </div>
+
+        <!--
+            Viewer DOM not yet presented on this page. assembleViewer() wires
+            these, so they must exist; the toolbar (#111) and the settings
+            overlay (#113) give them a place.
+        -->
+        <div hidden>
+
+            <!-- trace select -->
+            <input type="text" id="spacewalk_trace_select_input">
+            <button id="spacewalk_trace_select_button_minus" type="button"></button>
+            <button id="spacewalk_trace_select_button_plus" type="button"></button>
+
+            <!-- settings -->
+            <ul id="spacewalk-settings-dropdown">
+                <li><input id="spacewalk_ui_manager_input_group_shim" type="checkbox"><div data-colorpicker="background"></div></li>
+                <li><input id="spacewalk_ui_manager_gnomon" type="checkbox"><div data-colorpicker="gnomon"></div></li>
+                <li><input id="spacewalk_ui_manager_groundplane" type="checkbox"><div data-colorpicker="groundplane"></div></li>
+                <li><input id="spacewalk_ui_manager_reference_ruler" type="checkbox"><div data-colorpicker="reference-ruler"></div></li>
+            </ul>
+
+            <!-- info panel: GUIManager writes the loaded genome and locus here -->
+            <div id="spacewalk_info_panel">
+                <div id="spacewalk_info_panel_ensemble_group"></div>
+                <div id="spacewalk_info_panel_genome"></div>
+                <div id="spacewalk_info_panel_locus"></div>
+            </div>
+        </div>
+
+    </div>
+
+</main>
+
+</body>
+</html>

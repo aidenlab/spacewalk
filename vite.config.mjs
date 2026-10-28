@@ -1,6 +1,7 @@
 import { defineConfig } from "vite"
 import { config } from "dotenv"
 import { fileURLToPath } from "node:url"
+import { viewerBoundary } from "./build/viewerBoundary.mjs"
 
 // Load environment variables from .env file
 config()
@@ -46,7 +47,12 @@ async function devOnlyPlugins(command) {
 }
 
 export default defineConfig(async ({ command }) => ({
-    plugins: await devOnlyPlugins(command),
+    plugins: [
+        ...await devOnlyPlugins(command),
+        // The viewer-only page must bundle no igv and no juicebox.js. The build
+        // fails if it does. See build/viewerBoundary.mjs.
+        viewerBoundary({ entry: 'viewer.html', forbidden: [ 'igv', 'juicebox.js' ] })
+    ],
     define: {
         'process.env.TINYURL_API_KEY': JSON.stringify(process.env.TINYURL_API_KEY)
     },
@@ -63,7 +69,14 @@ export default defineConfig(async ({ command }) => ({
     },
     build: {
         target: 'es2020',
-        sourcemap: true
+        sourcemap: true,
+        rolldownOptions: {
+            // Two pages: the full app, and the 3D viewer on its own
+            input: {
+                main: fileURLToPath(new URL('./index.html', import.meta.url)),
+                viewer: fileURLToPath(new URL('./viewer.html', import.meta.url))
+            }
+        }
     },
     server: {
         sourcemapIgnoreList: false  // Don't ignore source maps from node_modules

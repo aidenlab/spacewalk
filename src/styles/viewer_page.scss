@@ -1,0 +1,47 @@
+// The viewer-only page (viewer.html): the 3D viewer fills the window and
+// resizes with it. Layered over app.scss, which places the viewer as a
+// draggable, resizable panel in the full app.
+
+$spacewalk-viewer-page-bar-height: 32px;
+
+body.spacewalk-viewer-page {
+
+  overflow: hidden;
+
+  #spacewalk-threejs-container {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  // The top bar. No grip and no dragging here; it becomes the toolbar (#111).
+  #spacewalk-threejs-drag-container {
+    flex: 0 0 $spacewalk-viewer-page-bar-height;
+    height: $spacewalk-viewer-page-bar-height;
+    cursor: default;
+  }
+
+  // Sized by the window, not by the user: no resize corner, no borders.
+  #spacewalk-threejs-trace-navigator-container {
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    border: none;
+    resize: none;
+    overflow: hidden;
+  }
+
+  // Above the full-window viewer, which would otherwise paint over them.
+  #spacewalk-threejs-settings-button-container {
+    z-index: 1024;
+    top: $spacewalk-viewer-page-bar-height + 8px;
+    left: 8px;
+  }
+
+  #spacewalk_ui_manager_panel.card {
+    top: $spacewalk-viewer-page-bar-height + 48px;
+    left: 8px;
+  }
+}
