@@ -155,23 +155,14 @@ class App {
         this.liveDistanceMapService = panelObjects.liveDistanceMapService;
 
         // Wire deferred dependencies now that panels and navigator exist.
-        this.sceneManager.wireDependencies({
-            igvPanel: this.igvPanel,
-        });
-
         this.sceneManager.createHighlighters({
             ensembleManager: this.ensembleManager,
-            igvPanel: this.igvPanel,
             genomicNavigator: this.genomicNavigator,
         });
 
         this.picker.wireDependencies({
             sceneManager: this.sceneManager,
             genomicNavigator: this.genomicNavigator,
-        });
-
-        this.genomicNavigator.wireDependencies({
-            igvPanel: this.igvPanel,
         });
 
         this.cameraLightingRig.wireDependencies({

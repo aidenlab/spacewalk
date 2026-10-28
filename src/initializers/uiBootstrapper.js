@@ -69,8 +69,7 @@ class UIBootstrapper {
             document.querySelector('#spacewalk-trace-navigator-container'),
             highlightColor,
             this.appContext.ensembleManager,
-            this.appContext.sceneManager,
-            this.appContext.colorRampMaterialProvider
+            this.appContext.sceneManager
         );
 
         // Initialize file loaders

@@ -7,12 +7,10 @@ let alphaTexture;
 
 class GenomicNavigator {
 
-    constructor(canvasContainer, highlightColor, ensembleManager, sceneManager, colorRampMaterialProvider) {
+    constructor(canvasContainer, highlightColor, ensembleManager, sceneManager) {
 
         this.ensembleManager = ensembleManager;
         this.sceneManager = sceneManager;
-        this.colorRampMaterialProvider = colorRampMaterialProvider;
-        this.igvPanel = null;
         this.canvasContainer = canvasContainer
 
         let canvas
@@ -50,10 +48,6 @@ class GenomicNavigator {
         SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
     }
 
-    wireDependencies({ igvPanel }) {
-        this.igvPanel = igvPanel
-    }
-
     receiveEvent({ type, data }) {
 
         if ("DidSelectTrace" === type) {
@@ -65,7 +59,6 @@ class GenomicNavigator {
             this.footer.innerText = `${ Math.round(genomicStart / 1e6) }Mb`
             this.header.innerText = `${ Math.round(genomicEnd / 1e6) }Mb`
 
-            this.igvPanel.materialProvider = this.colorRampMaterialProvider;
             this.repaint()
         } else if ("DidChangeColorMap" === type) {
             this.repaint()
@@ -158,7 +151,7 @@ class GenomicNavigator {
         const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
         for (let { interpolant, start, end } of genomicExtentList) {
 
-            const rgb = this.igvPanel.materialProvider.colorForInterpolant(interpolant)
+            const rgb = this.sceneManager.materialProvider.colorForInterpolant(interpolant)
             const rgb255 = threeJSColorToRGB255(rgb)
             this.rgb_ctx.fillStyle = rgb255String(rgb255)
 

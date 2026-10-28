@@ -14,13 +14,12 @@ class BallAndStick {
 
     static renderStyle = 'render-style-ball-stick'
 
-    constructor ({ trace, pickHighlighter, stickMaterial, isStickVisible, ballRadiusIndex, stickRadiusIndex, ensembleManager, igvPanel, sceneManager }) {
+    constructor ({ trace, pickHighlighter, stickMaterial, isStickVisible, ballRadiusIndex, stickRadiusIndex, ensembleManager, materialProvider, sceneManager }) {
 
         this.pickHighlighter = pickHighlighter
         this.stickMaterial = stickMaterial
         this.isStickVisible = isStickVisible
         this.ensembleManager = ensembleManager
-        this.igvPanel = igvPanel
         this.sceneManager = sceneManager
 
         // Build geometry from trace
@@ -37,7 +36,7 @@ class BallAndStick {
         this.ballRadiusIndex = ballRadiusIndex === undefined
             ? Math.floor(this.ballRadiusTable.length / 2)
             : clamp(ballRadiusIndex, 0, this.ballRadiusTable.length - 1)
-        this.balls = this.createBalls(trace, igvPanel.materialProvider, this.ballRadiusTable[this.ballRadiusIndex])
+        this.balls = this.createBalls(trace, materialProvider, this.ballRadiusTable[this.ballRadiusIndex])
 
         // Wire up the highlighter to our balls mesh
         this.pickHighlighter.setBalls(this.balls)

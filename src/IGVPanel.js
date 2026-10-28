@@ -39,9 +39,10 @@ class IGVPanel extends Panel {
             trackProvider: trackMaterialProvider,
             colorRampProvider: colorRampMaterialProvider,
             env: createIGVTrackEnvironment(() => this.browser),
+            // IGV doesn't own the current material provider — it plugs the
+            // active one into the viewer through the signal port.
             onActiveProviderChanged: provider => {
-                this.materialProvider = provider;
-                this.sceneManager.updateMaterialProvider(provider);
+                this.sceneManager.setMaterialProvider(provider);
                 this.genomicNavigator.repaint();
             }
         });

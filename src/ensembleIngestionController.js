@@ -36,11 +36,10 @@ class EnsembleIngestionController {
             trackMaterialProvider.clearAllTracks()
 
             unsetDataMaterialProviderCheckbox(igvPanel)
-            // Flip IGVPanel off the now-empty trackMaterialProvider before
+            // Flip the viewer off the now-empty trackMaterialProvider before
             // anyone repaints through it (including the in-method repaint below
             // and the DidLoadEnsembleFile subscribers we notify at the end).
-            igvPanel.materialProvider = colorRampMaterialProvider
-            sceneManager.updateMaterialProvider(colorRampMaterialProvider)
+            sceneManager.setMaterialProvider(colorRampMaterialProvider)
             genomicNavigator.repaint()
 
             if (ensembleManager.genomeAssembly !== igvPanel.browser.genome.id) {
@@ -75,7 +74,7 @@ class EnsembleIngestionController {
             sceneManager.configureRenderStyle(ensembleManager.isPointCloud === true ? PointCloud.renderStyle : GUIManager.getRenderStyleWidgetState())
 
             unsetDataMaterialProviderCheckbox(igvPanel)
-            sceneManager.updateMaterialProvider(colorRampMaterialProvider)
+            sceneManager.setMaterialProvider(colorRampMaterialProvider)
             genomicNavigator.repaint()
 
             await igvPanel.locusDidChange(ensembleManager.locus)

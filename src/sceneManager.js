@@ -20,8 +20,12 @@ class SceneManager {
         this.ensembleManager = ensembleManager;
         this.cameraLightingRig = cameraLightingRig;
         this.sceneFixtures = sceneFixtures;
-        this.igvPanel = null;
         this.isLoading = false;
+
+        // The viewer owns the current material provider. The color ramp is the
+        // default; a companion (IGV's checked tracks, in the full app) plugs a
+        // different provider in through setMaterialProvider() — the signal port.
+        this.materialProvider = colorRampMaterialProvider;
 
         // Transient visualization objects — null when no model loaded
         this.ballAndStick = null
@@ -29,8 +33,8 @@ class SceneManager {
         this.ribbon = null
 
         // Persistent state that survives across model loads.
-        // Highlighters are created later via createHighlighters() once igvPanel
-        // and genomicNavigator exist — they aren't constructed at app boot.
+        // Highlighters are created later via createHighlighters() once
+        // genomicNavigator exists — they aren't constructed at app boot.
         this.ballHighlighter = null
         this.pointCloudHighlighter = null
 
@@ -52,13 +56,12 @@ class SceneManager {
         SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
     }
 
-    wireDependencies({ igvPanel }) {
-        this.igvPanel = igvPanel
-    }
-
-    createHighlighters({ ensembleManager, igvPanel, genomicNavigator }) {
-        this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, igvPanel })
-        this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, igvPanel })
+    createHighlighters({ ensembleManager, genomicNavigator }) {
+        // Highlighters restore un-highlighted color from whatever provider is
+        // current at the time, so they read it live rather than capture it.
+        const getMaterialProvider = () => this.materialProvider
+        this.ballHighlighter = new BallHighlighter(highlightColor, { ensembleManager, getMaterialProvider })
+        this.pointCloudHighlighter = new PointCloudHighlighter({ ensembleManager, getMaterialProvider })
 
         // The navigator strip renders from the shared selection, independent of
         // render style.
@@ -93,8 +96,8 @@ class SceneManager {
             }
 
         } else if ('DidChangeColorMap' === type) {
-            if (this.igvPanel.materialProvider === this.colorRampMaterialProvider) {
-                this.updateMaterialProvider(this.colorRampMaterialProvider)
+            if (this.materialProvider === this.colorRampMaterialProvider) {
+                this.setMaterialProvider(this.colorRampMaterialProvider)
             }
         }
 
@@ -113,7 +116,7 @@ class SceneManager {
 
     setupWithTrace(trace) {
 
-        const { scene, ensembleManager, igvPanel, cameraLightingRig, sceneFixtures } = this
+        const { scene, ensembleManager, materialProvider, cameraLightingRig, sceneFixtures } = this
 
         this.background = scene.background
         this.purgeScene()
@@ -126,11 +129,11 @@ class SceneManager {
                 pointSizeBoundRadiusPercentage: this.pointSizeBoundRadiusPercentage,
                 pointOpacity: this.pointOpacity,
                 ensembleManager,
-                igvPanel
+                materialProvider
             })
             this.pointCloud.addToScene(scene)
         } else {
-            this.ribbon = new Ribbon(trace, { ensembleManager, igvPanel })
+            this.ribbon = new Ribbon(trace, { ensembleManager, materialProvider })
             this.ribbon.addToScene(scene)
 
             this.ballAndStick = new BallAndStick({
@@ -141,7 +144,7 @@ class SceneManager {
                 ballRadiusIndex: this.ballRadiusIndex,
                 stickRadiusIndex: this.stickRadiusIndex,
                 ensembleManager,
-                igvPanel,
+                materialProvider,
                 sceneManager: this
             })
             this.ballAndStick.addToScene(scene)
@@ -162,7 +165,7 @@ class SceneManager {
 
     rebuildTraceGeometry() {
 
-        const { scene, ensembleManager, igvPanel } = this
+        const { scene, ensembleManager, materialProvider } = this
 
         if (ensembleManager.isPointCloud) return
 
@@ -179,7 +182,7 @@ class SceneManager {
             this.ribbon = null
         }
 
-        this.ribbon = new Ribbon(trace, { ensembleManager, igvPanel })
+        this.ribbon = new Ribbon(trace, { ensembleManager, materialProvider })
         this.ribbon.addToScene(scene)
 
         this.ballAndStick = new BallAndStick({
@@ -190,7 +193,7 @@ class SceneManager {
             ballRadiusIndex: this.ballRadiusIndex,
             stickRadiusIndex: this.stickRadiusIndex,
             ensembleManager,
-            igvPanel,
+            materialProvider,
             sceneManager: this
         })
         this.ballAndStick.addToScene(scene)
@@ -268,7 +271,13 @@ class SceneManager {
         this.ribbon?.renderLoopHelper()
     }
 
-    updateMaterialProvider(materialProvider) {
+    /**
+     * The signal port: make `materialProvider` current and recolor the 3D
+     * structure with it. The navigator strip repaints from `this.materialProvider`
+     * on its own repaint().
+     */
+    setMaterialProvider(materialProvider) {
+        this.materialProvider = materialProvider
         this.ribbon?.updateMaterialProvider(materialProvider)
         this.ballAndStick?.updateMaterialProvider(materialProvider)
         this.pointCloud?.updateMaterialProvider(materialProvider)
