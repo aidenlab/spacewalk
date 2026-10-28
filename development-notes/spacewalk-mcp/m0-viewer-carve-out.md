@@ -1,6 +1,6 @@
 # M0 — Carve out the 3D viewer: tickets
 
-> **STATUS: In progress.** The ticket list and implementation order for milestone M0.
+> **STATUS: Done (2026-10-28).** All tickets closed; umbrella #104 closed. The ticket list and implementation order for milestone M0.
 > Overall plan: [milestones.md](milestones.md). Design: [`../spacewalk-mcp-viewer-carve-out.md`](../spacewalk-mcp-viewer-carve-out.md).
 > Umbrella issue: **#104**. All tickets are labelled `ready-for-agent`; blocking edges are set as
 > native GitHub issue dependencies.
@@ -32,16 +32,16 @@ Working alone, take them in number order: **105 → 106 → 107 → 108 → 109 
 
 | Order | Issue | Title | Blocked by | Status |
 |---|---|---|---|---|
-| 1 | #105 | Viewer owns the current material provider | — | ☐ |
-| 2 | #106 | IGV follows ensemble loads as a listener | #105 | ☐ |
-| 3 | #107 | Genome assembly resolved without IGVPanel | — | ☐ |
-| 4 | #108 | Delete the Scale Bars | — | ☐ |
-| 5 | #109 | Separate assembling the 3D viewer from assembling the app | #105, #106, #107 | ☐ |
-| 6 | #110 | Viewer-only page loads an ensemble from a URL | #109 | ☐ |
-| 7 | #111 | Viewer toolbar: trace select and reset camera | #110 | ☐ |
-| 8 | #112 | Widget panel as an overlay from the floating ☰ | #110 | ☐ |
-| 9 | #113 | Settings as a ⚙ overlay in the viewer | #108, #110 | ☐ |
-| 10 | #123 | One owner for viewer settings, with a pluggable store | #109 | ☐ |
+| 1 | #105 | Viewer owns the current material provider | — | ☑ |
+| 2 | #106 | IGV follows ensemble loads as a listener | #105 | ☑ |
+| 3 | #107 | Genome assembly resolved without IGVPanel | — | ☑ |
+| 4 | #108 | Delete the Scale Bars | — | ☑ |
+| 5 | #109 | Separate assembling the 3D viewer from assembling the app | #105, #106, #107 | ☑ |
+| 6 | #110 | Viewer-only page loads an ensemble from a URL | #109 | ☑ |
+| 7 | #111 | Viewer toolbar: trace select and reset camera | #110 | ☑ |
+| 8 | #112 | Widget panel as an overlay from the floating ☰ | #110 | ☑ |
+| 9 | #113 | Settings as a ⚙ overlay in the viewer | #108, #110 | ☑ |
+| 10 | #123 | One owner for viewer settings, with a pluggable store | #109 | ☑ |
 
 ### Prefactors (full app, no visible change)
 
