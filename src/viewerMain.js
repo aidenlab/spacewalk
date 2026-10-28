@@ -15,6 +15,8 @@ import assembleViewer from "./viewer.js"
 import { parseLaunchIntent } from "./launchIntent.js"
 import { withSpinner } from "./utils/utils.js"
 import AlertSingleton from "./widgets/alertSingleton.js"
+import SettingsOverlay from "./settingsOverlay.js"
+import { isInColorPicker } from "./utils/sharedColorPicker.js"
 import { presentResourceError, installGlobalErrorNet } from "./widgets/presentResourceError.js"
 
 installGlobalErrorNet()
@@ -27,26 +29,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     const traceContainer = document.getElementById('spacewalk-threejs-trace-navigator-container')
     const viewer = await withSpinner(() => assembleViewer({ canvasContainer, traceContainer }))
 
-    dismissWidgetPanelOnEscape(viewer.guiManager)
+    const settingsOverlay = new SettingsOverlay({
+        toggle: document.getElementById('spacewalk-viewer-toolbar-settings-button'),
+        overlay: document.getElementById('spacewalk-settings-dropdown')
+    })
+
+    dismissOverlaysOnEscape(viewer.guiManager, settingsOverlay)
 
     await loadEnsembleFromURL(viewer, window.location.href)
 
     viewer.startRenderLoop()
 })
 
-// The widget panel overlays the canvas, so there is no background to click away
-// to: Escape dismisses it. An open color-ramp menu takes the first Escape —
-// checked capturing on window, ahead of Bootstrap, whose delegated handlers
-// capture on document and would already have closed the menu.
-function dismissWidgetPanelOnEscape(guiManager) {
+// The overlays cover the canvas, so there is no background to click away to:
+// Escape dismisses whichever are open. An open color-ramp menu or color picker
+// takes the first Escape — checked capturing on window, ahead of Bootstrap,
+// whose delegated handlers capture on document and would already have closed
+// the menu. The color picker listens on its own popup, which holds focus.
+function dismissOverlaysOnEscape(guiManager, settingsOverlay) {
     window.addEventListener('keydown', event => {
-        if ('Escape' !== event.key || !guiManager.isPanelPresented()) {
+        if ('Escape' !== event.key) {
             return
         }
-        if (guiManager.isPanelMenuOpen()) {
+        if (guiManager.isPanelMenuOpen() || isInColorPicker(event.target)) {
             return
         }
-        guiManager.setPanelPresented(false)
+        if (guiManager.isPanelPresented()) {
+            guiManager.setPanelPresented(false)
+        }
+        if (settingsOverlay.isPresented()) {
+            settingsOverlay.setPresented(false)
+        }
     }, { capture: true })
 }
 

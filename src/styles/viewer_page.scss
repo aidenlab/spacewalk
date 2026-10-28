@@ -129,4 +129,52 @@ body.spacewalk-viewer-page {
     max-height: calc(100% - #{$spacewalk-viewer-page-bar-height + 48px + 8px});
     overflow-y: auto;
   }
+
+  // The settings overlay floats under the ⚙ at the viewer's top-right, never
+  // wider than the viewer. It doesn't scroll: four rows fit any usable window,
+  // and a scrolling overlay would clip the color picker's popup.
+  // Not a .card: that class is the full app's panel template (parked off-screen, 512px square).
+  ul#spacewalk-settings-dropdown {
+    z-index: 2048;
+    position: absolute;
+    top: $spacewalk-viewer-page-bar-height + 4px;
+    right: 8px;
+    max-width: calc(100% - 16px);
+
+    margin: 0;
+    padding: 8px;
+    list-style: none;
+
+    background-color: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.175);
+    border-radius: 6px;
+
+    li.spacewalk-colorpicker-li {
+      padding: 4px 0;
+
+      .input-group {
+        flex-wrap: nowrap;
+      }
+
+      // The label takes what width there is; the checkbox and swatch keep theirs.
+      .input-group-text:nth-child(2) {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      [data-colorpicker] {
+        flex: 0 0 36px;
+        cursor: pointer;
+      }
+    }
+
+    // The background row has no visibility toggle: its label is not clickable.
+    li:first-child .input-group-text:nth-child(2) {
+      cursor: default;
+    }
+  }
 }

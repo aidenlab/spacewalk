@@ -50,4 +50,9 @@ function updateSwatch(container, threeJSColor) {
     container.style.backgroundColor = rgb255String(rgb)
 }
 
-export { register, updateSwatch }
+// True when the element sits inside the open color picker's popup
+function isInColorPicker(element) {
+    return null !== element?.closest?.('.picker_wrapper')
+}
+
+export { register, updateSwatch, isInColorPicker }
