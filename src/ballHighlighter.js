@@ -1,9 +1,9 @@
 class BallHighlighter {
 
-    constructor (highlightColor, { ensembleManager, igvPanel }) {
+    constructor (highlightColor, { ensembleManager, getMaterialProvider }) {
         this.highlightColor = highlightColor;
         this.ensembleManager = ensembleManager
-        this.igvPanel = igvPanel
+        this.getMaterialProvider = getMaterialProvider
         this.instanceIdList = undefined
         this.balls = undefined
     }
@@ -49,7 +49,7 @@ class BallHighlighter {
 
             const genomicExtentList = this.ensembleManager.getCurrentGenomicExtentList()
             for (const instanceId of this.instanceIdList) {
-                const color = this.igvPanel.materialProvider.colorForInterpolant(genomicExtentList[ instanceId ].interpolant)
+                const color = this.getMaterialProvider().colorForInterpolant(genomicExtentList[ instanceId ].interpolant)
                 color.toArray(bufferAttribute.array, instanceId * 3)
             }
 

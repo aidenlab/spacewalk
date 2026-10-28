@@ -2,9 +2,9 @@ import {setGeometryColorAttribute} from "./pointCloud.js";
 
 class PointCloudHighlighter {
 
-    constructor ({ ensembleManager, igvPanel }) {
+    constructor ({ ensembleManager, getMaterialProvider }) {
         this.ensembleManager = ensembleManager
-        this.igvPanel = igvPanel
+        this.getMaterialProvider = getMaterialProvider
         this.objects = undefined
         this.meshList = undefined
         this.material = undefined
@@ -60,7 +60,7 @@ class PointCloudHighlighter {
 
                 const index = this.meshList.indexOf(mesh)
                 const { interpolant } = this.ensembleManager.currentTrace[ index ]
-                const rgb = this.igvPanel.materialProvider.colorForInterpolant(interpolant)
+                const rgb = this.getMaterialProvider().colorForInterpolant(interpolant)
 
                 setGeometryColorAttribute(mesh.geometry.userData.colorAttribute.array, rgb)
                 mesh.geometry.setAttribute('color', mesh.geometry.userData.colorAttribute)
@@ -81,7 +81,7 @@ class PointCloudHighlighter {
 
                 const index = this.meshList.indexOf(mesh)
                 const { interpolant } = this.ensembleManager.currentTrace[ index ]
-                const rgb = this.igvPanel.materialProvider.colorForInterpolant(interpolant)
+                const rgb = this.getMaterialProvider().colorForInterpolant(interpolant)
 
                 setGeometryColorAttribute(mesh.geometry.userData.colorAttribute.array, rgb)
                 mesh.geometry.setAttribute('color', mesh.geometry.userData.colorAttribute)

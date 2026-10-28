@@ -18,7 +18,7 @@ class Ribbon {
 
     static renderStyle = 'render-style-ribbon'
 
-    constructor(trace, { ensembleManager, igvPanel }) {
+    constructor(trace, { ensembleManager, materialProvider }) {
 
         this.ensembleManager = ensembleManager
 
@@ -42,7 +42,7 @@ class Ribbon {
         }
         geometry.setPositions( positions )
 
-        const colors = getRGBListWithMaterialAndLength(igvPanel.materialProvider, curvePoints.length)
+        const colors = getRGBListWithMaterialAndLength(materialProvider, curvePoints.length)
         geometry.setColors( colors )
 
         const material = new LineMaterial( { linewidth: ribbonWidth, vertexColors: true } )

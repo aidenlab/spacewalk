@@ -9,11 +9,10 @@ class PointCloud {
 
     static renderStyle = 'render-style-point-cloud'
 
-    constructor ({ trace, pickHighlighter, deemphasizedColor, pointSizeBoundRadiusPercentage, pointOpacity, ensembleManager, igvPanel }) {
+    constructor ({ trace, pickHighlighter, deemphasizedColor, pointSizeBoundRadiusPercentage, pointOpacity, ensembleManager, materialProvider }) {
         this.pickHighlighter = pickHighlighter
         this.deemphasizedColor = deemphasizedColor
         this.ensembleManager = ensembleManager
-        this.igvPanel = igvPanel
 
         this.pointOpacity = pointOpacity ?? 0.375
         this.deemphasizedPointOpacity = 0.125/4
@@ -50,7 +49,7 @@ class PointCloud {
                 geometry.userData.colorAttribute = new THREE.Float32BufferAttribute(new Float32Array(xyz.length * 3), 3)
                 geometry.userData.colorAttribute.setUsage(drawUsage)
 
-                const rgb = this.igvPanel.materialProvider.colorForInterpolant(interpolant)
+                const rgb = materialProvider.colorForInterpolant(interpolant)
                 setGeometryColorAttribute(geometry.userData.colorAttribute.array, rgb)
                 geometry.setAttribute('color', geometry.userData.colorAttribute)
 
