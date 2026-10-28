@@ -90,6 +90,10 @@ class SessionService {
 
     async loadIGVSession(spacewalk, igv) {
 
+        // IGV follows the ensemble load as a listener; let its genome swap
+        // settle, or loadSession below races loadGenome.
+        await this.igvPanel.pendingEnsembleFollow
+
         // Clearing is unconditional, and has to happen before the early return
         // below: a session carrying no IGV state still has to purge whatever
         // the previous session left behind, or those tracks survive the restore.
