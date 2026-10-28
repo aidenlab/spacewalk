@@ -12,8 +12,10 @@ class GUIManager {
         this.ensembleManager = ensembleManager
         this.colorMapManager = colorMapManager
 
-        this.settingsButton = settingsButton
         this.panel = panel
+
+        // settingsButton is the ☰'s container; aria-expanded belongs on the button itself
+        this.panelToggle = settingsButton.querySelector('button')
 
         // Present/Dismiss Settings Panel via Settings Button
         settingsButton.addEventListener('click', (e) => {
@@ -90,7 +92,12 @@ class GUIManager {
 
     setPanelPresented(presented) {
         this.panel.style.display = presented ? 'block' : 'none'
-        this.settingsButton.querySelector('button')?.setAttribute('aria-expanded', String(presented))
+        this.panelToggle.setAttribute('aria-expanded', String(presented))
+    }
+
+    // A color-ramp menu is open over the panel
+    isPanelMenuOpen() {
+        return null !== this.panel.querySelector('.dropdown-menu.show')
     }
 
     configureColorMapControl() {

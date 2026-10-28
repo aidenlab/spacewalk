@@ -43,7 +43,7 @@ function dismissWidgetPanelOnEscape(guiManager) {
         if ('Escape' !== event.key || !guiManager.isPanelPresented()) {
             return
         }
-        if (guiManager.panel.querySelector('.dropdown-menu.show')) {
+        if (guiManager.isPanelMenuOpen()) {
             return
         }
         guiManager.setPanelPresented(false)
