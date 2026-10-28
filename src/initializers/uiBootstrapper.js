@@ -1,24 +1,17 @@
-import * as THREE from 'three'
 import { igvxhr } from 'igv-utils'
 import { fetchJSON } from '../net/remoteResource.js'
 import { createSessionWidgets } from '../widgets/sessionWidgets.js'
 import { createTrackWidgetsWithTrackRegistry } from '../widgets/trackWidgets.js'
-import TraceSelector from '../traceSelector.js'
-import GenomicNavigator from '../genomicNavigator.js'
-import { highlightColor } from "../utils/colorUtils.js"
 import { createSpacewalkFileLoaders } from '../spacewalkFileLoadWidgetServices.js'
-import configureContactMapLoaders from '../widgets/contactMapLoad.js'
 import { createShareWidgets, shareWidgetConfigurator } from '../share/shareWidgets.js'
 import { configureDrag } from "../utils/draggable.js"
-import GUIManager from "../guiManager.js"
-import SettingsManager from "../settingsManager.js"
-import ReferenceRuler from "../referenceRuler.js"
 import { showRelease } from "../utils/release.js"
 import { spacewalkConfig } from "../spacewalk-config.js"
 import { presentResourceError } from "../widgets/presentResourceError.js"
 
 /**
- * Initializer class responsible for bootstrapping all UI widgets and controls.
+ * Bootstraps the app chrome around the 3D viewer: navbar, hand loading,
+ * sessions, sharing, track menus. The viewer's own widgets are assembled in viewer.js.
  */
 class UIBootstrapper {
     constructor(appContext) {
@@ -26,48 +19,15 @@ class UIBootstrapper {
     }
 
     /**
-     * Initialize all UI components
+     * Initialize the app chrome
      * @param {HTMLElement} container - Root container element
-     * @returns {Object} Object containing initialized UI components
      */
     async initialize(container) {
-        const uiComponents = {};
-
         // Display release information
         await this.initializeReleaseInfo();
 
         // Initialize popovers
         this.initializePopovers();
-
-        // Initialize GUI manager first (creates the checkbox that ReferenceRuler needs)
-        const settingsButton = document.querySelector('#spacewalk-threejs-settings-button-container');
-        uiComponents.guiManager = new GUIManager({
-            settingsButton,
-            panel: document.querySelector('#spacewalk_ui_manager_panel'),
-            sceneManager: this.appContext.sceneManager,
-            ensembleManager: this.appContext.ensembleManager,
-            colorMapManager: this.appContext.colorMapManager
-        });
-
-        // Initialize reference ruler (after GUI manager, so its checkbox exists)
-        const renderContainer = document.querySelector('#spacewalk-threejs-canvas-container');
-        this.appContext.assignReferenceRuler(this.buildReferenceRuler(renderContainer));
-
-        // Initialize settings manager (after the widgets above, so all settings targets exist)
-        uiComponents.settingsManager = new SettingsManager({
-            scene: this.appContext.scene,
-            referenceRuler: this.appContext.referenceRuler,
-            sceneFixtures: this.appContext.sceneFixtures
-        });
-
-        // Initialize trace selector and navigator
-        uiComponents.traceSelector = new TraceSelector(document.querySelector('#spacewalk_trace_select_input'), this.appContext.ensembleManager);
-        uiComponents.genomicNavigator = new GenomicNavigator(
-            document.querySelector('#spacewalk-trace-navigator-container'),
-            highlightColor,
-            this.appContext.ensembleManager,
-            this.appContext.sceneManager
-        );
 
         // Initialize file loaders
         this.initializeFileLoaders();
@@ -78,9 +38,6 @@ class UIBootstrapper {
         // Initialize drag functionality
         this.initializeDragControls(container);
 
-        // Initialize home (reset view) button
-        this.initializeHomeButton();
-
         // Initialize share widgets
         createShareWidgets(
             shareWidgetConfigurator(spacewalkConfig.urlShortener),
@@ -89,17 +46,6 @@ class UIBootstrapper {
 
         // Show navbar
         document.querySelector('.navbar').style.display = '';
-
-        return uiComponents;
-    }
-
-    buildReferenceRuler(renderContainer) {
-        const saved = SettingsManager.load()
-        const hidden = saved?.referenceRuler ? !saved.referenceRuler.visible : true
-        const color = saved?.referenceRuler ? new THREE.Color(saved.referenceRuler.r, saved.referenceRuler.g, saved.referenceRuler.b) : undefined
-        const ruler = new ReferenceRuler(renderContainer, hidden, color, saved?.referenceRuler?.anchor)
-        ruler.insertDOM()
-        return ruler
     }
 
     async initializeReleaseInfo() {
@@ -216,18 +162,6 @@ class UIBootstrapper {
         );
     }
 
-    initializeHomeButton() {
-        const button = document.getElementById('spacewalk-threejs-home-button');
-
-        // Prevent the drag container from starting a drag when the button is pressed
-        button.addEventListener('pointerdown', e => e.stopPropagation());
-        button.addEventListener('mousedown', e => e.stopPropagation());
-
-        button.addEventListener('click', () => {
-            this.appContext.cameraLightingRig?.resetCamera?.();
-        });
-    }
-
     initializeFullscreenMode(traceContainer) {
         document.getElementById('spacewalk-fullscreen-button').addEventListener('click', () => {
             if (!document.fullscreenElement) {
@@ -286,29 +220,6 @@ class UIBootstrapper {
             (configurations) => this.appContext.igvPanel.loadTrackList(configurations),
             trackMenuHandler
         );
-    }
-
-    initializeResizeObserver(traceContainer, threeJSObjects) {
-        const renderContainerResizeObserver = new ResizeObserver(entries => {
-            const container = document.querySelector('#spacewalk-threejs-canvas-container');
-            const { width, height } = container.getBoundingClientRect();
-            threeJSObjects.renderer.setSize(width, height);
-            threeJSObjects.camera.aspect = width / height;
-            threeJSObjects.camera.updateProjectionMatrix();
-
-            // Re-clamp the ruler so it stays inside the resized container
-            if (this.appContext.referenceRuler) {
-                this.appContext.referenceRuler.applyAnchor();
-            }
-
-            // Trigger a render through the app context
-            if (this.appContext.render) {
-                this.appContext.render();
-            }
-        });
-
-        renderContainerResizeObserver.observe(traceContainer);
-        return renderContainerResizeObserver;
     }
 }
 
