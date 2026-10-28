@@ -39,12 +39,15 @@ Workspace iframe) and resizes with it — no drag grip, no resize corner. The gr
 the toolbar:
 
 ```
-[ ☰ ]  [ − ][ trace # ][ + ]   ………   [ ⚙ ]  [ ⌂ ]
-widgets   trace select                settings  reset camera
+[ − ][ trace # ][ + ]   ………   [ ⚙ ]  [ ⌂ ]
+     trace select              settings  reset camera
 ```
 
 - ☰ opens today's widget panel (point size/transparency, color ramps, render style, radii,
   sticks, circular genome) — **reparented into the viewer** as an overlay, closed by default.
+  The ☰ stays where it is today, floating over the top-left of the canvas rather than in the
+  bar: it costs almost no screen and needs no new home. A ☰ in the bar would only earn its
+  place by doing something the floating one doesn't.
 - ⚙ opens today's settings (background, axes, ground plane, reference ruler) — same treatment.
 - The genomic navigator stays where it is.
 

@@ -66,7 +66,7 @@ Working alone, take them in number order: **105 → 106 → 107 → 108 → 109 
 - **#110 — Viewer-only page loads an ensemble from a URL.** New entry point; fills the window; loads
   the `.sw` named in a URL parameter; navigator and ball-picker highlighting work; the build shows no
   `igv`/`juicebox.js` in the bundle.
-- **#111 — Viewer toolbar.** The gray bar becomes `[☰] [− trace +] … [⚙] [⌂]`; trace select steps
+- **#111 — Viewer toolbar.** The gray bar becomes `[− trace +] … [⚙] [⌂]` (☰ stays floating over the canvas); trace select steps
   through traces; ⌂ resets the camera; usable at ~400px wide. Checked by eye.
 - **#112 — ☰ widget overlay.** Today's widget panel, reparented into the viewer as an overlay,
   closed by default. Checked by eye.
