@@ -2,8 +2,8 @@ import * as THREE from "three"
 import { vectorMax, vectorMin } from "./mathUtils.js"
 
 // Project a mesh's geometry into the render container's pixel space, and report both the
-// pixel extent and the corresponding world-space (nm) extent. Consumed by the scale bars
-// (which straddle the data) and the reference ruler (which only needs nm-per-pixel).
+// pixel extent and the corresponding world-space (nm) extent. Consumed by the reference
+// ruler, which only needs nm-per-pixel.
 function calculateProjectedBounds(mesh, camera, container) {
 
     let xyzCameraMin = new THREE.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY)

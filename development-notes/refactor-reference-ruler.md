@@ -1,9 +1,10 @@
 # Refactor: the Reference Ruler becomes its own widget — placeable, draggable, remembered
 
-> **STATUS: Proposal.** Extracts the Reference Ruler out of `ScaleBarService` into
-> `src/referenceRuler.js`, moves its default position to bottom-**right** of the render container,
-> and makes it draggable with a persisted anchor. Prerequisite framing for the eventual deletion of
-> the Scale Bars.
+> **STATUS: Done — and the Scale Bars are deleted (#108).** Extracted the Reference Ruler out of
+> `ScaleBarService` into `src/referenceRuler.js`, moved its default position to bottom-**right** of
+> the render container, and made it draggable with a persisted anchor. The follow-on pass then
+> deleted the Scale Bars outright; see [Follow-on: the Scale Bars are deleted](#follow-on-the-scale-bars-are-deleted).
+> References below to `scaleBarService.js` describe the code as it was before that pass.
 
 ## The conceit (why this refactor exists)
 
@@ -159,8 +160,23 @@ Two separable commits, so the mechanical change and the behavior change can be r
 2. **Reposition and make draggable.** Default moves to bottom-right; Anchor model, drag wiring,
    clamp fix in `draggable.js`, double-click reset, `localStorage` round-trip.
 
-## Follow-on (explicitly not this RFC)
+## Follow-on: the Scale Bars are deleted
 
-- Delete the Scale Bars entirely, along with `#spacewalk_ui_manager_scale_bars`, its color picker,
-  and the now-dead session methods.
-- Rename what remains — "scale bar" as a term should leave the codebase with the widget.
+Done in #108, as a deletion rather than an untangling — which is what extracting the ruler first
+bought.
+
+- `src/scaleBarService.js` is gone, along with `src/utils/screenScaleBarsUtils.js` (an older,
+  already-unreferenced copy of the same bars).
+- The settings panel's Scale Bars row — `#spacewalk_ui_manager_scale_bars` and its
+  `scale-bars` color picker — is gone. `App.assignScaleBarService` and the `scaleBarService`
+  argument to `SettingsManager` went with it.
+- The render loop projects the convex hull only when the ruler is visible; `projectedBounds.js`
+  survives because `nmPerPixel` still needs the projected width.
+- The dead session methods went too. `referenceRulerToJSON` / `setReferenceRulerState` had already
+  become `ReferenceRuler.toJSON` / `setState` during extraction, still with no callers; both are
+  deleted.
+- **Old records still load.** `localStorage['spacewalk-settings']` written before the deletion
+  carries a `scaleBars` key; nothing reads it any more, and the next `save()` drops it. Sessions
+  never carried Scale Bars state (see the TODOs in `sessionServices.js`), so no session change
+  was needed.
+- "Scale bar" as a term has left `src/`.

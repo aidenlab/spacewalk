@@ -32,7 +32,6 @@ class App {
         // Services
         this.liveContactMapService = null;
         this.liveDistanceMapService = null;
-        this.scaleBarService = null;
         this.referenceRuler = null;
         this.sceneFixtures = null;
         this.ensembleIngestionController = null;
@@ -269,17 +268,11 @@ class App {
 
             const convexHull = this.sceneManager.getConvexHull();
 
-            // Project the hull once and hand the same bounds to both widgets
-            if (convexHull && (this.scaleBarService.visible || this.referenceRuler.visible)) {
+            if (convexHull && this.referenceRuler.visible) {
                 const bounds = calculateProjectedBounds(convexHull.mesh, this.camera, this.renderer.domElement.parentElement);
-                this.scaleBarService.render(bounds);
                 this.referenceRuler.render(nmPerPixel(bounds));
             }
         }
-    }
-
-    assignScaleBarService(service) {
-        this.scaleBarService = service
     }
 
     assignReferenceRuler(referenceRuler) {

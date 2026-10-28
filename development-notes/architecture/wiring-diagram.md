@@ -44,7 +44,7 @@ flowchart TD
 
     subgraph S3[Stage 3 - UI]
         GUI[GUIManager]:::ui
-        SBS[ScaleBarService]:::ui
+        RR[ReferenceRuler]:::ui
         SettM[SettingsManager]:::ui
         Trace[TraceSelector]:::ui
         GN[GenomicNavigator]:::ui
@@ -90,7 +90,7 @@ flowchart TD
 
     %% Stage 3
     App --> GUI
-    App --> SBS
+    App --> RR
     App --> SettM
     App --> Trace
     App --> GN
@@ -102,7 +102,7 @@ flowchart TD
     SM --> GN
     CRMP --> GN
     Scene --> SettM
-    SBS --> SettM
+    RR --> SettM
     SF --> SettM
 
     %% Stage 4

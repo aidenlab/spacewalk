@@ -1,6 +1,5 @@
-import * as THREE from "three"
 import { appleCrayonColorThreeJS, rgb255String, threeJSColorToRGB255 } from "./utils/colorUtils.js"
-import { register, updateSwatch } from "./utils/sharedColorPicker.js"
+import { register } from "./utils/sharedColorPicker.js"
 import { configureDrag } from "./utils/draggable.js"
 import { clamp } from "./utils/mathUtils.js"
 
@@ -13,10 +12,9 @@ const DEFAULT_ANCHOR = { corner: 'bottom-right', dx: 20, dy: 20 }
 
 const CORNERS = new Set(['bottom-right', 'bottom-left', 'top-left', 'top-right'])
 
-// A fixed-length legend parked in a corner of the render container. Unlike the scale bars,
-// which straddle the data, the ruler never moves with the camera — it answers the single
-// question "what does 128px mean right now?" It is furniture: the user can drag it
-// anywhere, and it stays where they put it.
+// A fixed-length legend parked in a corner of the render container. The ruler never
+// moves with the camera — it answers the single question "what does 128px mean right
+// now?" It is furniture: the user can drag it anywhere, and it stays where they put it.
 class ReferenceRuler {
 
     constructor(renderContainer, isHidden, initialColor, anchor) {
@@ -185,17 +183,6 @@ class ReferenceRuler {
         if (this.visible) this.applyAnchor()
         const input = document.getElementById('spacewalk_ui_manager_reference_ruler')
         if (input) input.checked = this.visible
-    }
-
-    setState({ r, g, b, visibility }) {
-        this.setColor(new THREE.Color(r, g, b))
-        this.setVisibility(visibility)
-        updateSwatch(document.querySelector(`div[data-colorpicker='reference-ruler']`), new THREE.Color(r, g, b))
-    }
-
-    toJSON() {
-        const { r, g, b } = this.color
-        return { r, g, b, visibility: this.visible ? 'visible' : 'hidden' }
     }
 
     // Records written before the ruler was placeable have no anchor; they get the default
