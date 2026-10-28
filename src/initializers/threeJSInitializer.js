@@ -3,9 +3,7 @@ import CameraLightingRig from "../cameraLightingRig.js"
 import Picker from "../picker.js"
 import SceneManager from "../sceneManager.js"
 import SceneFixtures from "../sceneFixtures.js"
-import { appleCrayonColorThreeJS } from "../utils/colorUtils.js"
-import { register } from "../utils/sharedColorPicker.js"
-import SettingsManager from "../settingsManager.js"
+import { register, updateSwatch } from "../utils/sharedColorPicker.js"
 import { getMouseXY } from '../utils/utils.js'
 
 /**
@@ -23,9 +21,10 @@ class ThreeJSInitializer {
     /**
      * Initialize Three.js core objects and return them
      * @param {Object} colorRampMaterialProvider - The color ramp material provider
+     * @param {ViewerSettings} viewerSettings - owner of the background color
      * @returns {Object} Object containing all initialized Three.js objects
      */
-    initialize({ colorRampMaterialProvider, ensembleManager }) {
+    initialize({ colorRampMaterialProvider, ensembleManager, viewerSettings }) {
         const threeJSObjects = {};
 
         threeJSObjects.picker = new Picker(new THREE.Raycaster());
@@ -62,13 +61,8 @@ class ThreeJSInitializer {
 
         // Create scene
         threeJSObjects.scene = new THREE.Scene();
-        const savedSettings = SettingsManager.load()
-        if (savedSettings?.background) {
-            const { r, g, b } = savedSettings.background
-            threeJSObjects.scene.background = new THREE.Color(r, g, b)
-        } else {
-            threeJSObjects.scene.background = appleCrayonColorThreeJS('snow')
-        }
+        const { r, g, b } = viewerSettings.get().background
+        threeJSObjects.scene.background = new THREE.Color(r, g, b)
 
         // Create camera
         const fov = 35;
@@ -89,7 +83,7 @@ class ThreeJSInitializer {
         threeJSObjects.cameraLightingRig.setPose(position, centroid);
 
         // Create scene fixtures (registers Gnomon + GroundPlane color pickers)
-        threeJSObjects.sceneFixtures = new SceneFixtures(threeJSObjects.scene);
+        threeJSObjects.sceneFixtures = new SceneFixtures(threeJSObjects.scene, viewerSettings);
 
         // Create SceneManager last — depends on scene, ensembleManager,
         // cameraLightingRig, and sceneFixtures
@@ -107,11 +101,14 @@ class ThreeJSInitializer {
             backgroundContainer,
             threeJSObjects.scene.background,
             () => threeJSObjects.scene.background,
-            color => {
-                threeJSObjects.scene.background = new THREE.Color(color);
-                threeJSObjects.renderer.render(threeJSObjects.scene, threeJSObjects.camera);
-            }
+            ({ r, g, b }) => viewerSettings.update({ background: { r, g, b } })
         )
+
+        viewerSettings.subscribe(({ background: { r, g, b } }) => {
+            threeJSObjects.scene.background = new THREE.Color(r, g, b);
+            updateSwatch(backgroundContainer, threeJSObjects.scene.background);
+            threeJSObjects.renderer.render(threeJSObjects.scene, threeJSObjects.camera);
+        })
 
         return threeJSObjects;
     }

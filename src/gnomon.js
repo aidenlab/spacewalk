@@ -100,31 +100,12 @@ class Gnomon extends THREE.AxesHelper {
         this.scene = undefined
     }
 
-    toggle() {
-        this.group.visible = !this.group.visible;
-        Gnomon.setGnomonWidgetVisibilityStatus(this.group.visible);
-    }
-
     present() {
         this.group.visible = true;
-        Gnomon.setGnomonWidgetVisibilityStatus(this.group.visible);
     }
 
     dismiss() {
         this.group.visible = false;
-        Gnomon.setGnomonWidgetVisibilityStatus(this.group.visible);
-    }
-
-    static setGnomonHidden() {
-        const input = document.getElementById('spacewalk_ui_manager_gnomon');
-        return !(input && input.checked);
-    }
-
-    static setGnomonWidgetVisibilityStatus(status) {
-        const input = document.getElementById('spacewalk_ui_manager_gnomon');
-        if (input) {
-            input.checked = status;
-        }
     }
 
     static getXAxisSprite(min, max, boundingDiameter, color) {

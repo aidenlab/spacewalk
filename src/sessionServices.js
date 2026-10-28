@@ -138,9 +138,8 @@ class SessionService {
         // the ensemble — and ingestEnsemblePath now posts DidLoadEnsembleFile
         // itself, so panel visibility must be settled before that fires.
         //
-        // TODO: Gnomon, ground plane, and background color are now
-        // managed by SettingsManager (localStorage). Session values are ignored
-        // during testing of the new settings approach.
+        // Gnomon, ground plane, and background color are viewer settings
+        // (viewerSettings.js), kept beside the session. Session values are ignored.
         Panel.setState(panelVisibility)
 
         try {
@@ -225,8 +224,8 @@ class SessionService {
         spacewalk.renderStyle = this.sceneManager.renderStyle
         spacewalk.panelVisibility = Panel.toJSON()
 
-        // TODO: Gnomon, ground plane, and background color are now
-        // managed by SettingsManager (localStorage). No longer saved to session files.
+        // Gnomon, ground plane, and background color are viewer settings
+        // (viewerSettings.js), kept beside the session — not saved to session files.
 
         spacewalk.cameraLightingRig = this.cameraLightingRig.getState()
 
