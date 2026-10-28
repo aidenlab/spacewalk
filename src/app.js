@@ -1,40 +1,33 @@
-import EnsembleManager from "./ensembleManager.js"
-import ColorMapManager from "./utils/colorMapManager.js"
-import TrackMaterialProvider from "./trackMaterialProvider.js"
-import ColorRampMaterialProvider from "./colorRampMaterialProvider.js"
-import { appleCrayonColorRGB255 } from "./utils/colorUtils.js"
 import { SessionService } from "./sessionServices.js"
 import SessionBootstrapper from "./sessionBootstrapper.js"
 import { showGlobalSpinner, hideGlobalSpinner } from './utils/utils.js'
-import { defaultColormapName } from "./utils/colorMapManager.js"
-import ThreeJSInitializer from "./initializers/threeJSInitializer.js"
 import UIBootstrapper from "./initializers/uiBootstrapper.js"
 import PanelInitializer from "./initializers/panelInitializer.js"
-import EnsembleIngestionController from "./ensembleIngestionController.js"
-import { calculateProjectedBounds, nmPerPixel } from "./utils/projectedBounds.js"
+import assembleViewer from "./viewer.js"
 
 /**
- * Main application class that orchestrates Spacewalk initialization.
+ * The full Spacewalk app: the 3D viewer, assembled by assembleViewer(), plus
+ * the app chrome (navbar, hand loading, sessions, sharing) and the companion
+ * panels (IGV, Juicebox) attached to the viewer through the ports.
  * All shared state lives on the App instance and is passed to consumers
  * via constructor injection.
  */
 class App {
     constructor() {
 
-        // Core managers
+        // The 3D viewer and the parts of it the app reaches for
+        this.viewer = null;
         this.ensembleManager = null;
-        this.colorMapManager = null;
         this.sceneManager = null;
         this.trackMaterialProvider = null;
         this.colorRampMaterialProvider = null;
-        this.guiManager = null;
+        this.genomicNavigator = null;
+        this.cameraLightingRig = null;
+        this.ensembleIngestionController = null;
 
         // Services
         this.liveContactMapService = null;
         this.liveDistanceMapService = null;
-        this.referenceRuler = null;
-        this.sceneFixtures = null;
-        this.ensembleIngestionController = null;
         this.sessionService = null;
         this.sessionBootstrapper = null;
 
@@ -42,24 +35,7 @@ class App {
         this.juiceboxPanel = null;
         this.igvPanel = null;
 
-        // Navigation and selection
-        this.traceSelector = null;
-        this.genomicNavigator = null;
-
-        // Three.js core objects
-        this.renderer = null;
-        this.cameraLightingRig = null;
-        this.camera = null;
-        this.scene = null;
-        this.picker = null;
-        // Observers
-        this.renderContainerResizeObserver = null;
-
-        // Configuration
-        this.googleEnabled = false;
-
         // Initializers
-        this.threeJSInitializer = null;
         this.uiBootstrapper = null;
         this.panelInitializer = null;
     }
@@ -67,37 +43,28 @@ class App {
     async initialize() {
         showGlobalSpinner();
 
-        // Initialize core managers
-        await this.initializeCoreManagers();
-
-        // Initialize Three.js scene, camera, and renderer
-        const container = document.getElementById('spacewalk-threejs-canvas-container')
-        this.threeJSInitializer = new ThreeJSInitializer(container);
-        const threeJSObjects = this.threeJSInitializer.initialize({
-            colorRampMaterialProvider: this.colorRampMaterialProvider,
-            ensembleManager: this.ensembleManager
-        });
-        this.assignThreeJSObjects(threeJSObjects);
+        // The 3D viewer, whole on its own
+        const canvasContainer = document.getElementById('spacewalk-threejs-canvas-container')
+        const traceContainer = document.getElementById('spacewalk-threejs-trace-navigator-container');
+        this.viewer = await assembleViewer({ canvasContainer, traceContainer });
+        this.assignViewer(this.viewer);
 
         // Enable drag-and-drop of .sw files onto the 3D viewer
-        this.initializeDragAndDrop(container);
+        this.initializeDragAndDrop(canvasContainer);
 
-        // Initialize UI components
+        // App chrome: navbar, hand loading, sessions, sharing
+        const rootContainer = document.getElementById('spacewalk-root-container')
         this.uiBootstrapper = new UIBootstrapper(this);
-        const uiComponents = await this.uiBootstrapper.initialize(document.getElementById('spacewalk-root-container'));
-        this.assignUIComponents(uiComponents);
+        await this.uiBootstrapper.initialize(rootContainer);
 
         // Initialize track widgets (needs to be done after UI but before panels)
         this.uiBootstrapper.initializeTrackWidgets();
 
-        // Initialize panels and their services
+        // Attach the companion panels (IGV, Juicebox) to the viewer
         this.panelInitializer = new PanelInitializer(this);
-        const panelObjects = await this.panelInitializer.initialize(document.getElementById('spacewalk-root-container'));
+        const panelObjects = await this.panelInitializer.initialize(rootContainer, this.viewer);
         this.assignPanelObjects(panelObjects);
 
-        // Configure resize observer and fullscreen mode
-        const traceContainer = document.getElementById('spacewalk-threejs-trace-navigator-container');
-        this.renderContainerResizeObserver = this.uiBootstrapper.initializeResizeObserver(traceContainer, threeJSObjects);
         this.uiBootstrapper.initializeFullscreenMode(traceContainer);
 
         // Load session from URL parameters if present
@@ -108,35 +75,17 @@ class App {
         // Signal readiness to opener (e.g., swtool) and listen for incoming files
         this.initializePostMessageListener();
 
-        // Start the render loop
-        this.startRenderLoop();
+        this.viewer.startRenderLoop();
     }
 
-    async initializeCoreManagers() {
-        this.ensembleManager = new EnsembleManager();
-
-        this.trackMaterialProvider = new TrackMaterialProvider(appleCrayonColorRGB255('snow'), appleCrayonColorRGB255('blueberry'), this.ensembleManager);
-
-        this.colorMapManager = new ColorMapManager();
-        await this.colorMapManager.configure();
-
-        this.colorRampMaterialProvider = new ColorRampMaterialProvider(defaultColormapName, this.colorMapManager);
-    }
-
-    assignThreeJSObjects(threeJSObjects) {
-        this.sceneManager = threeJSObjects.sceneManager;
-        this.picker = threeJSObjects.picker;
-        this.renderer = threeJSObjects.renderer;
-        this.cameraLightingRig = threeJSObjects.cameraLightingRig;
-        this.camera = threeJSObjects.camera;
-        this.scene = threeJSObjects.scene;
-        this.sceneFixtures = threeJSObjects.sceneFixtures;
-    }
-
-    assignUIComponents(uiComponents) {
-        this.guiManager = uiComponents.guiManager;
-        this.traceSelector = uiComponents.traceSelector;
-        this.genomicNavigator = uiComponents.genomicNavigator;
+    assignViewer(viewer) {
+        this.ensembleManager = viewer.ensembleManager;
+        this.sceneManager = viewer.sceneManager;
+        this.trackMaterialProvider = viewer.trackMaterialProvider;
+        this.colorRampMaterialProvider = viewer.colorRampMaterialProvider;
+        this.genomicNavigator = viewer.genomicNavigator;
+        this.cameraLightingRig = viewer.cameraLightingRig;
+        this.ensembleIngestionController = viewer.ensembleIngestionController;
     }
 
     /**
@@ -152,29 +101,6 @@ class App {
         // Panels were already assigned via populatePanelVariable
         this.liveContactMapService = panelObjects.liveContactMapService;
         this.liveDistanceMapService = panelObjects.liveDistanceMapService;
-
-        // Wire deferred dependencies now that panels and navigator exist.
-        this.sceneManager.createHighlighters({
-            ensembleManager: this.ensembleManager,
-            genomicNavigator: this.genomicNavigator,
-        });
-
-        this.picker.wireDependencies({
-            sceneManager: this.sceneManager,
-            genomicNavigator: this.genomicNavigator,
-        });
-
-        this.cameraLightingRig.wireDependencies({
-            sceneFixtures: this.sceneFixtures,
-        });
-
-        this.ensembleIngestionController = new EnsembleIngestionController({
-            ensembleManager: this.ensembleManager,
-            sceneManager: this.sceneManager,
-            colorRampMaterialProvider: this.colorRampMaterialProvider,
-            genomicNavigator: this.genomicNavigator,
-            trackMaterialProvider: this.trackMaterialProvider,
-        });
 
         this.sessionService = new SessionService({
             ensembleManager: this.ensembleManager,
@@ -250,41 +176,6 @@ class App {
                 hideGlobalSpinner()
             }
         })
-    }
-
-    render() {
-        if (this.sceneManager.isGood2Go()) {
-            this.sceneManager.renderLoopHelper();
-            this.genomicNavigator.renderLoopHelper();
-            this.cameraLightingRig.renderLoopHelper();
-            this.sceneFixtures.getGroundPlane().renderLoopHelper();
-            this.sceneFixtures.getGnomon().renderLoopHelper();
-
-            // Get mouse coordinates from ThreeJS initializer
-            const { x, y } = this.threeJSInitializer.getMouseCoordinates();
-            this.picker.intersect({ x, y, scene: this.scene, camera: this.camera });
-
-            this.renderer.render(this.scene, this.camera);
-
-            const convexHull = this.sceneManager.getConvexHull();
-
-            if (convexHull && this.referenceRuler.visible) {
-                const bounds = calculateProjectedBounds(convexHull.mesh, this.camera, this.renderer.domElement.parentElement);
-                this.referenceRuler.render(nmPerPixel(bounds));
-            }
-        }
-    }
-
-    assignReferenceRuler(referenceRuler) {
-        this.referenceRuler = referenceRuler
-    }
-
-    startRenderLoop() {
-        const renderLoop = () => {
-            requestAnimationFrame(renderLoop);
-            this.render();
-        };
-        renderLoop();
     }
 }
 

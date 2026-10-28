@@ -6,8 +6,9 @@ import LiveDistanceMapService from "../juicebox/liveDistanceMapService.js"
 import configureContactMapLoaders from '../widgets/contactMapLoad.js'
 
 /**
- * Initializer class responsible for setting up IGV and Juicebox panels
- * and their associated services.
+ * Attaches the companion panels (IGV, Juicebox) and their services to an
+ * assembled 3D viewer (see viewer.js). IGV drives the viewer's signal port;
+ * the live maps read the ensemble out through the matrix port.
  */
 class PanelInitializer {
     constructor(appContext) {
@@ -17,9 +18,11 @@ class PanelInitializer {
     /**
      * Initialize all panels and related services
      * @param {HTMLElement} container - Root container element
+     * @param {Viewer} viewer - the assembled 3D viewer the panels attach to
      * @returns {Object} Object containing initialized panels and services
      */
-    async initialize(container) {
+    async initialize(container, viewer) {
+        const { colorRampMaterialProvider, trackMaterialProvider, ensembleManager, genomicNavigator, sceneManager } = viewer;
         const panelObjects = {};
 
         // Initialize IGV Panel (mini-app)
@@ -27,11 +30,11 @@ class PanelInitializer {
             container,
             panel: document.querySelector('#spacewalk_igv_panel'),
             isHidden: doInspectPanelVisibilityCheckbox('spacewalk_igv_panel'),
-            colorRampMaterialProvider: this.appContext.colorRampMaterialProvider,
-            trackMaterialProvider: this.appContext.trackMaterialProvider,
-            ensembleManager: this.appContext.ensembleManager,
-            genomicNavigator: this.appContext.genomicNavigator,
-            sceneManager: this.appContext.sceneManager
+            colorRampMaterialProvider,
+            trackMaterialProvider,
+            ensembleManager,
+            genomicNavigator,
+            sceneManager
         });
         // Populate module-level variable BEFORE initialization (event handlers may need it)
         this.appContext.populatePanelVariable('igvPanel', panelObjects.igvPanel);
@@ -42,9 +45,9 @@ class PanelInitializer {
             container,
             panel: document.getElementById('spacewalk_juicebox_panel'),
             isHidden: doInspectPanelVisibilityCheckbox('spacewalk_juicebox_panel'),
-            ensembleManager: this.appContext.ensembleManager,
-            sceneManager: this.appContext.sceneManager,
-            genomicNavigator: this.appContext.genomicNavigator
+            ensembleManager,
+            sceneManager,
+            genomicNavigator
         });
         // Populate module-level variable BEFORE initialization (event handlers need it)
         this.appContext.populatePanelVariable('juiceboxPanel', panelObjects.juiceboxPanel);
@@ -58,7 +61,7 @@ class PanelInitializer {
             liveMapView: panelObjects.juiceboxPanel.liveMapView
         });
         panelObjects.liveContactMapService = new LiveContactMapService({
-            ensembleManager: this.appContext.ensembleManager,
+            ensembleManager,
             igvPanel: panelObjects.igvPanel,
             liveMapView: panelObjects.juiceboxPanel.liveMapView,
             getJuiceboxBrowser: () => panelObjects.juiceboxPanel.browser,

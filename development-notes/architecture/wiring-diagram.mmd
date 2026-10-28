@@ -7,74 +7,91 @@ flowchart TD
     classDef service fill:#f3e5f5,stroke:#9c5cb5,color:#1a1a1a
     classDef datasource fill:#e0f7fa,stroke:#3a98a8,color:#1a1a1a
     App((App)):::stage
-    subgraph S1[Stage 1 - Core managers]
-        EM[EnsembleManager]:::core
-        CMM[ColorMapManager]:::core
-        TMP[TrackMaterialProvider]:::core
-        CRMP[ColorRampMaterialProvider]:::core
+    AV((assembleViewer)):::stage
+    subgraph Viewer[Viewer - no igv, no juicebox.js]
+        subgraph S1[Stage 1 - Core managers]
+            EM[EnsembleManager]:::core
+            CMM[ColorMapManager]:::core
+            TMP[TrackMaterialProvider]:::core
+            CRMP[ColorRampMaterialProvider]:::core
+        end
+        subgraph S2[Stage 2 - Three.js]
+            Scene[scene]:::threejs
+            Cam[camera]:::threejs
+            Renderer[renderer]:::threejs
+            Picker[Picker]:::threejs
+            CLR[CameraLightingRig]:::threejs
+            SF[SceneFixtures]:::threejs
+            SM[SceneManager]:::threejs
+        end
+        subgraph S3[Stage 3 - Viewer UI]
+            GUI[GUIManager]:::ui
+            RR[ReferenceRuler]:::ui
+            SettM[SettingsManager]:::ui
+            Trace[TraceSelector]:::ui
+            GN[GenomicNavigator]:::ui
+        end
+        subgraph S4[Stage 4 - Viewer glue]
+            EIC[EnsembleIngestionController]:::service
+        end
+        subgraph S7[On file load]
+            SWB[SWBDatasource]:::datasource
+        end
     end
-    subgraph S2[Stage 2 - Three.js]
-        Scene[scene]:::threejs
-        Cam[camera]:::threejs
-        Renderer[renderer]:::threejs
-        Picker[Picker]:::threejs
-        CLR[CameraLightingRig]:::threejs
-        SF[SceneFixtures]:::threejs
-        SM[SceneManager]:::threejs
-    end
-    subgraph S3[Stage 3 - UI]
-        GUI[GUIManager]:::ui
-        RR[ReferenceRuler]:::ui
-        SettM[SettingsManager]:::ui
-        Trace[TraceSelector]:::ui
-        GN[GenomicNavigator]:::ui
-    end
-    subgraph S4[Stage 4 - Panels and services]
+    subgraph S5[Stage 5 - Panels attached to the viewer]
         IGV[IGVPanel]:::panel
         JB[JuiceboxPanel]:::panel
         LDM[LiveDistanceMapService]:::service
         LCM[LiveContactMapService]:::service
     end
-    subgraph S5[Stage 5 - App-level glue]
-        EIC[EnsembleIngestionController]:::service
+    subgraph S6[Stage 6 - App glue and chrome]
         SS[SessionService]:::service
+        Chrome[UIBootstrapper - navbar, hand loading, sessions, share]:::ui
     end
-    subgraph S6[Stage 6 - On file load]
-        SWB[SWBDatasource]:::datasource
-    end
-    App --> EM
-    App --> CMM
-    App --> TMP
-    App --> CRMP
+    App --> AV
+    AV --> EM
+    AV --> CMM
+    AV --> TMP
+    AV --> CRMP
     CMM --> CRMP
     EM --> TMP
-    App --> Renderer
-    App --> Scene
-    App --> Cam
-    App --> Picker
-    App --> CLR
-    App --> SF
-    App --> SM
+    AV --> Renderer
+    AV --> Scene
+    AV --> Cam
+    AV --> Picker
+    AV --> CLR
+    AV --> SF
+    AV --> SM
     CRMP --> SM
     EM --> SM
     Scene --> SM
     CLR --> SM
     SF --> SM
-    App --> GUI
-    App --> RR
-    App --> SettM
-    App --> Trace
-    App --> GN
+    AV --> GUI
+    AV --> RR
+    AV --> SettM
+    AV --> Trace
+    AV --> GN
     SM --> GUI
     EM --> GUI
     CMM --> GUI
     EM --> Trace
     EM --> GN
     SM --> GN
-    CRMP --> GN
     Scene --> SettM
     RR --> SettM
     SF --> SettM
+    AV --> EIC
+    EM --> EIC
+    SM --> EIC
+    CRMP --> EIC
+    GN --> EIC
+    TMP --> EIC
+    GN -.-> Picker
+    SM -.-> Picker
+    SF -.-> CLR
+    GN -.-> SM
+    EM ==> SWB
     App --> IGV
     App --> JB
     App --> LDM
@@ -92,14 +109,9 @@ flowchart TD
     JB --> LCM
     IGV --> LCM
     LDM --> LCM
-    App --> EIC
+    LCM -.-> JB
+    IGV -- signal port: setMaterialProvider --> SM
     App --> SS
-    EM --> EIC
-    SM --> EIC
-    IGV --> EIC
-    CRMP --> EIC
-    GN --> EIC
-    TMP --> EIC
     EM --> SS
     SM --> SS
     IGV --> SS
@@ -107,13 +119,6 @@ flowchart TD
     TMP --> SS
     CLR --> SS
     EIC --> SS
-    IGV -.-> SM
-    GN -.-> Picker
-    SM -.-> Picker
-    LCM -.-> JB
-    SF -.-> CLR
-    IGV -.-> EM
-    EM ==> SWB
-    IGV ==> SWB
-    GN ==> SS
-    EM ==> EIC
+    App --> Chrome
+    SS ==> Chrome
+    EIC ==> Chrome
