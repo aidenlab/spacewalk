@@ -27,10 +27,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     const traceContainer = document.getElementById('spacewalk-threejs-trace-navigator-container')
     const viewer = await withSpinner(() => assembleViewer({ canvasContainer, traceContainer }))
 
+    dismissWidgetPanelOnEscape(viewer.guiManager)
+
     await loadEnsembleFromURL(viewer, window.location.href)
 
     viewer.startRenderLoop()
 })
+
+// The widget panel overlays the canvas, so there is no background to click away
+// to: Escape dismisses it. An open color-ramp menu takes the first Escape —
+// checked capturing on window, ahead of Bootstrap, whose delegated handlers
+// capture on document and would already have closed the menu.
+function dismissWidgetPanelOnEscape(guiManager) {
+    window.addEventListener('keydown', event => {
+        if ('Escape' !== event.key || !guiManager.isPanelPresented()) {
+            return
+        }
+        if (guiManager.panel.querySelector('.dropdown-menu.show')) {
+            return
+        }
+        guiManager.setPanelPresented(false)
+    }, { capture: true })
+}
 
 async function loadEnsembleFromURL(viewer, href) {
 
