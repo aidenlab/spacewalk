@@ -46,7 +46,7 @@ The full Spacewalk app keeps working unchanged the whole way through.
    dependency; the full app calls it and then attaches its panels.
 3. **The viewer-only page** — a new entry point built on that routine; fills the window; loads from
    a URL parameter; navigator and ball-picker highlighting work.
-4. **The in-viewer UI** — the gray top bar becomes the toolbar (`[☰] [− trace +] … [⚙] [⌂]`);
+4. **The in-viewer UI** — the gray top bar becomes the toolbar (`[− trace +] … [⚙] [⌂]`, ☰ floating over the canvas);
    the widget panel and settings become overlays inside the viewer, closed by default.
 
 **Done when.** The viewer-only page renders the Load From List fixtures in every render style, with

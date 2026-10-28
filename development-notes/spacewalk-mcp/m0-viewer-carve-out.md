@@ -38,7 +38,7 @@ Working alone, take them in number order: **105 → 106 → 107 → 108 → 109 
 | 5 | #109 | Separate assembling the 3D viewer from assembling the app | #105, #106, #107 | ☐ |
 | 6 | #110 | Viewer-only page loads an ensemble from a URL | #109 | ☐ |
 | 7 | #111 | Viewer toolbar: trace select and reset camera | #110 | ☐ |
-| 8 | #112 | Widget panel as a ☰ overlay in the viewer | #110 | ☐ |
+| 8 | #112 | Widget panel as an overlay from the floating ☰ | #110 | ☐ |
 | 9 | #113 | Settings as a ⚙ overlay in the viewer | #108, #110 | ☐ |
 
 ### Prefactors (full app, no visible change)
@@ -66,7 +66,7 @@ Working alone, take them in number order: **105 → 106 → 107 → 108 → 109 
 - **#110 — Viewer-only page loads an ensemble from a URL.** New entry point; fills the window; loads
   the `.sw` named in a URL parameter; navigator and ball-picker highlighting work; the build shows no
   `igv`/`juicebox.js` in the bundle.
-- **#111 — Viewer toolbar.** The gray bar becomes `[☰] [− trace +] … [⚙] [⌂]`; trace select steps
+- **#111 — Viewer toolbar.** The gray bar becomes `[− trace +] … [⚙] [⌂]` (☰ stays floating over the canvas); trace select steps
   through traces; ⌂ resets the camera; usable at ~400px wide. Checked by eye.
 - **#112 — ☰ widget overlay.** Today's widget panel, reparented into the viewer as an overlay,
   closed by default. Checked by eye.
