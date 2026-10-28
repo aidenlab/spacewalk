@@ -1,7 +1,7 @@
 # M1 — The MCP server, single user: tickets
 
 > **STATUS: Filed (2026-10-28).** Ticket list and implementation order for milestone M1, from the
-> grilling session of 2026-10-28. All tickets are labelled `ready-for-agent`, are sub-issues of the
+> grilling session of 2026-10-28. All tickets are labelled `ready-for-agent` except spacewalk-mcp#12 (`ready-for-human`); all are sub-issues of the
 > umbrella, and carry native GitHub issue dependencies (across both repos). Bare `#N` is
 > aidenlab/spacewalk; `spacewalk-mcp#N` is aidenlab/spacewalk-mcp.
 > Overall plan: [milestones.md](milestones.md). Vocabulary: `spacewalk-mcp/GLOSSARY.md`.
@@ -27,13 +27,15 @@ Wave 4 (parallel)   mcp#8 spacewalk-remote   mcp#7 replies   (mcp#7 needs #5 and
 Wave 5 (parallel)   #130 page attaches       mcp#9 ensemble + rendering tools
                     (needs mcp#8, #129)      mcp#10 scene + state tools (needs #128)
                       │                      │
-Wave 6              mcp#11 deploy wizard, dev environment (needs mcp#9, mcp#10, #130)
+Wave 6              mcp#11 write the deploy wizard (needs mcp#9, mcp#10, #130)
+                      │
+Wave 7              mcp#12 run it; check M1 on the four hosts (a human step)
 ```
 
 In the diagram, `mcp#N` is spacewalk-mcp#N.
 
 Working alone, take them in this order: **spacewalk-mcp#3 → #128 → spacewalk-mcp#4 → #129 → spacewalk-mcp#5 → spacewalk-mcp#6 → spacewalk-mcp#7 →
-spacewalk-mcp#8 → spacewalk-mcp#9 → spacewalk-mcp#10 → #130 → spacewalk-mcp#11.**
+spacewalk-mcp#8 → spacewalk-mcp#9 → spacewalk-mcp#10 → #130 → spacewalk-mcp#11 → spacewalk-mcp#12.**
 
 ## Tickets
 
@@ -50,7 +52,8 @@ spacewalk-mcp#8 → spacewalk-mcp#9 → spacewalk-mcp#10 → #130 → spacewalk-
 | 9 | spacewalk-mcp#9 | spacewalk-mcp | Ensemble and rendering tools | spacewalk-mcp#7 |
 | 10 | spacewalk-mcp#10 | spacewalk-mcp | Scene and state tools, shareable URL, `load_session` | spacewalk-mcp#7, #128 |
 | 11 | #130 | spacewalk | The viewer page attaches to a Room | spacewalk-mcp#8, #129 |
-| 12 | spacewalk-mcp#11 | spacewalk-mcp | Deploy wizard and the dev environment | spacewalk-mcp#9, spacewalk-mcp#10, #130 |
+| 12 | spacewalk-mcp#11 | spacewalk-mcp | Write the deploy wizard and the dev environment | spacewalk-mcp#9, spacewalk-mcp#10, #130 |
+| 13 | spacewalk-mcp#12 | spacewalk-mcp | Run the deploy wizard and check M1 on the four hosts (`ready-for-human`) | spacewalk-mcp#11 |
 
 ### Foundations
 
@@ -118,10 +121,12 @@ spacewalk-mcp#8 → spacewalk-mcp#9 → spacewalk-mcp#10 → #130 → spacewalk-
   viewer-settings store (`ViewerSettings.receive()` in, `update()` out). Structure appearance, render
   style, group, trace and camera changes by hand become proposals. The bundle check still passes.
   Checked by eye.
-- **spacewalk-mcp#11 — Deploy.** One wizard (`/wizard`), igvjs-mcp's stages: Worker `spacewalk-mcp-dev` at
+- **spacewalk-mcp#11 — Write the deploy wizard.** One wizard (`/wizard`), igvjs-mcp's stages: Worker `spacewalk-mcp-dev` at
   `spacewalk-mcp-dev.3dg.io`; `SESSION_HMAC_SECRET`; Pages `spacewalk-viewer-dev` at
   `spacewalk-viewer-dev.3dg.io`, built from `../spacewalk` with `VITE_SERVER_URL`; `VIEWER_ORIGINS`;
   connecting Claude desktop, claude.ai, ChatGPT desktop and ChatGPT web.
+- **spacewalk-mcp#12 — Run it.** A human step: run the wizard, connect the four hosts, and check
+  the milestone's "Done when" on each. Fix-ups get their own issues.
 
 ## Verification at each step
 
