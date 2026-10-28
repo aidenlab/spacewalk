@@ -38,7 +38,7 @@ Working alone, take them in number order: **105 → 106 → 107 → 108 → 109 
 | 5 | #109 | Separate assembling the 3D viewer from assembling the app | #105, #106, #107 | ☐ |
 | 6 | #110 | Viewer-only page loads an ensemble from a URL | #109 | ☐ |
 | 7 | #111 | Viewer toolbar: trace select and reset camera | #110 | ☐ |
-| 8 | #112 | Widget panel as a ☰ overlay in the viewer | #110 | ☐ |
+| 8 | #112 | Widget panel as an overlay from the floating ☰ | #110 | ☐ |
 | 9 | #113 | Settings as a ⚙ overlay in the viewer | #108, #110 | ☐ |
 
 ### Prefactors (full app, no visible change)
