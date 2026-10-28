@@ -7,12 +7,9 @@ import { probe, KIND } from "../net/remoteResource.js"
 import {createBoundingBoxWithFlatXYZList, cullDuplicateXYZ} from "../utils/mathUtils.js"
 import { updateEnsembleGroupDisplay } from "../guiManager.js"
 import { updateEnsembleGroupSelect } from "../spacewalkFileLoadWidgetServices.js"
+import { resolveGenomeAssembly } from "./genomeAssembly.js"
 
 class SWBDatasource {
-
-    constructor({ igvPanel }) {
-        this.igvPanel = igvPanel
-    }
 
     dispose() {
         this.hdf5 = undefined
@@ -73,17 +70,7 @@ class SWBDatasource {
             updateEnsembleGroupSelect(this.ensembleGroupKeys)
         }
 
-        let genomeAssembly
-
-        const hackedGenomeID = woollyMammothGenomeIDHack(this.header.genome)
-        if (hackedGenomeID !== undefined && this.igvPanel.knownGenomes[ hackedGenomeID ] !== undefined) {
-            genomeAssembly = hackedGenomeID
-        } else {
-            console.warn(`Warning: Unrecognized genome ${ this.header.genome || 'undefined' }`)
-            genomeAssembly = 'hg19'
-        }
-
-        return { sample: 'Unspecified Sample', genomeAssembly }
+        return { sample: 'Unspecified Sample', genomeAssembly: resolveGenomeAssembly(this.header.genome) }
     }
 
     async updateWithEnsembleGroupKey(ensembleGroupKey) {
@@ -308,9 +295,6 @@ async function getGlobalGenomicExtentList(dataset) {
     return { chromosome, genomicExtentList }
 }
 
-function woollyMammothGenomeIDHack(str) {
-    return 'woolly mammoth' === str ? 'Loxafr3.0_HiC' : str
-}
 function createCleanFlatXYZList(numbers) {
 
     const bbox = createBoundingBoxWithFlatXYZList(numbers)

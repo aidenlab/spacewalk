@@ -169,10 +169,6 @@ class App {
             sceneFixtures: this.sceneFixtures,
         });
 
-        this.ensembleManager.wireDependencies({
-            igvPanel: this.igvPanel,
-        });
-
         this.ensembleIngestionController = new EnsembleIngestionController({
             ensembleManager: this.ensembleManager,
             sceneManager: this.sceneManager,

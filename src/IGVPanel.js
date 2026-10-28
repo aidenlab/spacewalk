@@ -96,7 +96,6 @@ class IGVPanel extends Panel {
         try {
             const result = await igv.createBrowser( root, igvConfig )
             this.browser = result.browser ?? result
-            this.knownGenomes = Object.fromEntries((igvConfig.genomeList || []).map(g => [g.id, g]))
         } catch (e) {
             console.error(e.message)
             alert(e.message)
