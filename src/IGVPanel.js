@@ -52,7 +52,7 @@ class IGVPanel extends Panel {
 
         // IGV follows ensemble loads (full load and group switch) as a listener;
         // ingestion has no knowledge of IGV. See followEnsemble().
-        this.ensembleFollow = Promise.resolve();
+        this.pendingEnsembleFollow = Promise.resolve();
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this);
 
         // const dragHandle = panel.querySelector('.spacewalk_card_drag_container')
@@ -151,22 +151,22 @@ class IGVPanel extends Panel {
         super.receiveEvent({ type, data });
 
         if ('DidLoadEnsembleFile' === type) {
-            this.ensembleFollow = this.followEnsemble(data);
+            // Synchronously, inside post(): the prior ensemble's checked tracks
+            // are stale. Clear them before loadGenome removes tracks, or
+            // trackremoved would re-select the (now empty) track provider and
+            // repaint through it.
+            unsetDataMaterialProviderCheckbox(this);
+
+            // Chained, so back-to-back loads follow in order.
+            this.pendingEnsembleFollow = this.pendingEnsembleFollow.then(() => this.followEnsemble(data));
         }
     }
 
-    // Bring IGV in line with a freshly loaded ensemble. The bus doesn't await
-    // subscribers, so the in-flight follow is kept on ensembleFollow for callers
-    // that must not touch the browser until it settles (session restore calls
-    // browser.loadSession, which would race loadGenome). Never rejects — a
-    // failure here is IGV's to report, and the ensemble itself loaded fine.
+    // Bring IGV to the ensemble's genome and locus. The bus doesn't await
+    // subscribers, so the in-flight follow is kept on pendingEnsembleFollow for
+    // callers that must not touch the browser until it settles. Never rejects —
+    // a failure here is IGV's to report; the ensemble itself loaded fine.
     async followEnsemble({ genomeAssembly, chr, genomicStart, genomicEnd }) {
-
-        // Synchronously, before the first await: the prior ensemble's checked
-        // tracks are stale. Clear them before loadGenome removes tracks, or
-        // trackremoved would re-select the (now empty) track provider and
-        // repaint through it.
-        unsetDataMaterialProviderCheckbox(this);
 
         try {
             if (genomeAssembly !== this.browser.genome.id) {
