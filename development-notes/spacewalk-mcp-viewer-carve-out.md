@@ -1,6 +1,7 @@
 # Spacewalk MCP: carving out the 3D viewer for geenee
 
-> **STATUS: M0 done (2026-10-28); M1 next.** Designed in a grilling session, 2026-10-27/28.
+> **STATUS: M0 done (2026-10-28); M1 designed (2026-10-28) — see `spacewalk-mcp/m1-server-single-user.md`
+> and `spacewalk-mcp`'s `GLOSSARY.md` and `docs/adr/`, which supersede this RFC where they differ.** Designed in a grilling session, 2026-10-27/28.
 > M0 (#104, tickets #105–#113, #123) delivered the viewer-only page: `viewer.html` →
 > `src/viewerMain.js`, loading `?file=`, with toolbar, ☰ widget overlay and ⚙ settings overlay;
 > `build/viewerBoundary.mjs` fails `vite build` if its bundle reaches `igv` or `juicebox.js`.
@@ -29,7 +30,7 @@ The threads that tied 3D to IGV and Juicebox are not deleted — they are named 
 | Piece | Lives in | Shape |
 |---|---|---|
 | Viewer page | this repo — a viewer-only entry point, later a shared core package | the 3D viewer filling the window |
-| `spacewalk-remote` | this repo | browser library that attaches a Spacewalk page to a Room (like `@aidenlab/juicebox-remote`) |
+| `spacewalk-remote` | `spacewalk-mcp` (`remote/` workspace, published to npm; pinned here) | browser library + wire protocol that attach a Spacewalk page to a Room (like `@aidenlab/juicebox-remote`) — `spacewalk-mcp` ADR 0003 |
 | `spacewalk-mcp` | new repo | Cloudflare Worker: `/mcp` (Streamable HTTP) + `/ws` (Room WebSocket), Room Durable Object, Join card. igvjs-mcp's *shape* (TypeScript, zod 4, command-tools table) — not its state flow |
 
 The viewer page is hosted on Cloudflare Pages beside the Worker, with the `/ws` origin allow-list.
@@ -132,14 +133,16 @@ index and count, group, point settings, color ramp, sticks, furniture, circular 
 what it can change. Every tool reply carries the full state, plus **what changed in the viewer
 since the model last looked** ("the user switched to ribbon and stepped to trace 12").
 
-**Qualitative commands are relative steps applied by the viewer**, so "darken the background" and
+**Qualitative commands are relative steps applied by the Room** (originally "by the viewer"; changed in M1 design so a step works with no Viewer open), so "darken the background" and
 "bigger balls" need no read-then-write and cannot race a hand change. Absolute setters exist only
 where the user would name a value (a color) or a choice (render style).
 
 ## State and Rooms (designed in spacewalk-mcp)
 
-- **The Room is authoritative.** One versioned state document: session string (today's format,
-  unchanged) + viewer settings (beside the session, not in it) + camera. Pages and tool calls
+- **The Room is authoritative.** One structured, versioned **viewer state**: ensemble, render style,
+  structure appearance, viewer settings (beside the session, not in it), camera. The session string
+  (today's format, extended with structure appearance) exists only at the edges — shareable URL and
+  `load_session`. Pages and tool calls
   propose changes; the Room orders them, bumps the version, and broadcasts to every page. Pages
   are replicas. Reconnect is resync; a late joiner is a first sync.
 - **Replies wait for "realized".** A tool reply returns when a page reports the new state loaded,
@@ -191,6 +194,6 @@ relative-step logic. The 3D page is audited by eye.
 
 ## Records elsewhere
 
-`spacewalk-mcp`, when created: `GLOSSARY.md` adopting geenee's terms (Room, Room link, Driver,
-Guest, Viewer); ADR 0001 — the Room is authoritative; ADR 0002 — viewer settings beside the
-session.
+`spacewalk-mcp`: `GLOSSARY.md` (geenee's terms plus viewer state, structure appearance, proposal,
+relative step, realized); ADR 0001 — the Room is authoritative; ADR 0002 — viewer settings beside
+the session; ADR 0003 — `spacewalk-remote` and the protocol live in `spacewalk-mcp`.
