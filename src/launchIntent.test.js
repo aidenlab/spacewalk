@@ -60,6 +60,15 @@ describe('parseLaunchIntent', () => {
         })
     })
 
+    it('carries the viewer-settings value beside the sessions, raw', () => {
+        const intent = parseLaunchIntent(`${base}?spacewalkSessionURL=blob:AAA&viewerSettings=blob:DDD`)
+        expect(intent).toEqual({
+            kind: 'session',
+            sessions: { spacewalk: 'blob:AAA' },
+            viewerSettings: 'blob:DDD',
+        })
+    })
+
     it('gives ?file= precedence (file kind) over a trailing session param', () => {
         const intent = parseLaunchIntent(`${base}?file=https://host/data.sw&traceKey=1&sessionURL=blob:CCC`)
         expect(intent.kind).toBe('file')

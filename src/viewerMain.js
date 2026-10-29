@@ -1,7 +1,9 @@
 /**
  * Entry point for the viewer-only page (viewer.html): the 3D viewer filling the
- * window, with no navbar, no IGV and no Juicebox. It loads the ensemble named by
- * ?file= and nothing else — hand loading and sessions belong to the full app.
+ * window, with no navbar, no IGV and no Juicebox. It opens either the ensemble
+ * named by ?file=, or a snapshot URL: a spacewalk session string beside a
+ * viewer-settings parameter, with no Room (snapshot.js). Hand loading and saving
+ * sessions belong to the full app.
  *
  * The bundle for this page contains no igv and no juicebox.js; the build fails
  * if it does (build/viewerBoundary.mjs). See
@@ -13,6 +15,8 @@ import './styles/app.scss'
 import './styles/viewer_page.scss'
 import assembleViewer from "./viewer.js"
 import { parseLaunchIntent } from "./launchIntent.js"
+import { readSnapshot } from "./snapshot.js"
+import { restoreSpacewalkSession } from "./spacewalkSessionRestore.js"
 import { withSpinner } from "./utils/utils.js"
 import AlertSingleton from "./widgets/alertSingleton.js"
 import SettingsOverlay from "./settingsOverlay.js"
@@ -36,7 +40,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     dismissOverlaysOnEscape(viewer.guiManager, settingsOverlay)
 
-    await loadEnsembleFromURL(viewer, window.location.href)
+    await openLaunchURL(viewer, window.location.href)
 
     viewer.startRenderLoop()
 })
@@ -63,12 +67,12 @@ function dismissOverlaysOnEscape(guiManager, settingsOverlay) {
     }, { capture: true })
 }
 
-async function loadEnsembleFromURL(viewer, href) {
+async function openLaunchURL(viewer, href) {
 
     const intent = parseLaunchIntent(href)
 
     if ('session' === intent.kind) {
-        console.warn('The viewer page loads an ensemble from ?file= only; ignoring session parameters.')
+        await openSnapshot(viewer, intent)
         return
     }
 
@@ -81,5 +85,47 @@ async function loadEnsembleFromURL(viewer, href) {
         await withSpinner(() => viewer.ensembleIngestionController.ingestEnsemblePath(fileURL, traceKey, ensembleGroupKey))
     } catch (error) {
         presentResourceError(error, { what: fileURL.split('/').pop().split('?')[0], url: fileURL })
+    }
+}
+
+// A snapshot URL: the spacewalk session block, read as the full app reads it,
+// then the camera it was taken from. Viewer settings come from their own
+// parameter. The igv and juicebox sessions, if any, are not this page's.
+async function openSnapshot(viewer, intent) {
+
+    let snapshot
+    try {
+        snapshot = readSnapshot(intent)
+    } catch (error) {
+        presentResourceError(error, { what: 'the Spacewalk session' })
+        return
+    }
+
+    if (undefined === snapshot) {
+        console.warn('The viewer page opens a Spacewalk session only; this URL carries none.')
+        return
+    }
+
+    const { spacewalk, viewerSettings } = snapshot
+
+    if (viewerSettings) {
+        viewer.viewerSettings.receive(viewerSettings)
+    }
+
+    try {
+        await withSpinner(() => restoreSpacewalkSession(viewer, spacewalk))
+    } catch (error) {
+        presentResourceError(error, { what: 'the Spacewalk ensemble', url: spacewalk.url })
+        return
+    }
+
+    // Ingesting framed the ensemble; the snapshot's camera replaces that framing.
+    // ⌂ still returns to it.
+    if (spacewalk.cameraLightingRig) {
+        try {
+            viewer.cameraLightingRig.setState(spacewalk.cameraLightingRig)
+        } catch (error) {
+            console.warn('Ignoring a camera the viewer cannot read:', error.message)
+        }
     }
 }

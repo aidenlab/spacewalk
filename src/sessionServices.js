@@ -3,10 +3,9 @@ import {BGZip} from 'igv-utils'
 import Panel from './panel.js'
 import { shortenURL } from "./share/shareHelper.js"
 import { SpacewalkGlobals } from './spacewalkGlobals.js'
-import GUIManager from "./guiManager.js"
 import { presentResourceError, presentResourceErrors } from "./widgets/presentResourceError.js"
 import { isHicMapLoaded } from "./juicebox/hicMapState.js"
-import { readStructureAppearance } from "./structureAppearance.js"
+import { restoreSpacewalkSession } from "./spacewalkSessionRestore.js"
 
 class SessionService {
 
@@ -124,22 +123,7 @@ class SessionService {
 
     async loadSpacewalkSession(session) {
 
-        const {
-            url,
-            traceKey,
-            ensembleGroupKey,
-            renderStyle,
-            panelVisibility,
-            structureAppearance,
-        } = session
-
-        GUIManager.updateRenderStyleWidgetState(renderStyle)
-
-        // Before ingesting: the new trace is built with it. A session written
-        // before structure appearance existed carries none and loads with defaults.
-        const appearance = readStructureAppearance(structureAppearance)
-        this.sceneManager.setStructureAppearance(appearance)
-        GUIManager.updateStructureAppearanceWidgetState(appearance)
+        const { url, panelVisibility } = session
 
         // Restore saved panel visibility before ingesting. setState only
         // presents/dismisses panels from the saved flags — it's independent of
@@ -151,7 +135,7 @@ class SessionService {
         Panel.setState(panelVisibility)
 
         try {
-            await this.ensembleIngestionController.ingestEnsemblePath(url, traceKey, ensembleGroupKey)
+            await restoreSpacewalkSession(this, session)
         } catch (error) {
             presentResourceError(error, { what: 'the Spacewalk ensemble', url })
             throw error
