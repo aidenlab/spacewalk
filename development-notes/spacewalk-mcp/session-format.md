@@ -28,7 +28,10 @@ viewer.html?spacewalkSessionURL=blob:<BGZip of the spacewalk block>&viewerSettin
 - `viewerSettings` is optional, and spelled as a session string too. Its JSON is the viewer-settings
   record (`viewerSettings.js`):
   `{ background: {r,g,b}, gnomon: {visible,r,g,b}, groundPlane: {visible,r,g,b}, referenceRuler: {visible,r,g,b} }`,
-  colors as three.js components in [0, 1]. A section missing or malformed falls back to its default;
+  colors as three.js components in [0, 1], in **linear** color space, not sRGB: the renderer
+  converts to sRGB on output, so `0.1` shows as about `#595959`. A writer starting from a hex value
+  or Apple crayon name converts sRGB → linear first, as `appleCrayonColorThreeJS` does
+  (`THREE.Color` from hex); otherwise every color shows lighter than asked. A section missing or malformed falls back to its default;
   a value that cannot be decoded is ignored with a console warning. Absent, the page keeps its defaults.
 - `sessionURL` (igv) and `session` (juicebox), if present, are ignored: the viewer page has neither.
 - `?file=` wins over all of these, as in the full app.
