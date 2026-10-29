@@ -21,12 +21,15 @@
  *
  */
 
-function tinyURLShortener({endpoint, apiKey, domain, tags}) {
+/**
+ * The page posts the bare url to the sw-shortlink worker (workers/sw-shortlink), which holds
+ * the TinyURL key: TinyURL's API no longer answers browser origins, and the key used to ship
+ * in the bundle. Any failure hands the long url back, since a long Share URL still works.
+ */
+function tinyURLShortener({endpoint}) {
 
-    endpoint = endpoint || "https://api.tinyurl.com/create";
-
-    if (!apiKey) {
-        console.warn("TinyURL API key not provided. Custom domain will not work.");
+    if (!endpoint) {
+        console.warn("No URL shortening endpoint configured. URLs will not be shortened.");
         return async function (url) { return url }
     }
 
@@ -34,8 +37,8 @@ function tinyURLShortener({endpoint, apiKey, domain, tags}) {
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`},
-                body: JSON.stringify({ url, domain: domain || 't.3dg.io', tags: tags || ['spacewalk']})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
             });
 
             if (response.ok) {
@@ -43,11 +46,11 @@ function tinyURLShortener({endpoint, apiKey, domain, tags}) {
                 return json.data.tiny_url;
             } else {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(`TinyURL API error: ${response.status} ${response.statusText} - ${errorData.message || 'Unknown error'}`);
+                throw new Error(`URL shortener error: ${response.status} ${response.statusText} - ${errorData.error || 'Unknown error'}`);
             }
         } catch (error) {
-            console.error('TinyURL shortening failed:', error);
-            throw error;
+            console.warn('URL shortening failed, sharing the long URL instead:', error);
+            return url;
         }
     }
 }

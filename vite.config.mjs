@@ -53,9 +53,6 @@ export default defineConfig(async ({ command }) => ({
         // fails if it does. See build/viewerBoundary.mjs.
         viewerBoundary({ entry: 'viewer.html', forbidden: [ 'igv', 'juicebox.js' ] })
     ],
-    define: {
-        'process.env.TINYURL_API_KEY': JSON.stringify(process.env.TINYURL_API_KEY)
-    },
     resolve: {
         alias: {
             // hic-straw's swParser uses a runtime-conditional dynamic import of

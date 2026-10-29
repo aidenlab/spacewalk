@@ -1,0 +1,40 @@
+{
+    // Deployed by hand with `npm run deploy:shortlink` (npx wrangler deploy from this
+    // directory); Netlify does not deploy workers.
+    //
+    // The Share modal's shortener needs the TinyURL key as a secret, set once with
+    //   npx wrangler secret put TINYURL_API_KEY
+    // Without it /shorten answers with the long link.
+    //
+    // The cutover from the old in-bundle key is walked through by cutover-wizard.sh.
+    "name": "sw-shortlink",
+    "main": "index.js",
+    "compatibility_date": "2026-10-29",
+
+    "routes": [
+        // The Share modal posts to this one address from every hostname the app is served on.
+        // A worker route on one path of spacewalk.aidenlab.org takes that path away from
+        // whatever serves the hostname, which has nothing there anyway.
+        { "pattern": "spacewalk.aidenlab.org/shorten", "zone_name": "aidenlab.org" }
+    ],
+
+    "vars": {
+        "TINYURL_DOMAIN": "t.3dg.io",
+        // Exact-match Origin allow-list for /shorten: every hostname the app is served on.
+        // Netlify deploy previews (<name>--spacewalk-site.netlify.app) are allowed by pattern.
+        "ALLOWED_ORIGINS": [
+            "https://aidenlab.org",
+            "https://www.aidenlab.org",
+            "https://spacewalk.aidenlab.org",
+            "https://spacewalk-site.netlify.app",
+            "https://spacewalk-viewer.3dg.io",
+            "https://spacewalk-viewer-dev.3dg.io",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173"
+        ]
+    },
+
+    "observability": {
+        "enabled": true
+    }
+}

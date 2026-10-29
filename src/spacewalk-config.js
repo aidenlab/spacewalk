@@ -5,10 +5,10 @@ const spacewalkConfig =
         isCircular: false,
         urlShortener: {
             provider: 'tinyURL',
-            apiKey: process.env.TINYURL_API_KEY || 'YOUR_TINYURL_API_KEY',
-            domain: 't.3dg.io',
-            endpoint: 'https://api.tinyurl.com/create',
-            tags: ['spacewalk']
+            // The sw-shortlink worker (workers/sw-shortlink) shortens on t.3dg.io with the
+            // account's key. The page sends no key: TinyURL's API no longer answers browser
+            // origins. Every hostname the app is served on is on the worker's Origin allow-list.
+            endpoint: 'https://spacewalk.aidenlab.org/shorten'
         }
 
     }
