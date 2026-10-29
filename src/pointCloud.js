@@ -9,8 +9,9 @@ class PointCloud {
 
     static renderStyle = 'render-style-point-cloud'
 
-    constructor ({ trace, pickHighlighter, deemphasizedColor, pointSizeBoundRadiusPercentage, pointOpacity, ensembleManager, materialProvider }) {
+    constructor ({ trace, pickHighlighter, deemphasizedColor, pointSizeBoundRadiusPercentage, pointOpacity, ensembleManager, materialProvider, sceneManager }) {
         this.pickHighlighter = pickHighlighter
+        this.sceneManager = sceneManager
         this.deemphasizedColor = deemphasizedColor
         this.ensembleManager = ensembleManager
 
@@ -218,16 +219,19 @@ class PointCloud {
 
         const { radius } = EnsembleManager.getTraceBounds(this.ensembleManager.currentTrace)
         this.pointSizeBoundRadiusPercentage = this.pointSize / radius
+        this.sceneManager.pointSizeBoundRadiusPercentage = this.pointSizeBoundRadiusPercentage
     }
 
     updatePointTransparency(increment) {
 
         this.pointOpacity += (increment < 0 ? -1 : 1) * (10 / 100) * this.pointOpacity
-        this.pointOpacity = clamp(1/10, 9/10, this.pointOpacity)
+        this.pointOpacity = clamp(this.pointOpacity, 1/10, 9/10)
 
         this.material.opacity = this.pointOpacity
         this.material.alphaTest = this.pointOpacity/2
         this.material.needsUpdate = true
+
+        this.sceneManager.pointOpacity = this.pointOpacity
     }
 
 }

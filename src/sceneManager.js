@@ -11,6 +11,10 @@ import {appleCrayonColorThreeJS, highlightColor} from "./utils/colorUtils.js"
 import BallHighlighter from "./ballHighlighter.js"
 import PointCloudHighlighter from "./pointCloudHighlighter.js"
 import HighlightController from "./highlightController.js"
+import { spacewalkConfig } from "./spacewalk-config.js"
+import { defaultColormapName } from "./utils/colorMapManager.js"
+import GUIManager from "./guiManager.js"
+import { readStructureAppearance } from "./structureAppearance.js"
 
 class SceneManager {
 
@@ -46,6 +50,9 @@ class SceneManager {
         this.stickMaterial = new THREE.MeshPhongMaterial({ color: appleCrayonColorThreeJS('aluminum') })
         this.stickMaterial.side = THREE.DoubleSide
         this.deemphasizedColor = appleCrayonColorThreeJS('magnesium')
+        // Structure appearance (see structureAppearance.js) that survives across
+        // model loads. The visualizations write their changes back here as they
+        // make them; undefined radius indices and point size mean "not chosen yet".
         this.isStickVisible = true
         this.ballRadiusIndex = undefined
         this.stickRadiusIndex = undefined
@@ -129,7 +136,8 @@ class SceneManager {
                 pointSizeBoundRadiusPercentage: this.pointSizeBoundRadiusPercentage,
                 pointOpacity: this.pointOpacity,
                 ensembleManager,
-                materialProvider
+                materialProvider,
+                sceneManager: this
             })
             this.pointCloud.addToScene(scene)
         } else {
@@ -173,7 +181,6 @@ class SceneManager {
         if (!trace) return
 
         if (this.ballAndStick) {
-            this.isStickVisible = this.ballAndStick.isStickVisible
             this.ballAndStick.dispose()
             this.ballAndStick = null
         }
@@ -220,6 +227,42 @@ class SceneManager {
         this.renderStyle = renderStyle
     }
 
+    /**
+     * Structure appearance as the session writes it. Radius indices not chosen
+     * yet are the ladder midpoint, which is where BallAndStick starts them.
+     */
+    get structureAppearance() {
+        return readStructureAppearance({
+            ballRadiusIndex: this.ballRadiusIndex,
+            stickRadiusIndex: this.stickRadiusIndex,
+            sticksVisible: this.isStickVisible,
+            pointSizeRadiusFraction: this.pointSizeBoundRadiusPercentage,
+            pointOpacity: this.pointOpacity,
+            colorRamp: this.colorRampMaterialProvider.colorMapName,
+            isCircular: spacewalkConfig.isCircular === true,
+        })
+    }
+
+    /**
+     * Adopt a structure appearance for the next trace built. Session restore calls
+     * this before ingesting, which rebuilds the structure; it does not redraw the
+     * structure on screen now.
+     */
+    setStructureAppearance({ ballRadiusIndex, stickRadiusIndex, sticksVisible, pointSizeRadiusFraction, pointOpacity, colorRamp, isCircular }) {
+        this.ballRadiusIndex = ballRadiusIndex
+        this.stickRadiusIndex = stickRadiusIndex
+        this.isStickVisible = sticksVisible
+        this.pointSizeBoundRadiusPercentage = pointSizeRadiusFraction ?? undefined
+        this.pointOpacity = pointOpacity
+        spacewalkConfig.isCircular = isCircular
+
+        // An unknown ramp (from another build's registry) falls back to the default.
+        const known = this.colorRampMaterialProvider.colorMapManager?.dictionary?.[ colorRamp ]
+        this.colorRampMaterialProvider.setColorMapName(known ? colorRamp : defaultColormapName)
+
+        GUIManager.updateStructureAppearanceWidgetState({ sticksVisible, isCircular })
+    }
+
     toJSON() {
         const { r, g, b } = this.scene.background
         return  { r, g, b }
@@ -230,15 +273,6 @@ class SceneManager {
      }
 
     purgeScene() {
-
-        // Capture persistent state from outgoing visualization objects before disposal
-        if (this.pointCloud) {
-            this.pointSizeBoundRadiusPercentage = this.pointCloud.pointSizeBoundRadiusPercentage
-            this.pointOpacity = this.pointCloud.pointOpacity
-        }
-        if (this.ballAndStick) {
-            this.isStickVisible = this.ballAndStick.isStickVisible
-        }
 
         // Dispose visualization objects
         if (this.ballAndStick) {

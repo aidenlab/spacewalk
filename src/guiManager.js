@@ -206,6 +206,19 @@ class GUIManager {
         }
     }
 
+    // The two structure-appearance switches; the radius and point controls are
+    // steppers with no state of their own, and the color ramp follows DidChangeColorMap.
+    static updateStructureAppearanceWidgetState({ sticksVisible, isCircular }) {
+        const stickVisibilitySwitch = document.getElementById('spacewalk-stick-visibility-switch');
+        if (stickVisibilitySwitch) {
+            stickVisibilitySwitch.checked = sticksVisible;
+        }
+        const circularSwitch = document.getElementById('spacewalk-circular-geometry-switch');
+        if (circularSwitch) {
+            circularSwitch.checked = isCircular;
+        }
+    }
+
     static getRenderStyleWidgetState() {
         const uiManagerPanel = document.getElementById('spacewalk_ui_manager_panel');
         const checkedInput = uiManagerPanel.querySelector("input[name='spacewalk-render-style']:checked");

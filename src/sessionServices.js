@@ -6,6 +6,7 @@ import { SpacewalkGlobals } from './spacewalkGlobals.js'
 import GUIManager from "./guiManager.js"
 import { presentResourceError, presentResourceErrors } from "./widgets/presentResourceError.js"
 import { isHicMapLoaded } from "./juicebox/hicMapState.js"
+import { readStructureAppearance } from "./structureAppearance.js"
 
 class SessionService {
 
@@ -129,9 +130,14 @@ class SessionService {
             ensembleGroupKey,
             renderStyle,
             panelVisibility,
+            structureAppearance,
         } = session
 
         GUIManager.updateRenderStyleWidgetState(renderStyle)
+
+        // Before ingesting: the new trace is built with it. A session written
+        // before structure appearance existed carries none and loads with defaults.
+        this.sceneManager.setStructureAppearance(readStructureAppearance(structureAppearance))
 
         // Restore saved panel visibility before ingesting. setState only
         // presents/dismisses panels from the saved flags — it's independent of
@@ -222,6 +228,7 @@ class SessionService {
         spacewalk.ensembleGroupKey = this.ensembleManager.datasource.currentEnsembleGroupKey
         spacewalk.igvPanelState = this.igvPanel.getSessionState()
         spacewalk.renderStyle = this.sceneManager.renderStyle
+        spacewalk.structureAppearance = this.sceneManager.structureAppearance
         spacewalk.panelVisibility = Panel.toJSON()
 
         // Gnomon, ground plane, and background color are viewer settings

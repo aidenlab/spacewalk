@@ -41,6 +41,7 @@ Last groomed: 2026-06 (post Phase 3 DI completion).
 | [spacewalk-mcp-viewer-carve-out.md](spacewalk-mcp-viewer-carve-out.md) | M0 done, M1 next | Before moving material-provider ownership off `IGVPanel`, building a viewer-only entry point, or designing anything in `spacewalk-mcp` — the 3D-only viewer for geenee, the three unconnected ports, the model's tool surface, Room-authoritative state, and milestones M0–M3 |
 | [spacewalk-mcp/milestones.md](spacewalk-mcp/milestones.md) | Current | **Start here for Spacewalk MCP work.** The overarching plan — milestones M0–M3, the tasks in each, what "done" means, and which milestone is in progress |
 | [spacewalk-mcp/m0-viewer-carve-out.md](spacewalk-mcp/m0-viewer-carve-out.md) | Done | Record of M0 — the GitHub tickets (#104 umbrella, #105–#113), their blocking edges, implementation order, and per-step verification |
+| [spacewalk-mcp/session-format.md](spacewalk-mcp/session-format.md) | Current | Before writing or reading a Spacewalk session string anywhere — the `spacewalk` block's fields, and `structureAppearance` with its defaults and the radius ladder. The `spacewalk-mcp` Worker reads and writes the same block |
 
 ## Color & visualization
 
