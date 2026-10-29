@@ -52,7 +52,7 @@ spacewalk-mcp#8 → spacewalk-mcp#9 → spacewalk-mcp#10 → #130 → spacewalk-
 | 9 | spacewalk-mcp#9 | spacewalk-mcp | Ensemble and rendering tools | spacewalk-mcp#7 |
 | 10 | spacewalk-mcp#10 | spacewalk-mcp | Scene and state tools, shareable URL, `load_session` | spacewalk-mcp#7, #128 |
 | 11 | #130 | spacewalk | The viewer page attaches to a Room | spacewalk-mcp#8, #129 |
-| 12 | spacewalk-mcp#11 | spacewalk-mcp | Write the deploy wizard and the dev environment | spacewalk-mcp#9, spacewalk-mcp#10, #130 |
+| 12 | spacewalk-mcp#11 | spacewalk-mcp | Write the deploy wizard, the dev environment and `dev-check` | spacewalk-mcp#9, spacewalk-mcp#10, #130 |
 | 13 | spacewalk-mcp#12 | spacewalk-mcp | Run the deploy wizard and check M1 on the four hosts (`ready-for-human`) | spacewalk-mcp#11 |
 
 ### Foundations
@@ -124,7 +124,9 @@ spacewalk-mcp#8 → spacewalk-mcp#9 → spacewalk-mcp#10 → #130 → spacewalk-
 - **spacewalk-mcp#11 — Write the deploy wizard.** One wizard (`/wizard`), igvjs-mcp's stages: Worker `spacewalk-mcp-dev` at
   `spacewalk-mcp-dev.3dg.io`; `SESSION_HMAC_SECRET`; Pages `spacewalk-viewer-dev` at
   `spacewalk-viewer-dev.3dg.io`, built from `../spacewalk` with `VITE_SERVER_URL`; `VIEWER_ORIGINS`;
-  connecting Claude desktop, claude.ai, ChatGPT desktop and ChatGPT web.
+  connecting Claude desktop, claude.ai, ChatGPT desktop and ChatGPT web. Also `scripts/dev-check.mjs`
+  and its cheat sheet `docs/dev-check.md`, ported from igvjs-mcp: one MCP tool call on a Worker,
+  aimed at a Room, reply printed — the model's place in a smoke test, no Host needed.
 - **spacewalk-mcp#12 — Run it.** A human step: run the wizard, connect the four hosts, and check
   the milestone's "Done when" on each. Fix-ups get their own issues.
 
