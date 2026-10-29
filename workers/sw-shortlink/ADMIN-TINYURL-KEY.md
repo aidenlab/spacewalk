@@ -1,48 +1,33 @@
-# Setting (or rotating) Spacewalk's TinyURL key: admin steps
+# Spacewalk short links: setup for the account admin
 
-For whoever holds the Aiden Lab TinyURL account and the Aiden Lab Cloudflare account
-(Theaidenlab@gmail.com). About 5 minutes. No command line needed.
+Spacewalk's Share button needs a TinyURL key stored on a Cloudflare Worker called
+`sw-shortlink`. The worker is already deployed. These steps give it a key and retire the old
+one. About 5 minutes, done entirely in two websites. The key never needs to be sent to anyone.
 
-**What this is for:** Spacewalk's Share button makes `t.3dg.io` short links. TinyURL no longer
-lets a web page call its API directly, so a small Cloudflare Worker, `sw-shortlink`, now does it
-on Spacewalk's behalf. It needs a TinyURL API key stored as a secret on the worker. You
-create the key and store it yourself, so it never has to be sent to anyone.
+**You need:** the Aiden Lab TinyURL login and the Aiden Lab Cloudflare login
+(Theaidenlab@gmail.com).
 
-## 1. Create a TinyURL API token
+## Steps
 
-1. Sign in at <https://tinyurl.com/app/dev> (or: account menu → **API** / **Developer**).
-2. Create a new API token. Name it **`sw-shortlink worker`**.
-3. If it asks for permissions, allow **creating TinyURLs** and using the **`t.3dg.io`** domain.
-4. Copy the token. TinyURL shows it only once, so keep the tab open until step 2 is done.
+1. **Make a new TinyURL token.** At <https://tinyurl.com/app/dev>, create an API token named
+   `sw-shortlink worker`. If it asks for permissions, allow creating links and the `t.3dg.io`
+   domain. Copy the token and keep the tab open: it is shown only once.
 
-Don't send the token to anyone. It goes straight into Cloudflare in the next step.
+2. **Put it on the worker.** At <https://dash.cloudflare.com>, choose
+   **Theaidenlab@gmail.com's Account** → **Workers & Pages** → **sw-shortlink** →
+   **Settings** → **Variables and Secrets** → **Add**.
+   - Type: **Secret**
+   - Name: `TINYURL_API_KEY` (exactly this)
+   - Value: paste the token
 
-## 2. Store it on the worker
+   Then **Deploy**. Leave the other variables there alone.
 
-1. Sign in at <https://dash.cloudflare.com> and pick **Theaidenlab@gmail.com's Account**.
-2. **Workers & Pages** → **`sw-shortlink`** → **Settings** → **Variables and Secrets** → **Add**.
-3. Type: **Secret**. Variable name: **`TINYURL_API_KEY`** (exactly). Value: paste the token.
-4. **Deploy** (or **Save and deploy**).
+3. **Delete the old Spacewalk token.** Back at <https://tinyurl.com/app/dev>, delete Spacewalk's
+   old API token. It was exposed in the public website and nothing uses it any more.
+   **Keep** the new `sw-shortlink worker` token and **keep Juicebox's** token.
 
-Leave the `TINYURL_DOMAIN` and `ALLOWED_ORIGINS` variables you'll see there as they are.
+4. **Tell the Spacewalk developer you're done.** They'll test it from their side.
 
-## 3. Check it
+## Later: rotating the key
 
-Tell the Spacewalk developer you're done. They'll make a test short link through the worker
-to confirm the key works. (The public Spacewalk site won't show short links until their
-code change ships, so pressing Share there isn't a test yet.)
-
-## 4. Revoke the old Spacewalk token (after the developer confirms step 3 works)
-
-Back at <https://tinyurl.com/app/dev>, delete the **old** Spacewalk token. It was built into
-the public Spacewalk site, so anyone could have read it.
-
-- Keep **`sw-shortlink worker`** (the one you just made).
-- Keep **Juicebox's** token. Juicebox's own worker uses a different key on the same account.
-
-If you aren't sure which old token is Spacewalk's, ask the developer before deleting anything.
-
-## Rotating later
-
-Repeat steps 1, 2 and 4. Step 2 replaces the old value. Short links already made keep working,
-since rotating the key only affects new links.
+Repeat steps 1–3. Existing short links keep working.
