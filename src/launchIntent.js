@@ -3,7 +3,7 @@
  * DOM, no I/O — given an href string, decide what Spacewalk should do on startup:
  *
  *   { kind: 'file',    fileURL, traceKey, ensembleGroupKey }       // ?file=…
- *   { kind: 'session', sessions: { spacewalk?, juicebox?, igv? } }  // raw compressed values
+ *   { kind: 'session', sessions: { spacewalk?, juicebox?, igv? }, viewerSettings? }  // raw compressed values
  *   { kind: 'none' }
  *
  * Precedence: a ?file= launch wins outright; otherwise compose whatever compressed
@@ -48,6 +48,10 @@ function parseLaunchIntent(href) {
     if (params.sessionURL)          sessions.igv       = params.sessionURL
 
     if (0 === Object.keys(sessions).length) return { kind: 'none' }
+
+    // Viewer settings travel beside the sessions, never in them (spacewalk-mcp ADR 0002).
+    // Only the viewer page reads them; the full app keeps its own in localStorage.
+    if (params.viewerSettings) return { kind: 'session', sessions, viewerSettings: params.viewerSettings }
     return { kind: 'session', sessions }
 }
 

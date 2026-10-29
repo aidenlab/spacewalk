@@ -1,8 +1,9 @@
 # The `spacewalk` session block
 
-> **STATUS: Current (2026-10-29, #128).** The shape of the `spacewalk` block of a Spacewalk
-> session. The full app writes it (`SessionService.spacewalkToJSON`) and reads it
-> (`SessionService.loadSpacewalkSession`); the `spacewalk-mcp` Worker reads and writes the same
+> **STATUS: Current (2026-10-29, #128, #129).** The shape of the `spacewalk` block of a Spacewalk
+> session, and of the snapshot URL that carries it to the viewer page. The full app writes the
+> block (`SessionService.spacewalkToJSON`); the full app and the viewer page read it
+> (`restoreSpacewalkSession`); the `spacewalk-mcp` Worker reads and writes the same
 > block when it exports its viewer state as a session string for `get_shareable_url` and imports
 > one for `load_session`. Vocabulary: `CONTEXT.md` and `spacewalk-mcp/GLOSSARY.md`.
 
@@ -11,6 +12,27 @@
 A session is JSON `{ spacewalk, igv?, juicebox? }`. In a launch URL the `spacewalk` block alone is
 the payload of the `spacewalkSessionURL` session parameter, as `blob:<BGZip of JSON>` (see
 **Session string** in `CONTEXT.md`). Saved session files carry the whole object.
+
+### The snapshot URL
+
+The viewer page (`viewer.html`) opens a **snapshot URL**: one frozen view, no Room. It is what
+`get_shareable_url` returns.
+
+```
+viewer.html?spacewalkSessionURL=blob:<BGZip of the spacewalk block>&viewerSettings=blob:<BGZip of the viewer settings>
+```
+
+- `spacewalkSessionURL` is read as the full app reads it, through `uncompressSessionURL`; a session
+  URL meant to be fetched is refused.
+- `viewerSettings` is optional, and spelled as a session string too. Its JSON is the viewer-settings
+  record (`viewerSettings.js`):
+  `{ background: {r,g,b}, gnomon: {visible,r,g,b}, groundPlane: {visible,r,g,b}, referenceRuler: {visible,r,g,b} }`,
+  colors as three.js components in [0, 1]. A section missing or malformed falls back to its default;
+  a value that cannot be decoded is ignored with a console warning. Absent, the page keeps its defaults.
+- `sessionURL` (igv) and `session` (juicebox), if present, are ignored: the viewer page has neither.
+- `?file=` wins over all of these, as in the full app.
+
+Code: `src/launchIntent.js` (parameters), `src/snapshot.js` (decoding), `src/viewerMain.js` (restore).
 
 ## The block
 
@@ -44,7 +66,7 @@ the payload of the `spacewalkSessionURL` session parameter, as `blob:<BGZip of J
 | `ensembleGroupKey` | The current ensemble group. |
 | `renderStyle` | `render-style-ball-stick` or `render-style-ribbon`. A point-cloud ensemble is drawn as a point cloud whatever this says. |
 | `igvPanelState`, `panelVisibility` | Full-app only: checked material-provider tracks, and which panels are open. The viewer-only page ignores them. |
-| `cameraLightingRig` | The camera. Written, not yet read back. |
+| `cameraLightingRig` | The camera. Read back by the viewer page after the ensemble loads, replacing its default framing; the full app does not yet read it. |
 | `structureAppearance` | See below. |
 
 Viewer settings — background, gnomon, ground plane, reference ruler — are **not** in the block.
