@@ -8,6 +8,10 @@
     //
     // The cutover from the old in-bundle key is walked through by cutover-wizard.sh.
     "name": "sw-shortlink",
+    // The Aiden Lab account, which holds the aidenlab.org zone and juicebox's jb-shortlink.
+    // Named here because a login that reaches several accounts cannot be asked which one to
+    // use when wrangler is not attached to a terminal (the wizard pipes the secret in).
+    "account_id": "1eadb18bb8557fd1bd06b1d0310a902e",
     "main": "index.js",
     "compatibility_date": "2026-10-29",
 
