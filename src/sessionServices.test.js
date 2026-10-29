@@ -26,7 +26,7 @@ vi.mock('./panel.js', () => ({
 }))
 
 vi.mock('./guiManager.js', () => ({
-    default: { updateRenderStyleWidgetState: () => {} }
+    default: { updateRenderStyleWidgetState: () => {}, updateStructureAppearanceWidgetState: () => {} }
 }))
 
 vi.mock('./share/shareHelper.js', () => ({
@@ -129,6 +129,71 @@ describe('SessionService.getShareURL', () => {
             expect(url).toContain('spacewalkSessionURL=blob:SPACEWALKBLOB')
             expect(url).toContain('sessionURL=blob:IGVBLOB')
             expect(url).toContain('session=blob:JUICEBOXBLOB')
+        })
+    })
+
+})
+
+/**
+ * Structure appearance (#128) — how the 3D structure is drawn, as distinct from
+ * the furniture around it — rides in the `spacewalk` session block, so a shared
+ * URL reopens the same view. The `spacewalk-mcp` Worker reads and writes the same
+ * block; the shape is documented in development-notes/spacewalk-mcp/session-format.md.
+ */
+describe('structure appearance in the session', () => {
+
+    // A sceneManager stand-in that holds an appearance and records what it is given.
+    const appearanceHolder = appearance => ({
+        renderStyle: 'render-style-ball-stick',
+        structureAppearance: appearance,
+        setStructureAppearance(value) { this.structureAppearance = value }
+    })
+
+    const loadingService = sceneManager => new SessionService({
+        ensembleManager: {},
+        sceneManager,
+        igvPanel: {},
+        juiceboxPanel: {},
+        trackMaterialProvider: {},
+        cameraLightingRig: {},
+        ensembleIngestionController: { ingestEnsemblePath: async () => {} }
+    })
+
+    const changed = {
+        ballRadiusIndex: 8,
+        stickRadiusIndex: 2,
+        sticksVisible: false,
+        pointSizeRadiusFraction: 0.125,
+        pointOpacity: 0.6,
+        colorRamp: 'some_other_ramp',
+        isCircular: true
+    }
+
+    it('reproduces every field when a written session is read back', async () => {
+        const writer = createService(hicDataset)
+        writer.sceneManager = appearanceHolder({ ...changed })
+        const json = JSON.parse(JSON.stringify(writer.spacewalkToJSON()))
+
+        const reader = appearanceHolder(undefined)
+        await loadingService(reader).loadSpacewalkSession(json)
+
+        expect(reader.structureAppearance).toEqual(changed)
+    })
+
+    it('loads a session written before structure appearance existed with the defaults', async () => {
+        const old = { url: 'ensemble.sw', traceKey: '0', ensembleGroupKey: 'group', renderStyle: 'render-style-ball-stick', panelVisibility: {} }
+
+        const reader = appearanceHolder({ ...changed })
+        await loadingService(reader).loadSpacewalkSession(old)
+
+        expect(reader.structureAppearance).toEqual({
+            ballRadiusIndex: 5,
+            stickRadiusIndex: 5,
+            sticksVisible: true,
+            pointSizeRadiusFraction: null,
+            pointOpacity: 0.375,
+            colorRamp: 'peter_kovesi_rainbow_bgyr_35_85_c72_n256',
+            isCircular: false
         })
     })
 

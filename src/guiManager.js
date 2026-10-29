@@ -53,7 +53,7 @@ class GUIManager {
             stickVisibilitySwitch.addEventListener('change', (e) => {
                 e.stopPropagation();
                 console.log('Stick visibility toggled:', e.target.checked);
-                this.sceneManager.ballAndStick?.setStickVisibility(e.target.checked);
+                this.sceneManager.setStickVisibility(e.target.checked);
             });
         }
 
@@ -203,6 +203,19 @@ class GUIManager {
             if (ballStickRadio) {
                 ballStickRadio.checked = true;
             }
+        }
+    }
+
+    // The two structure-appearance switches; the radius and point controls are
+    // steppers with no state of their own, and the color ramp follows DidChangeColorMap.
+    static updateStructureAppearanceWidgetState({ sticksVisible, isCircular }) {
+        const stickVisibilitySwitch = document.getElementById('spacewalk-stick-visibility-switch');
+        if (stickVisibilitySwitch) {
+            stickVisibilitySwitch.checked = sticksVisible;
+        }
+        const circularSwitch = document.getElementById('spacewalk-circular-geometry-switch');
+        if (circularSwitch) {
+            circularSwitch.checked = isCircular;
         }
     }
 

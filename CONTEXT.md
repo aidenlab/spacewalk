@@ -108,7 +108,11 @@ _Avoid_: link, bridge, integration (as nouns for this boundary)
 ### Persistence
 
 **Session**:
-The restorable state of the app — loaded ensemble, render style, camera, tracks, checked material-provider tracks.
+The restorable state of the app — loaded ensemble, render style, structure appearance, camera, tracks, checked material-provider tracks.
+
+**Structure appearance**:
+How the 3D structure is drawn, as distinct from the furniture around it: ball and stick radius steps, whether sticks show, point size and transparency, color ramp, circular genome. Part of the session, unlike the viewer settings. The shape of its session block is in `development-notes/spacewalk-mcp/session-format.md`.
+_Avoid_: render settings, viewer settings (those are the furniture)
 
 **Viewer settings**:
 The appearance of the scene's furniture — background color, axes, ground plane, and the reference ruler's visibility and color. Kept beside the session, never in it. Where there are several viewers on one shared scene, the viewer settings are shared too: everyone sees the same picture. The ruler's on-screen placement is *not* a viewer setting — it belongs to one window, like whether an overlay is open.

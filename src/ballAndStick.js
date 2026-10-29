@@ -7,6 +7,7 @@ import ConvexHull from "./utils/convexHull.js"
 import {getPositionArrayWithTrace} from "./utils/utils.js"
 import { removeAndDisposeFromScene, disposeGeometry, disposeMaterial } from './utils/disposalUtils.js'
 import { spacewalkConfig } from "./spacewalk-config.js"
+import { RADIUS_LADDER_LENGTH } from "./structureAppearance.js"
 
 const stickTesselation = { length: 2, radial: 8 }
 
@@ -288,11 +289,10 @@ class BallAndStick {
 
 function generateRadiusTable(defaultRadius) {
 
-    const radiusTableLength = 11;
     const radiusTable = [];
 
-    for (let i = 0; i < radiusTableLength; i++) {
-        const interpolant = i / (radiusTableLength - 1);
+    for (let i = 0; i < RADIUS_LADDER_LENGTH; i++) {
+        const interpolant = i / (RADIUS_LADDER_LENGTH - 1);
         const radius = lerp(0.5 * defaultRadius, 2.0 * defaultRadius, interpolant);
         radiusTable.push(radius);
     }
