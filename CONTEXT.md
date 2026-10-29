@@ -116,10 +116,10 @@ _Avoid_: render settings, viewer settings (those are the furniture)
 
 **Viewer settings**:
 The appearance of the scene's furniture — background color, axes, ground plane, and the reference ruler's visibility and color. Kept beside the session, never in it. Where there are several viewers on one shared scene, the viewer settings are shared too: everyone sees the same picture. The ruler's on-screen placement is *not* a viewer setting — it belongs to one window, like whether an overlay is open.
+_Avoid_: preferences (they are a fact about the scene, not about a person)
 
 **Snapshot URL**:
-A viewer-page URL that shows one frozen view with no Room: a `spacewalkSessionURL` session parameter beside a `viewerSettings` parameter, both session strings. The `spacewalk-mcp` Worker writes one for `get_shareable_url`. See `development-notes/spacewalk-mcp/session-format.md`.
-_Avoid_: preferences (they are a fact about the scene, not about a person)
+A viewer-page URL that shows one frozen view with no Room (`spacewalk-mcp`'s live shared scene; see its `GLOSSARY.md`): a `spacewalkSessionURL` session parameter beside a `viewerSettings` parameter, both session strings. The `spacewalk-mcp` Worker writes one for `get_shareable_url`. See `development-notes/spacewalk-mcp/session-format.md`.
 
 **Session string** vs **session parameter**:
 A *session string* is the payload — `blob:<BGZip>`, `data:<BGZip>`, or `data:application/gzip;base64,…`. A *session parameter* is a query parameter carrying one; a Spacewalk launch URL composes three of them, `spacewalkSessionURL`, `sessionURL` (igv) and `session` (juicebox), and every value is written **raw**. The session string is the contract Spacewalk shares with juicebox — both apps read the same payload set, and neither owes the other its query string, so a whole URL is not portable between them. `uncompressSessionURL` reads strings for that reason, and refuses a session **URL** by name: juicebox fetches one and sniffs the document, Spacewalk does not and is not gaining the arm. See juicebox.js `docs/adr/0011-session-string-is-the-cross-host-contract.md` and `src/sessionURLCodec.test.js`, which runs juicebox's own fixture corpus against this decoder.

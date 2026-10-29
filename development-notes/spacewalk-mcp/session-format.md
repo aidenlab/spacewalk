@@ -2,8 +2,9 @@
 
 > **STATUS: Current (2026-10-29, #128, #129).** The shape of the `spacewalk` block of a Spacewalk
 > session, and of the snapshot URL that carries it to the viewer page. The full app writes the
-> block (`SessionService.spacewalkToJSON`); the full app and the viewer page read it
-> (`restoreSpacewalkSession`); the `spacewalk-mcp` Worker reads and writes the same
+> block (`SessionService.spacewalkToJSON`); the full app reads it
+> (`SessionService.loadSpacewalkSession`, which adds panel visibility) and the viewer page reads it,
+> both through `restoreSpacewalkSession`; the `spacewalk-mcp` Worker reads and writes the same
 > block when it exports its viewer state as a session string for `get_shareable_url` and imports
 > one for `load_session`. Vocabulary: `CONTEXT.md` and `spacewalk-mcp/GLOSSARY.md`.
 
