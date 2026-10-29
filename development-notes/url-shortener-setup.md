@@ -45,7 +45,9 @@ cd workers/sw-shortlink && npx wrangler secret put TINYURL_API_KEY   # once, or 
 
 The first cutover (deploy, new key, curl checks, removing the old Netlify variable, revoking the
 old key) is walked through by `workers/sw-shortlink/cutover-wizard.sh`. Run it from the repo
-root.
+root. Creating and revoking the TinyURL token, and storing it on the worker, need the Aiden Lab
+accounts; `workers/sw-shortlink/ADMIN-TINYURL-KEY.md` is the no-CLI version for whoever holds
+them, and covers later rotations too.
 
 ## Adding a hostname
 
