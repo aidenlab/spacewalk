@@ -13,7 +13,6 @@ import PointCloudHighlighter from "./pointCloudHighlighter.js"
 import HighlightController from "./highlightController.js"
 import { spacewalkConfig } from "./spacewalk-config.js"
 import { defaultColormapName } from "./utils/colorMapManager.js"
-import GUIManager from "./guiManager.js"
 import { readStructureAppearance } from "./structureAppearance.js"
 
 class SceneManager {
@@ -259,8 +258,13 @@ class SceneManager {
         // An unknown ramp (from another build's registry) falls back to the default.
         const known = this.colorRampMaterialProvider.colorMapManager?.dictionary?.[ colorRamp ]
         this.colorRampMaterialProvider.setColorMapName(known ? colorRamp : defaultColormapName)
+    }
 
-        GUIManager.updateStructureAppearanceWidgetState({ sticksVisible, isCircular })
+    // Held here even when no ball-and-stick is built (ribbon, point cloud), so the
+    // switch is never lost and the session writes what the switch shows.
+    setStickVisibility(visible) {
+        this.isStickVisible = visible
+        this.ballAndStick?.setStickVisibility(visible)
     }
 
     toJSON() {

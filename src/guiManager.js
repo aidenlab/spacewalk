@@ -53,7 +53,7 @@ class GUIManager {
             stickVisibilitySwitch.addEventListener('change', (e) => {
                 e.stopPropagation();
                 console.log('Stick visibility toggled:', e.target.checked);
-                this.sceneManager.ballAndStick?.setStickVisibility(e.target.checked);
+                this.sceneManager.setStickVisibility(e.target.checked);
             });
         }
 

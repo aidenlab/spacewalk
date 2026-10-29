@@ -26,7 +26,7 @@ vi.mock('./panel.js', () => ({
 }))
 
 vi.mock('./guiManager.js', () => ({
-    default: { updateRenderStyleWidgetState: () => {} }
+    default: { updateRenderStyleWidgetState: () => {}, updateStructureAppearanceWidgetState: () => {} }
 }))
 
 vi.mock('./share/shareHelper.js', () => ({

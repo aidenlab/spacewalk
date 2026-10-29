@@ -137,7 +137,9 @@ class SessionService {
 
         // Before ingesting: the new trace is built with it. A session written
         // before structure appearance existed carries none and loads with defaults.
-        this.sceneManager.setStructureAppearance(readStructureAppearance(structureAppearance))
+        const appearance = readStructureAppearance(structureAppearance)
+        this.sceneManager.setStructureAppearance(appearance)
+        GUIManager.updateStructureAppearanceWidgetState(appearance)
 
         // Restore saved panel visibility before ingesting. setState only
         // presents/dismisses panels from the saved flags — it's independent of

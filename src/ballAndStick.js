@@ -172,7 +172,6 @@ class BallAndStick {
 
     setStickVisibility(visible) {
         this.isStickVisible = visible
-        this.sceneManager.isStickVisible = visible
     }
 
     updateBallRadius(increment) {
