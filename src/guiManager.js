@@ -6,11 +6,15 @@ import { spacewalkConfig } from "./spacewalk-config.js";
 
 class GUIManager {
 
-    constructor ({ settingsButton, panel, sceneManager, ensembleManager, colorMapManager }) {
+    constructor ({ settingsButton, panel, sceneManager, ensembleManager, colorMapManager, onHandChange = () => {} }) {
 
         this.sceneManager = sceneManager
         this.ensembleManager = ensembleManager
         this.colorMapManager = colorMapManager
+
+        // Told of each change made by hand at these controls (see viewer.js).
+        this.onHandChange = onHandChange
+        const didChangeAppearance = () => onHandChange({ type: 'structure-appearance' })
 
         this.panel = panel
 
@@ -33,19 +37,19 @@ class GUIManager {
         // panel.addEventListener('click', (e) => e.stopPropagation());
         // panel.addEventListener('mousemove', (e) => e.stopPropagation());
 
-        configureRenderStyleControl(document.getElementById('spacewalk-render-style-ball-stick'), BallAndStick.renderStyle, sceneManager);
+        configureRenderStyleControl(document.getElementById('spacewalk-render-style-ball-stick'), BallAndStick.renderStyle, sceneManager, onHandChange);
 
-        configureRenderStyleControl(document.getElementById('spacewalk-render-style-ribbon'), Ribbon.renderStyle, sceneManager);
+        configureRenderStyleControl(document.getElementById('spacewalk-render-style-ribbon'), Ribbon.renderStyle, sceneManager, onHandChange);
 
         // Ball radius
         const ballRadiusControl = document.getElementById('spacewalk-ball-radius-control');
-        ballRadiusControl.querySelector('i.fa-minus-circle').addEventListener('click', () => this.sceneManager.ballAndStick?.updateBallRadius(-1));
-        ballRadiusControl.querySelector('i.fa-plus-circle').addEventListener('click', () => this.sceneManager.ballAndStick?.updateBallRadius(1));
+        ballRadiusControl.querySelector('i.fa-minus-circle').addEventListener('click', () => { this.sceneManager.ballAndStick?.updateBallRadius(-1); didChangeAppearance() });
+        ballRadiusControl.querySelector('i.fa-plus-circle').addEventListener('click', () => { this.sceneManager.ballAndStick?.updateBallRadius(1); didChangeAppearance() });
 
         // Stick radius
         const stickRadiusControl = document.getElementById('spacewalk-stick-radius-control');
-        stickRadiusControl.querySelector('i.fa-minus-circle').addEventListener('click', () => this.sceneManager.ballAndStick?.updateStickRadius(-1));
-        stickRadiusControl.querySelector('i.fa-plus-circle').addEventListener('click', () => this.sceneManager.ballAndStick?.updateStickRadius(1));
+        stickRadiusControl.querySelector('i.fa-minus-circle').addEventListener('click', () => { this.sceneManager.ballAndStick?.updateStickRadius(-1); didChangeAppearance() });
+        stickRadiusControl.querySelector('i.fa-plus-circle').addEventListener('click', () => { this.sceneManager.ballAndStick?.updateStickRadius(1); didChangeAppearance() });
 
         // Stick visibility switch
         const stickVisibilitySwitch = document.getElementById('spacewalk-stick-visibility-switch');
@@ -54,6 +58,7 @@ class GUIManager {
                 e.stopPropagation();
                 console.log('Stick visibility toggled:', e.target.checked);
                 this.sceneManager.setStickVisibility(e.target.checked);
+                didChangeAppearance();
             });
         }
 
@@ -65,6 +70,7 @@ class GUIManager {
                 e.stopPropagation();
                 spacewalkConfig.isCircular = e.target.checked;
                 this.sceneManager.rebuildTraceGeometry();
+                didChangeAppearance();
             });
         }
 
@@ -73,13 +79,13 @@ class GUIManager {
 
         // PointCloud Point Size
         const pointSizeControl = document.getElementById('spacewalk_ui_manager_pointcloud_point_size');
-        pointSizeControl.querySelector('i.fa-minus-circle').addEventListener('click', () => this.sceneManager.pointCloud?.updatePointSize(-1));
-        pointSizeControl.querySelector('i.fa-plus-circle').addEventListener('click', () => this.sceneManager.pointCloud?.updatePointSize(1));
+        pointSizeControl.querySelector('i.fa-minus-circle').addEventListener('click', () => { this.sceneManager.pointCloud?.updatePointSize(-1); didChangeAppearance() });
+        pointSizeControl.querySelector('i.fa-plus-circle').addEventListener('click', () => { this.sceneManager.pointCloud?.updatePointSize(1); didChangeAppearance() });
 
         // PointCloud Point Transparency
         const pointTransparencyControl = document.getElementById('spacewalk_ui_manager_pointcloud_point_transparency');
-        pointTransparencyControl.querySelector('i.fa-minus-circle').addEventListener('click', () => this.sceneManager.pointCloud?.updatePointTransparency(-1));
-        pointTransparencyControl.querySelector('i.fa-plus-circle').addEventListener('click', () => this.sceneManager.pointCloud?.updatePointTransparency(1));
+        pointTransparencyControl.querySelector('i.fa-minus-circle').addEventListener('click', () => { this.sceneManager.pointCloud?.updatePointTransparency(-1); didChangeAppearance() });
+        pointTransparencyControl.querySelector('i.fa-plus-circle').addEventListener('click', () => { this.sceneManager.pointCloud?.updatePointTransparency(1); didChangeAppearance() });
 
         SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this);
         SpacewalkEventBus.globalBus.subscribe('DidChangeColorMap', this);
@@ -136,6 +142,7 @@ class GUIManager {
                 item.addEventListener('click', (e) => {
                     e.stopPropagation()
                     this.colorMapManager.setActiveColorMapName(id)
+                    this.onHandChange({ type: 'structure-appearance' })
                 })
 
                 li.appendChild(item)
@@ -234,13 +241,14 @@ class GUIManager {
 
 }
 
-function configureRenderStyleControl(input, renderStyle, sceneManager) {
+function configureRenderStyleControl(input, renderStyle, sceneManager, onHandChange) {
 
     input.value = renderStyle;
 
     input.addEventListener('change', (e) => {
         e.preventDefault();
         sceneManager.configureRenderStyle(e.target.value)
+        onHandChange({ type: 'render-style', style: e.target.value })
     });
 
 }

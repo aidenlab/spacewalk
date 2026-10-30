@@ -71,7 +71,12 @@ class ViewerSettings {
             this.values[key] = { ...this.values[key], ...section }
         }
         this.notify()
-        this.store.save(this.get())
+        this.store.save(this.get(), patch)
+    }
+
+    // Plug in the store once it exists (the Room, attached after the viewer is assembled).
+    useStore(store) {
+        this.store = store
     }
 
     // A whole record arriving from outside (in M1, the Room): apply it, but don't write

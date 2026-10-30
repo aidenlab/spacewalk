@@ -6,9 +6,10 @@ let numberForDisplay = undefined
 
 class TraceSelector {
 
-  constructor(inputElement, ensembleManager) {
+  constructor(inputElement, ensembleManager, onHandChange = () => {}) {
 
       this.ensembleManager = ensembleManager;
+      this.onHandChange = onHandChange
       this.input = inputElement
       this.input.addEventListener('keyup', async e => {
 
@@ -16,7 +17,7 @@ class TraceSelector {
           if (13 === e.keyCode) {
               const total = await this.ensembleManager.getTraceCount()
               const number = parseInt(this.input.value, 10)
-              await broadcastTraceSelection(this.input, getBroadcastValue(number, total, undefined), total, this.ensembleManager)
+              await this.selectByHand(getBroadcastValue(number, total, undefined), total)
           }
 
       })
@@ -24,19 +25,35 @@ class TraceSelector {
       const button_minus = document.querySelector('#spacewalk_trace_select_button_minus')
       button_minus.addEventListener('click', async () => {
           const total = await this.ensembleManager.getTraceCount()
-          await broadcastTraceSelection(this.input, getBroadcastValue(numberForDisplay, total, '-'), total, this.ensembleManager)
+          await this.selectByHand(getBroadcastValue(numberForDisplay, total, '-'), total)
       })
 
       const button_plus = document.querySelector('#spacewalk_trace_select_button_plus')
       button_plus.addEventListener('click', async () => {
           const total = await this.ensembleManager.getTraceCount()
-          await broadcastTraceSelection(this.input, getBroadcastValue(numberForDisplay, total, '+'), total, this.ensembleManager)
+          await this.selectByHand(getBroadcastValue(numberForDisplay, total, '+'), total)
       });
 
 
       SpacewalkEventBus.globalBus.subscribe('DidLoadEnsembleFile', this)
 
   }
+
+    async selectByHand(number, total) {
+        if (numberForDisplay !== number) {
+            await broadcastTraceSelection(this.input, number, total, this.ensembleManager)
+            this.onHandChange({ type: 'trace', index: number - 1 })
+        }
+    }
+
+    // Show a trace the Room chose. Rejects if the ensemble has no such trace.
+    async selectTrace(index) {
+        const total = await this.ensembleManager.getTraceCount()
+        if (!(index >= 0 && index < total)) {
+            throw new Error(`This ensemble has no trace ${ index }; it has ${ total }.`)
+        }
+        await broadcastTraceSelection(this.input, index + 1, total, this.ensembleManager)
+    }
 
     receiveEvent({ type, data }) {
         if ("DidLoadEnsembleFile" === type) {

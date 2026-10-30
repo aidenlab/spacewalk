@@ -74,4 +74,18 @@ describe('parseLaunchIntent', () => {
         expect(intent.kind).toBe('file')
         expect(intent.fileURL).toBe('https://host/data.sw')
     })
+
+    it('reads a Room link', () => {
+        expect(parseLaunchIntent(`${base}?room=ABC123DEFG`)).toEqual({ kind: 'room', room: 'ABC123DEFG' })
+    })
+
+    it('gives ?room= precedence over a session', () => {
+        expect(parseLaunchIntent(`${base}?room=ABC123DEFG&spacewalkSessionURL=blob:AAA`).kind).toBe('room')
+    })
+
+    it('keeps a file URL whole when it has a room parameter of its own', () => {
+        const intent = parseLaunchIntent(`${base}?file=https://host/data.sw?a=1&room=2`)
+        expect(intent.kind).toBe('file')
+        expect(intent.fileURL).toBe('https://host/data.sw?a=1&room=2')
+    })
 })

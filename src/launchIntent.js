@@ -4,10 +4,11 @@
  *
  *   { kind: 'file',    fileURL, traceKey, ensembleGroupKey }       // ?file=…
  *   { kind: 'session', sessions: { spacewalk?, juicebox?, igv? }, viewerSettings? }  // raw compressed values
+ *   { kind: 'room', room }                                         // ?room=…, the viewer page only
  *   { kind: 'none' }
  *
- * Precedence: a ?file= launch wins outright; otherwise compose whatever compressed
- * sessions are present; otherwise nothing.
+ * Precedence: a ?file= launch wins outright; then ?room=; otherwise compose whatever
+ * compressed sessions are present; otherwise nothing.
  *
  * Decoding the session blobs (BGZip) and JSON-parsing them is deliberately the
  * executor's job (SessionBootstrapper), kept out of here so this module stays a
@@ -40,8 +41,11 @@ function parseLaunchIntent(href) {
         }
     }
 
-    // Session mode: note whichever compressed sessions are present (raw values).
     const params = parseQuery(query)
+
+    if (params.room) return { kind: 'room', room: params.room }
+
+    // Session mode: note whichever compressed sessions are present (raw values).
     const sessions = {}
     if (params.spacewalkSessionURL) sessions.spacewalk = params.spacewalkSessionURL
     if (params.session)             sessions.juicebox  = params.session

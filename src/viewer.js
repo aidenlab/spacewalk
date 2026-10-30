@@ -74,6 +74,11 @@ class Viewer {
  */
 async function assembleViewer({ canvasContainer, traceContainer, storage }) {
 
+    // Hand changes at the viewer's controls, as opposed to changes made by calling it,
+    // reach whoever sets viewer.onHandChange: a Room (roomAttachment.js). The camera's
+    // own gestures are the rig's events.
+    const onHandChange = change => viewer.onHandChange?.(change);
+
     const viewerSettings = new ViewerSettings({ store: storage ? viewerSettingsStore(storage) : noStore });
 
     // Core managers
@@ -101,7 +106,8 @@ async function assembleViewer({ canvasContainer, traceContainer, storage }) {
         panel: document.querySelector('#spacewalk_ui_manager_panel'),
         sceneManager,
         ensembleManager,
-        colorMapManager
+        colorMapManager,
+        onHandChange
     });
 
     const referenceRuler = new ReferenceRuler(canvasContainer, viewerSettings, storage ? referenceRulerAnchorStore(storage) : noStore);
@@ -109,7 +115,7 @@ async function assembleViewer({ canvasContainer, traceContainer, storage }) {
 
     const settingsMenu = new SettingsMenu(viewerSettings);
 
-    const traceSelector = new TraceSelector(document.querySelector('#spacewalk_trace_select_input'), ensembleManager);
+    const traceSelector = new TraceSelector(document.querySelector('#spacewalk_trace_select_input'), ensembleManager, onHandChange);
     const genomicNavigator = new GenomicNavigator(
         document.querySelector('#spacewalk-trace-navigator-container'),
         highlightColor,
@@ -152,20 +158,23 @@ async function assembleViewer({ canvasContainer, traceContainer, storage }) {
         ensembleIngestionController,
     });
 
-    initializeHomeButton(cameraLightingRig);
+    initializeHomeButton(cameraLightingRig, onHandChange);
     viewer.resizeObserver = observeResize(traceContainer, canvasContainer, viewer);
 
     return viewer;
 }
 
-function initializeHomeButton(cameraLightingRig) {
+function initializeHomeButton(cameraLightingRig, onHandChange) {
     const button = document.getElementById('spacewalk-threejs-home-button');
 
     // Prevent the drag container from starting a drag when the button is pressed
     button.addEventListener('pointerdown', e => e.stopPropagation());
     button.addEventListener('mousedown', e => e.stopPropagation());
 
-    button.addEventListener('click', () => cameraLightingRig.resetCamera?.());
+    button.addEventListener('click', () => {
+        cameraLightingRig.resetCamera?.();
+        onHandChange({ type: 'camera-reset' });
+    });
 }
 
 function observeResize(traceContainer, canvasContainer, viewer) {

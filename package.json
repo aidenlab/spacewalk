@@ -33,6 +33,7 @@
     "deploy:shortlink": "cd workers/sw-shortlink && npx wrangler deploy"
   },
   "dependencies": {
+    "@aidenlab/spacewalk-remote": "file:../spacewalk-mcp/remote",
     "bootstrap": "^5.3.3",
     "chroma-js": "^3.2.0",
     "hdf5-indexed-reader": "github:aidenlab/hdf5-indexed-reader#v1.0.3",
