@@ -24,7 +24,7 @@ class PointCloud {
         const { radius } = EnsembleManager.getTraceBounds(trace)
 
         this.pointSizeBoundRadiusPercentage = pointSizeBoundRadiusPercentage
-        this.pointSize = undefined === this.pointSizeBoundRadiusPercentage ? Math.max(4, Math.floor(radius/16)) : this.pointSizeBoundRadiusPercentage * radius
+        this.pointSize = undefined === this.pointSizeBoundRadiusPercentage ? defaultPointSize(radius) : this.pointSizeBoundRadiusPercentage * radius
         document.querySelector('#spacewalk_ui_manager_pointcloud_point_size_label').innerHTML = `Point Size (${ Math.floor(this.pointSize)} nm)`
 
         this.material.size = this.pointSize
@@ -208,7 +208,26 @@ class PointCloud {
 
     updatePointSize(increment) {
 
-        this.pointSize = Math.max(4, this.pointSize + (increment < 0 ? -32 : 32))
+        this.showPointSize(Math.max(4, this.pointSize + (increment < 0 ? -32 : 32)))
+
+        const { radius } = EnsembleManager.getTraceBounds(this.ensembleManager.currentTrace)
+        this.pointSizeBoundRadiusPercentage = this.pointSize / radius
+        this.sceneManager.pointSizeBoundRadiusPercentage = this.pointSizeBoundRadiusPercentage
+    }
+
+    // The point size as a session holds it: undefined means derive one from the bounds.
+    setPointSizeBoundRadiusPercentage(percentage) {
+
+        if (percentage === this.pointSizeBoundRadiusPercentage) return
+
+        const { radius } = EnsembleManager.getTraceBounds(this.ensembleManager.currentTrace)
+        this.pointSizeBoundRadiusPercentage = percentage
+        this.showPointSize(undefined === percentage ? defaultPointSize(radius) : percentage * radius)
+    }
+
+    showPointSize(pointSize) {
+
+        this.pointSize = pointSize
         document.querySelector('#spacewalk_ui_manager_pointcloud_point_size_label').innerHTML = `Point Size (${ Math.floor(this.pointSize)} nm)`
 
         this.material.size = this.pointSize
@@ -216,16 +235,16 @@ class PointCloud {
 
         this.deemphasizedMaterial.size = this.pointSize
         this.deemphasizedMaterial.needsUpdate = true
-
-        const { radius } = EnsembleManager.getTraceBounds(this.ensembleManager.currentTrace)
-        this.pointSizeBoundRadiusPercentage = this.pointSize / radius
-        this.sceneManager.pointSizeBoundRadiusPercentage = this.pointSizeBoundRadiusPercentage
     }
 
     updatePointTransparency(increment) {
 
-        this.pointOpacity += (increment < 0 ? -1 : 1) * (10 / 100) * this.pointOpacity
-        this.pointOpacity = clamp(this.pointOpacity, 1/10, 9/10)
+        this.setPointOpacity(clamp(this.pointOpacity + (increment < 0 ? -1 : 1) * (10 / 100) * this.pointOpacity, 1/10, 9/10))
+    }
+
+    setPointOpacity(pointOpacity) {
+
+        this.pointOpacity = pointOpacity
 
         this.material.opacity = this.pointOpacity
         this.material.alphaTest = this.pointOpacity/2
@@ -234,6 +253,10 @@ class PointCloud {
         this.sceneManager.pointOpacity = this.pointOpacity
     }
 
+}
+
+function defaultPointSize(radius) {
+    return Math.max(4, Math.floor(radius/16))
 }
 
 function getPositionArray(meshes){

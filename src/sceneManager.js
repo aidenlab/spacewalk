@@ -174,10 +174,10 @@ class SceneManager {
 
         const { scene, ensembleManager, materialProvider } = this
 
-        if (ensembleManager.isPointCloud) return
-
         const trace = ensembleManager.currentTrace
         if (!trace) return
+
+        if (ensembleManager.isPointCloud) return
 
         if (this.ballAndStick) {
             this.ballAndStick.dispose()
@@ -258,6 +258,41 @@ class SceneManager {
         // An unknown ramp (from another build's registry) falls back to the default.
         const known = this.colorRampMaterialProvider.colorMapManager?.dictionary?.[ colorRamp ]
         this.colorRampMaterialProvider.setColorMapName(known ? colorRamp : defaultColormapName)
+    }
+
+    /**
+     * Adopt a structure appearance and show it on the structure already built, changing
+     * only what differs. The way to change appearance when not about to rebuild.
+     */
+    applyStructureAppearance(appearance) {
+
+        const wasCircular = spacewalkConfig.isCircular === true
+
+        this.setStructureAppearance(appearance)
+
+        const { ballAndStick, pointCloud } = this
+
+        if (ballAndStick) {
+            const { ballRadiusIndex, stickRadiusIndex, sticksVisible } = appearance
+            if (ballRadiusIndex !== ballAndStick.ballRadiusIndex) {
+                ballAndStick.updateBallRadius(ballRadiusIndex - ballAndStick.ballRadiusIndex)
+            }
+            if (stickRadiusIndex !== ballAndStick.stickRadiusIndex) {
+                ballAndStick.updateStickRadius(stickRadiusIndex - ballAndStick.stickRadiusIndex)
+            }
+            ballAndStick.setStickVisibility(sticksVisible)
+        }
+
+        if (pointCloud) {
+            pointCloud.setPointSizeBoundRadiusPercentage(this.pointSizeBoundRadiusPercentage)
+            if (appearance.pointOpacity !== pointCloud.pointOpacity) {
+                pointCloud.setPointOpacity(appearance.pointOpacity)
+            }
+        }
+
+        if (wasCircular !== appearance.isCircular) {
+            this.rebuildTraceGeometry()
+        }
     }
 
     // Held here even when no ball-and-stick is built (ribbon, point cloud), so the

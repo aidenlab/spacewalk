@@ -1,9 +1,10 @@
 /**
  * Entry point for the viewer-only page (viewer.html): the 3D viewer filling the
- * window, with no navbar, no IGV and no Juicebox. It opens either the ensemble
- * named by ?file=, or a snapshot URL: a spacewalk session string beside a
- * viewer-settings parameter, with no Room (snapshot.js). Hand loading and saving
- * sessions belong to the full app.
+ * window, with no navbar, no IGV and no Juicebox. Given ?room= it shows what its
+ * Room says (roomAttachment.js). Otherwise it opens either the ensemble named by
+ * ?file=, or a snapshot URL: a spacewalk session string beside a viewer-settings
+ * parameter, with no Room (snapshot.js). Hand loading and saving sessions belong
+ * to the full app.
  *
  * The bundle for this page contains no igv and no juicebox.js; the build fails
  * if it does (build/viewerBoundary.mjs). See
@@ -16,6 +17,7 @@ import './styles/viewer_page.scss'
 import assembleViewer from "./viewer.js"
 import { parseLaunchIntent } from "./launchIntent.js"
 import { readSnapshot } from "./snapshot.js"
+import { attachViewerToRoom } from "./roomAttachment.js"
 import { restoreSpacewalkSession } from "./spacewalkSessionRestore.js"
 import { withSpinner } from "./utils/utils.js"
 import AlertSingleton from "./widgets/alertSingleton.js"
@@ -24,6 +26,9 @@ import { isInColorPicker } from "./utils/sharedColorPicker.js"
 import { presentResourceError, installGlobalErrorNet } from "./widgets/presentResourceError.js"
 
 installGlobalErrorNet()
+
+// The spacewalk-mcp Worker. Deployed builds set it; `wrangler dev` listens here.
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:8787'
 
 document.addEventListener("DOMContentLoaded", async () => {
 
@@ -40,7 +45,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     dismissOverlaysOnEscape(viewer.guiManager, settingsOverlay)
 
-    await openLaunchURL(viewer, window.location.href)
+    const intent = parseLaunchIntent(window.location.href)
+    if ('room' === intent.kind) {
+        attachViewerToRoom(viewer, {
+            server: SERVER_URL,
+            room: intent.room,
+            onStatus: status => {
+                if ('ended' === status.type) AlertSingleton.present(status.message)
+            }
+        })
+    } else {
+        await openLaunchIntent(viewer, intent)
+    }
 
     viewer.startRenderLoop()
 })
@@ -67,9 +83,7 @@ function dismissOverlaysOnEscape(guiManager, settingsOverlay) {
     }, { capture: true })
 }
 
-async function openLaunchURL(viewer, href) {
-
-    const intent = parseLaunchIntent(href)
+async function openLaunchIntent(viewer, intent) {
 
     if ('session' === intent.kind) {
         await openSnapshot(viewer, intent)
