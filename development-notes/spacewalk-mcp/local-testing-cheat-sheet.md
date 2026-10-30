@@ -8,7 +8,7 @@
 
 | Repo | Must have |
 |---|---|
-| `spacewalk` | `@aidenlab/spacewalk-remote` installed. Until it is on npm, that means the `file:` dependency on `../spacewalk-mcp/remote` (branch `viewer-attaches-to-room` until #130 merges). |
+| `spacewalk` | `@aidenlab/spacewalk-remote` installed (branch `viewer-attaches-to-room` until #130 merges). Until it is on npm, `package.json` pins the tarball on the `spacewalk-mcp` release `remote-0.1.0`. To try unreleased `remote/` changes, run `npm install ../spacewalk-mcp/remote --no-save`. |
 | `spacewalk-mcp` | `load-ensemble-frames-camera`, or `main` once that is merged. On older `main`, loading an ensemble after an orbit keeps the old camera. |
 
 Both repos sit side by side, each with `npm install` done. `server/.dev.vars` exists in `spacewalk-mcp`
