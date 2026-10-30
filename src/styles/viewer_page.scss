@@ -2,7 +2,10 @@
 // resizes with it. Layered over app.scss, which places the viewer as a
 // draggable, resizable panel in the full app.
 
+@use "color";
+
 $spacewalk-viewer-page-bar-height: 32px;
+$spacewalk-viewer-page-ramp-width: 48px;
 
 body.spacewalk-viewer-page {
 
@@ -21,7 +24,10 @@ body.spacewalk-viewer-page {
     height: $spacewalk-viewer-page-bar-height;
     cursor: default;
 
-    justify-content: flex-start;
+    // Equal side columns keep the trace select centered in the bar, and always
+    // leave room for the home button.
+    display: grid;
+    grid-template-columns: minmax(24px, 1fr) auto minmax(24px, 1fr);
     gap: 4px;
     padding: 0 4px;
     box-sizing: border-box;
@@ -32,6 +38,8 @@ body.spacewalk-viewer-page {
     #spacewalk-threejs-home-button {
       position: static;
       transform: none;
+      grid-column: 3;
+      justify-self: end;
     }
   }
 
@@ -66,7 +74,7 @@ body.spacewalk-viewer-page {
   }
 
   .spacewalk-viewer-toolbar-trace-select {
-    flex: 0 1 auto;
+    grid-column: 2;
     min-width: 0;
 
     display: flex;
@@ -96,10 +104,6 @@ body.spacewalk-viewer-page {
     }
   }
 
-  .spacewalk-viewer-toolbar-spacer {
-    flex: 1 1 auto;
-  }
-
   // Sized by the window, not by the user: no resize corner, no borders.
   #spacewalk-threejs-trace-navigator-container {
     flex: 1 1 auto;
@@ -119,6 +123,28 @@ body.spacewalk-viewer-page {
     left: 8px;
   }
 
+  // The ⚙ mirrors the ☰ across the canvas, stopping short of the trace navigator.
+  #spacewalk-viewer-settings-button-container {
+    z-index: 1024;
+    position: absolute;
+    top: $spacewalk-viewer-page-bar-height + 8px;
+    right: $spacewalk-viewer-page-ramp-width + 8px;
+
+    // Larger than the ☰'s fa-lg, for a gear's lighter visual weight. The line
+    // height keeps the button the ☰'s height.
+    i {
+      color: color.$spacewalk_aluminum;
+      display: block;
+      font-size: 1.5em;
+      line-height: 16px;
+    }
+
+    i:hover {
+      cursor: pointer;
+      color: color.$spacewalk_iron;
+    }
+  }
+
   // Fits a narrow or short window: never wider than the viewer, and scrolls
   // rather than running off the bottom. The color-ramp menus are fixed-position
   // (viewer.html) so the scrolling panel doesn't clip them.
@@ -130,16 +156,16 @@ body.spacewalk-viewer-page {
     overflow-y: auto;
   }
 
-  // The settings overlay floats under the ⚙ at the viewer's top-right, never
+  // The settings overlay floats under the ⚙, its right edge aligned with it, never
   // wider than the viewer. It doesn't scroll: four rows fit any usable window,
   // and a scrolling overlay would clip the color picker's popup.
   // Not a .card: that class is the full app's panel template (parked off-screen, 512px square).
   ul#spacewalk-settings-dropdown {
     z-index: 2048;
     position: absolute;
-    top: $spacewalk-viewer-page-bar-height + 4px;
-    right: 8px;
-    max-width: calc(100% - 16px);
+    top: $spacewalk-viewer-page-bar-height + 48px;
+    right: $spacewalk-viewer-page-ramp-width + 8px;
+    max-width: calc(100% - #{$spacewalk-viewer-page-ramp-width + 16px});
 
     margin: 0;
     padding: 8px;

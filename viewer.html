@@ -24,7 +24,7 @@
         <!-- three-js container: fills the window -->
         <div id="spacewalk-threejs-container">
 
-            <!-- toolbar: [ − ][ trace # ][ + ] ……… [ ⚙ ] [ ⌂ ]; the widget panel's ☰ floats over the canvas -->
+            <!-- toolbar: the trace select centered, [ ⌂ ] at the right; the ☰ and ⚙ float over the canvas -->
             <div id="spacewalk-threejs-drag-container" class="spacewalk-viewer-toolbar" role="toolbar" aria-label="Viewer">
 
                 <!-- trace select -->
@@ -37,13 +37,6 @@
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
-
-                <div class="spacewalk-viewer-toolbar-spacer"></div>
-
-                <!-- settings: opens the settings overlay -->
-                <button id="spacewalk-viewer-toolbar-settings-button" class="spacewalk-viewer-toolbar-button" type="button" title="Settings" aria-label="Settings" aria-controls="spacewalk-settings-dropdown" aria-expanded="false">
-                    <i class="fas fa-cog"></i>
-                </button>
 
                 <button id="spacewalk-threejs-home-button" class="spacewalk-viewer-toolbar-button" type="button" title="Reset view" aria-label="Reset view">
                     <i class="fas fa-home"></i>
@@ -198,6 +191,13 @@
                     </li>
 
                 </ul>
+            </div>
+
+            <!-- settings: the ⚙ floats over the top-right of the canvas and opens the settings overlay -->
+            <div id="spacewalk-viewer-settings-button-container">
+                <button id="spacewalk-viewer-settings-button" type="button" class="btn btn-default" title="Settings" aria-label="Settings" aria-controls="spacewalk-settings-dropdown" aria-expanded="false">
+                    <i class="fas fa-cog"></i>
+                </button>
             </div>
 
             <!-- settings overlay: floats under the ⚙, closed by default; ⚙ or Escape dismisses it -->
