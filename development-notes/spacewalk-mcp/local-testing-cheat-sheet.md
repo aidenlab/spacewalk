@@ -6,13 +6,15 @@
 
 ## Before you start
 
-| Repo | Must have |
-|---|---|
-| `spacewalk` | `@aidenlab/spacewalk-remote` installed (branch `viewer-attaches-to-room` until #130 merges). Until it is on npm, `package.json` pins the tarball on the `spacewalk-mcp` release `remote-0.1.0`. To try unreleased `remote/` changes, run `npm install ../spacewalk-mcp/remote --no-save`. |
-| `spacewalk-mcp` | `load-ensemble-frames-camera`, or `main` once that is merged. On older `main`, loading an ensemble after an orbit keeps the old camera. |
+The test runs two things: the Worker from `spacewalk-mcp` and the viewer page from `spacewalk`. The
+`@aidenlab/spacewalk-remote` tarball is only the library the page uses to talk to the Worker, so you still
+need a checkout of `spacewalk-mcp` to run the Worker.
 
-Both repos sit side by side, each with `npm install` done. `server/.dev.vars` exists in `spacewalk-mcp`
-(copy `server/.dev.vars.example`).
+One-time setup:
+
+- `spacewalk` is on `viewer-attaches-to-room` (`main` once #130 merges), with `npm install` done.
+- `spacewalk-mcp` is on `main`, with `npm install` done and `server/.dev.vars` copied from
+  `server/.dev.vars.example`.
 
 ## Start it (two terminals)
 
@@ -158,5 +160,5 @@ Kinds and trace counts other than A549's are read from the file names, not check
 | Page stays empty, Worker log shows 403 on `/ws` | The page's origin is not in `VIEWER_ORIGINS`; use port 5173 |
 | Page stays empty, no `/ws` request at all | `VITE_SERVER_URL` in `spacewalk/.env` points elsewhere; unset, it is `http://localhost:8787` |
 | `load_ensemble` says "not shown yet — no viewer is open" | The page is not open or not attached; check it is on `viewer.html?room=` with the current `ROOM` |
-| Changes to `remote/` do not show | Restart `npm run dev` in `spacewalk` |
+| Changes to `remote/` do not show | The page uses the tarball. In `spacewalk`, run `npm install ../spacewalk-mcp/remote --no-save`, then restart `npm run dev` |
 | `sw` says `Tool … not found` or an argument is invalid | Check the name and values under [The tools](#the-tools) |
