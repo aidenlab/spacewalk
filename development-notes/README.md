@@ -38,9 +38,10 @@ Last groomed: 2026-06 (post Phase 3 DI completion).
 
 | Document | Status | When to read |
 |---|---|---|
-| [spacewalk-mcp-viewer-carve-out.md](spacewalk-mcp-viewer-carve-out.md) | M0 done, M1 next | Before moving material-provider ownership off `IGVPanel`, building a viewer-only entry point, or designing anything in `spacewalk-mcp` — the 3D-only viewer for geenee, the three unconnected ports, the model's tool surface, Room-authoritative state, and milestones M0–M3 |
+| [spacewalk-mcp-viewer-carve-out.md](spacewalk-mcp-viewer-carve-out.md) | M0 and M1 done, M2 next | Before moving material-provider ownership off `IGVPanel`, building a viewer-only entry point, or designing anything in `spacewalk-mcp` — the 3D-only viewer for geenee, the three unconnected ports, the model's tool surface, Room-authoritative state, and milestones M0–M3 |
 | [spacewalk-mcp/milestones.md](spacewalk-mcp/milestones.md) | Current | **Start here for Spacewalk MCP work.** The overarching plan — milestones M0–M3, the tasks in each, what "done" means, and which milestone is in progress |
 | [spacewalk-mcp/m0-viewer-carve-out.md](spacewalk-mcp/m0-viewer-carve-out.md) | Done | Record of M0 — the GitHub tickets (#104 umbrella, #105–#113), their blocking edges, implementation order, and per-step verification |
+| [spacewalk-mcp/m1-server-single-user.md](spacewalk-mcp/m1-server-single-user.md) | Done | Record of M1 — the GitHub tickets across both repos (umbrella spacewalk-mcp#2), their blocking edges, implementation order, and per-step verification |
 | [spacewalk-mcp/local-testing-cheat-sheet.md](spacewalk-mcp/local-testing-cheat-sheet.md) | Current | Before testing the viewer page against a Room on your own machine — starting the Worker and page, a `sw` helper for calling tools, test ensembles, and a checklist |
 | [spacewalk-mcp/session-format.md](spacewalk-mcp/session-format.md) | Current | Before writing or reading a Spacewalk session string anywhere — the `spacewalk` block's fields, and `structureAppearance` with its defaults and the radius ladder. The `spacewalk-mcp` Worker reads and writes the same block |
 

@@ -13,7 +13,7 @@
 | Milestone | Where | Delivers | Ticket doc | Status |
 |---|---|---|---|---|
 | **M0** — carve out the 3D viewer | `spacewalk` (this repo) | a viewer-only page with no IGV or Juicebox inside it | [m0-viewer-carve-out.md](m0-viewer-carve-out.md) | **Done** (2026-10-28) |
-| **M1** — the MCP server, single user | `spacewalk-mcp` (Worker + `spacewalk-remote`) + the viewer page here | the model drives the viewer page through a Room | [m1-server-single-user.md](m1-server-single-user.md) | Not started — tickets filed (umbrella spacewalk-mcp#2) |
+| **M1** — the MCP server, single user | `spacewalk-mcp` (Worker + `spacewalk-remote`) + the viewer page here | the model drives the viewer page through a Room | [m1-server-single-user.md](m1-server-single-user.md) | **Done** (2026-10-30) |
 | **M2** — geenee integration | `geenee` | Spacewalk is the third viewer in geenee — **v1 done** | — | Not started |
 | **M3** — shared Rooms | `spacewalk-mcp` + `spacewalk` | Guests join a Room link and share one live 3D view | — | Not started |
 

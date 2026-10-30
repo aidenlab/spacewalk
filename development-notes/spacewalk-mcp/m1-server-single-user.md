@@ -1,6 +1,6 @@
 # M1 — The MCP server, single user: tickets
 
-> **STATUS: Filed (2026-10-28).** Ticket list and implementation order for milestone M1, from the
+> **STATUS: Done (2026-10-30).** All tickets closed; umbrella spacewalk-mcp#2 closed. Ticket list and implementation order for milestone M1, from the
 > grilling session of 2026-10-28. All tickets are labelled `ready-for-agent` except spacewalk-mcp#12 (`ready-for-human`); all are sub-issues of the
 > umbrella, and carry native GitHub issue dependencies (across both repos). Bare `#N` is
 > aidenlab/spacewalk; `spacewalk-mcp#N` is aidenlab/spacewalk-mcp.

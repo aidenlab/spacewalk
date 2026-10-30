@@ -1,6 +1,6 @@
 # Spacewalk MCP: carving out the 3D viewer for geenee
 
-> **STATUS: M0 done (2026-10-28); M1 designed (2026-10-28) — see `spacewalk-mcp/m1-server-single-user.md`
+> **STATUS: M0 done (2026-10-28); M1 done (2026-10-30); M2 next — see `spacewalk-mcp/m1-server-single-user.md`
 > and `spacewalk-mcp`'s `GLOSSARY.md` and `docs/adr/`, which supersede this RFC where they differ.** Designed in a grilling session, 2026-10-27/28.
 > M0 (#104, tickets #105–#113, #123) delivered the viewer-only page: `viewer.html` →
 > `src/viewerMain.js`, loading `?file=`, with toolbar, ☰ widget overlay and ⚙ settings overlay;
