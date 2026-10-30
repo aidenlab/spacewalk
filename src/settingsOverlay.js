@@ -1,4 +1,4 @@
-// The settings overlay floats under the toolbar's ⚙, which presents and dismisses it.
+// The settings overlay floats under the ⚙, which presents and dismisses it.
 class SettingsOverlay {
 
     constructor({ toggle, overlay }) {

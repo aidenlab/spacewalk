@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const viewer = await withSpinner(() => assembleViewer({ canvasContainer, traceContainer }))
 
     const settingsOverlay = new SettingsOverlay({
-        toggle: document.getElementById('spacewalk-viewer-toolbar-settings-button'),
+        toggle: document.getElementById('spacewalk-viewer-settings-button'),
         overlay: document.getElementById('spacewalk-settings-dropdown')
     })
 
