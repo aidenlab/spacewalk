@@ -117,7 +117,9 @@ Kinds and trace counts other than A549's are read from the file names, not check
 
 **Camera rules**
 
-- [ ] Orbit, then step a trace: the view holds still
+- [ ] Orbit, then step a trace: the view of the structure holds (same direction, distance and pan) and each new trace stays in frame. Traces lie far apart in the nucleus, so the camera moves with them; a pose held still would leave the next trace off screen. The next reply also says "the camera was moved"
+- [ ] Orbit, then step before the camera has stopped drifting: the orbit is kept
+- [ ] Orbit, step, reload: the page comes back showing the trace
 - [ ] Never orbited (or just reset), then step a trace: each trace is framed
 - [ ] Orbit, then `load_ensemble` of another file: the new structure is framed
 

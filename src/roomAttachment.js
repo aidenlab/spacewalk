@@ -59,6 +59,10 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
     // it again for every later version would not help, and it is reported once.
     let failedPlace = null
 
+    // The camera this page proposed and the Room has not yet sent back. The states ahead
+    // of it still carry the camera it replaced, which would pull the view back to it.
+    let cameraOnItsWay = null
+
     const isPointCloud = () => true === ensembleManager.datasource?.isPointCloud
 
     const kind = () => {
@@ -136,6 +140,11 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         // The gesture's own proposal is coming; it decides.
         if (cameraGesture) return
 
+        if (cameraOnItsWay) {
+            if (!isSame(camera, cameraOnItsWay)) return
+            cameraOnItsWay = null
+        }
+
         if (camera) {
             if (didRebuild || !isSame(camera, shown.camera)) {
                 applyPose(cameraLightingRig, camera)
@@ -169,7 +178,38 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         return undefined === failure ? { kind: kind() } : { kind: kind(), failure }
     }
 
-    const remote = attachRemote({ url: roomSocketURL(server), room, draw, onStatus, createSocket })
+    function commitCamera() {
+        const camera = poseOf(cameraLightingRig)
+        if (isSame(camera, shown.camera)) return
+        shown.camera = cameraOnItsWay = camera
+        remote.propose({ type: 'set-camera', camera })
+    }
+
+    // Traces lie at their own places in the nucleus, many radii apart, so a pose held
+    // still looks at where the last trace was and the new one is off screen. What holds
+    // is the view of the trace: its direction, distance and pan move with the trace.
+    function carryViewToSteppedTrace() {
+        if (!shown.camera && !cameraGesture) return
+
+        const { position, target, centerBefore, center } = cameraLightingRig.lastFraming
+        const shift = center.clone().sub(centerBefore)
+        cameraLightingRig.setPose(position.clone().add(shift), target.clone().add(shift))
+
+        // A gesture's own commit will send this, once the camera has settled.
+        if (!cameraGesture) commitCamera()
+    }
+
+    const remote = attachRemote({
+        url: roomSocketURL(server),
+        room,
+        draw,
+        createSocket,
+        onStatus: status => {
+            // A proposal may have been lost with the connection; the resync decides.
+            if ('open' === status.type) cameraOnItsWay = null
+            onStatus?.(status)
+        },
+    })
 
     viewerSettings.useStore({
         load: () => null,
@@ -182,8 +222,7 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
             case 'trace':
                 shown.traceKey = String(change.index)
                 remote.propose({ type: 'select-trace', key: shown.traceKey })
-                // Stepping framed the new trace, but the Room's camera has not moved.
-                if (shown.camera) applyPose(cameraLightingRig, shown.camera)
+                carryViewToSteppedTrace()
                 break
 
             case 'render-style':
@@ -213,8 +252,7 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         ended: didMove => {
             cameraGesture = false
             if (didMove) {
-                shown.camera = poseOf(cameraLightingRig)
-                remote.propose({ type: 'set-camera', camera: shown.camera })
+                commitCamera()
             } else {
                 drawCamera(roomCamera, false)
             }
