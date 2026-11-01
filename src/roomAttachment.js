@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { attachRemote } from '@aidenlab/spacewalk-remote'
+import { isSamePlace } from '@aidenlab/spacewalk-remote/protocol'
 import BallAndStick from './ballAndStick.js'
 import GUIManager from './guiManager.js'
 import Ribbon from './ribbon.js'
@@ -27,6 +28,9 @@ const CAMERA_STILL_FRACTION = 1e-4
  * broadcasts and proposes what is changed by hand. The Room is also the viewer-settings
  * store (ADR 0002). The ruler's anchor and which overlays are open stay with the window.
  *
+ * The camera is the exception (ADR 0005): the rig owns the camera pose, and nothing here
+ * keeps a copy. Anyone who needs it asks, and is answered with a reading of the rig.
+ *
  * Every state is drawn, the same version again on a resync, so drawing changes only
  * what differs from what the page shows; that leaves a hand change's echo with nothing
  * to do, and puts back a hand change the Room did not take.
@@ -43,25 +47,24 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
 
     const { ensembleManager, sceneManager, ensembleIngestionController, traceSelector, cameraLightingRig, viewerSettings } = viewer
 
-    // The page's place in the ensemble and its camera, in the Room's terms. A null
-    // camera means framed. The render style and appearance are read from the scene.
-    const shown = { url: undefined, groupKey: null, traceKey: '0', renderStyle: undefined, camera: null }
+    // The page's place in the ensemble, in the Room's terms. The render style and
+    // appearance are read from the scene.
+    const shown = { url: undefined, groupKey: null, traceKey: '0', renderStyle: undefined }
 
     // What the scene's appearance was when last in step with the Room; a hand change is the difference.
     let appearanceInStep = sceneManager.structureAppearance
 
     let cameraGesture = false
 
-    // The camera the Room last sent, drawn late if a gesture was in the way.
-    let roomCamera = null
+    // The version of the latest load acted on: a resync of it must not move the camera again.
+    let actedOnLoadVersion = null
+
+    // The connection has just opened: once drawn, the page wants the holder's pose.
+    let isNewConnection = false
 
     // The place in an ensemble that would not load. The Room keeps naming it; fetching
     // it again for every later version would not help, and it is reported once.
     let failedPlace = null
-
-    // A step cleared the camera and the Room has not yet said so. The states ahead of
-    // that still carry the old camera, which would pull the view off the new trace.
-    let isCameraResetOnItsWay = false
 
     const isPointCloud = () => true === ensembleManager.datasource?.isPointCloud
 
@@ -135,33 +138,34 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         return undefined
     }
 
-    function drawCamera(camera, didRebuild) {
+    // A load replaces the view: the session's pose, or else the framing, which a load
+    // that rebuilt has already done. A person's own drag wins.
+    function drawLoad(loaded, didRebuild) {
 
-        // The gesture's own proposal is coming; it decides.
+        if (null === loaded || loaded.version === actedOnLoadVersion) return
+        actedOnLoadVersion = loaded.version
+
         if (cameraGesture) return
 
-        if (isCameraResetOnItsWay) {
-            if (null !== camera) return
-            isCameraResetOnItsWay = false
-        }
-
-        if (camera) {
-            if (didRebuild || !isSame(camera, shown.camera)) {
-                applyPose(cameraLightingRig, camera)
-            }
-        } else if (shown.camera && !didRebuild) {
+        if (loaded.camera) {
+            applyPose(cameraLightingRig, loaded.camera)
+        } else if (!didRebuild) {
             cameraLightingRig.resetCamera?.()
         }
-        shown.camera = camera
     }
 
-    async function draw({ ensemble, renderStyle, structureAppearance, viewerSettings: settings, camera }) {
+    // The rig's pose now and where it is. Never kept: every call reads the rig.
+    function readCamera() {
+        if (undefined === shown.url) return null
+        const { url, groupKey, traceKey } = shown
+        return { place: { url, groupKey, traceKey }, camera: poseOf(cameraLightingRig) }
+    }
+
+    async function draw({ ensemble, renderStyle, structureAppearance, viewerSettings: settings }, version, loaded) {
 
         if (!isSame(settings, viewerSettings.get())) {
             viewerSettings.receive(settings)
         }
-
-        roomCamera = camera
 
         const { didRebuild, failure: ensembleFailure } = await tryDrawEnsemble(ensemble, renderStyle, structureAppearance)
 
@@ -171,7 +175,13 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
 
         const renderStyleFailure = drawRenderStyle(renderStyle, didRebuild)
 
-        drawCamera(camera, didRebuild)
+        // A load that failed keeps its pose in the Room, for a Viewer that can draw it. A
+        // resync of the failure reports nothing new, but the page still doesn't show that place.
+        if (null === failedPlace) drawLoad(loaded, didRebuild)
+
+        // Having framed, or just come back, follow the holder if another holds the camera.
+        if (isNewConnection || didRebuild) remote.wantCamera()
+        isNewConnection = false
 
         const failure = ensembleFailure ?? renderStyleFailure
 
@@ -182,10 +192,20 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         url: roomSocketURL(server),
         room,
         draw,
+        camera: {
+            read: readCamera,
+            follow({ place, camera }) {
+                // A pose for any other place would look at where that trace is, not this one.
+                if (cameraGesture || !isSamePlace(place, shown)) return
+                if (!isSame(camera, poseOf(cameraLightingRig))) applyPose(cameraLightingRig, camera)
+            },
+            reset() {
+                if (!cameraGesture) cameraLightingRig.resetCamera?.()
+            },
+        },
         createSocket,
         onStatus: status => {
-            // The reset may have been lost with the connection; the resync decides.
-            if ('open' === status.type) isCameraResetOnItsWay = false
+            if ('open' === status.type) isNewConnection = true
             onStatus?.(status)
         },
     })
@@ -201,15 +221,9 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
             case 'trace':
                 shown.traceKey = String(change.index)
                 remote.propose({ type: 'select-trace', key: shown.traceKey })
-                // Every trace gets its own framing, which the step has just done. Nothing
-                // of the view carries over: traces lie many radii apart, and a pose kept
-                // from the last one looks at where that trace was.
+                // Every trace gets its own framing, which the step has just done. A gesture
+                // still settling belongs to the last trace.
                 cameraGestures.abandon()
-                if (!isCameraResetOnItsWay && (shown.camera || roomCamera)) {
-                    shown.camera = null
-                    isCameraResetOnItsWay = true
-                    remote.propose({ type: 'reset-camera' })
-                }
                 break
 
             case 'render-style':
@@ -228,46 +242,46 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
             }
 
             case 'camera-reset':
-                shown.camera = null
-                remote.propose({ type: 'reset-camera' })
+                remote.resetCamera()
+                // A reset sends no pose: a gesture still settling must not release the framing.
+                cameraGestures.abandon()
                 break
         }
     }
 
     const cameraGestures = followCameraGestures(cameraLightingRig, {
-        began: () => { cameraGesture = true },
+        began: () => {
+            cameraGesture = true
+            remote.tookCamera()
+        },
         abandoned: () => { cameraGesture = false },
-        ended: didMove => {
+        // Sent even if the camera did not move: poses were ignored during the gesture, and
+        // everyone ends on the last release.
+        ended: () => {
             cameraGesture = false
-            if (didMove) {
-                shown.camera = poseOf(cameraLightingRig)
-                remote.propose({ type: 'set-camera', camera: shown.camera })
-            } else {
-                drawCamera(roomCamera, false)
-            }
+            const pose = readCamera()
+            if (pose) remote.releasedCamera(pose)
         },
     })
 
     return remote
 }
 
-// began() when a person takes hold of the camera; ended(didMove) when they have let
-// go and it has stopped. Changes made outside a gesture are the page's own. abandon()
+// began() when a person takes hold of the camera; ended() when they have let go and
+// it has stopped. Changes made outside a gesture are the page's own. abandon()
 // drops a gesture still settling: abandoned() is told, and ended() never is.
 function followCameraGestures(rig, { began, ended, abandoned }) {
 
     let inGesture = false
     let released = false
-    let didMove = false
     let timer
     const lastPosition = new THREE.Vector3()
 
     const settleAfterRelease = () => {
         clearTimeout(timer)
         timer = setTimeout(() => {
-            const moved = didMove
-            inGesture = released = didMove = false
-            ended(moved)
+            inGesture = released = false
+            ended()
         }, CAMERA_SETTLE_MS)
     }
 
@@ -279,9 +293,7 @@ function followCameraGestures(rig, { began, ended, abandoned }) {
     })
 
     rig.addEventListener('change', () => {
-        if (!inGesture) return
-        didMove = true
-        if (!released) return
+        if (!inGesture || !released) return
         const { position } = rig.object
         const isStill = position.distanceTo(lastPosition) <= CAMERA_STILL_FRACTION * position.distanceTo(rig.target)
         lastPosition.copy(position)
@@ -298,7 +310,7 @@ function followCameraGestures(rig, { began, ended, abandoned }) {
         abandon() {
             if (!inGesture) return
             clearTimeout(timer)
-            inGesture = released = didMove = false
+            inGesture = released = false
             abandoned()
         },
     }

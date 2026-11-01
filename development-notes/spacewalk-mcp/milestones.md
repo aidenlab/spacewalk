@@ -71,7 +71,7 @@ pins `spacewalk-remote` and is deployed to Cloudflare Pages. See `spacewalk-mcp`
 
 - **Viewer state** — the Room's one structured, versioned record: the ensemble (URL, group, trace,
   kind), render style, **structure appearance** (radius steps, sticks, point size and transparency,
-  color ramp, circular genome), viewer settings, camera. The session string appears only at the
+  color ramp, circular genome), viewer settings. It holds no camera pose (spacewalk-mcp ADR 0005). The session string appears only at the
   edges: `get_shareable_url` writes one, `load_session` reads one.
 - **The Room applies every proposal**, relative steps included, so a tool call takes effect with no
   Viewer open (the reply says it is not shown yet).
@@ -160,8 +160,9 @@ and the model routes 3D requests to Spacewalk, on Claude desktop and ChatGPT des
    first sync.
 2. **What is shared** — everything in the state document; per person: hover highlighting and
    whether the overlays are open.
-3. **Live camera** — during a drag, camera positions go out on a throttled (~150 ms) channel that is
-   not versioned; one camera change is committed at the end of the gesture.
+3. **Live camera** — during a drag, the camera holder's pose goes out on a throttled (~150 ms)
+   relay that is never stored. Today followers jump to the pose at release; nothing is committed to
+   the Room, which keeps no pose (spacewalk-mcp ADR 0005).
 4. **Multi-page realized reporting** — a failure on any page reaches the model's next reply.
 5. **geenee** — confirm the Room link, QR code and hand-off page work with the 3D viewer.
 

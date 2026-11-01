@@ -119,7 +119,7 @@ The appearance of the scene's furniture — background color, axes, ground plane
 _Avoid_: preferences (they are a fact about the scene, not about a person)
 
 **Hand change**:
-A change a person makes at the viewer's own controls, as opposed to one the viewer is told to make. On a viewer page attached to a Room (`spacewalk-mcp`; see its `GLOSSARY.md`) each one is proposed to the Room, which alone applies it.
+A change a person makes at the viewer's own controls, as opposed to one the viewer is told to make. On a viewer page attached to a Room (`spacewalk-mcp`; see its `GLOSSARY.md`) each one is proposed to the Room, which alone applies it. The camera is the exception: the viewer's `CameraLightingRig` owns the pose, and a person's camera moves are relayed to other viewers, not proposed (`spacewalk-mcp` ADR 0005).
 _Avoid_: user edit, local change
 
 **Snapshot URL**:

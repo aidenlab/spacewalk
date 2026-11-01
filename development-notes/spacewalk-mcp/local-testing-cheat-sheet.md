@@ -105,21 +105,21 @@ Kinds and trace counts other than A549's are read from the file names, not check
 
 - [ ] `load_ensemble`: the structure appears; the reply says "Applied and drawn"
 - [ ] `set_render_style`, `step_ball_radius`, `step_stick_radius`, `set_background_color`, `adjust_background`: each shows at once
-- [ ] Orbit, then `reset_camera`: the view returns to its framing
+- [ ] Orbit, then `reset_camera`: the view returns to its framing, and the reply says "The camera was reset"
 
 **A hand change shows up in the next reply** (make it, then `sw read_viewer_state | head -1`)
 
-- [ ] Orbit: "the camera was moved". It should commit shortly after the camera visibly stops, with no jump back
 - [ ] Trace stepper: "stepped to trace N"
 - [ ] Render style, ball and stick radius, sticks, color ramp, circular (☰ panel)
 - [ ] Axes, ground plane, ruler, background (⚙ settings)
-- [ ] Home button: "reset the camera"
 
 **Camera rules**
 
-- [ ] Step a trace, orbited or not: each trace gets its own framing, straight on. Nothing of the view carries from trace to trace. After an orbit, the next reply also says "reset the camera"
-- [ ] Orbit, then step before the camera has stopped drifting: the new trace is framed and no camera is committed
-- [ ] Orbit, step, reload: the page comes back showing the trace, framed
+- [ ] Step a trace, orbited or not: each trace gets its own framing, straight on. Nothing of the view carries from trace to trace
+- [ ] Orbit, then step before the camera has stopped drifting: the new trace is framed
+- [ ] Orbit, step, then reload, alone in the Room: the page comes back showing the trace, framed, and the orbit is gone (spacewalk-mcp ADR 0005)
+- [ ] Orbit, then `get_shareable_url`: the snapshot opens at that pose. A camera move is no longer news in a reply
+- [ ] Two windows: orbit in one, and the other jumps to the pose on release. Step or Home in one, and both frame. A window opened later takes the pose
 - [ ] Orbit, then `load_ensemble` of another file: the new structure is framed
 
 **Per Room and per window**
