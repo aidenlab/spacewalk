@@ -14,7 +14,7 @@
 |---|---|---|---|---|
 | **M0** — carve out the 3D viewer | `spacewalk` (this repo) | a viewer-only page with no IGV or Juicebox inside it | [m0-viewer-carve-out.md](m0-viewer-carve-out.md) | **Done** (2026-10-28) |
 | **M1** — the MCP server, single user | `spacewalk-mcp` (Worker + `spacewalk-remote`) + the viewer page here | the model drives the viewer page through a Room | [m1-server-single-user.md](m1-server-single-user.md) | **Done** (2026-10-30) |
-| **M2** — geenee integration | `geenee` | Spacewalk is the third viewer in geenee — **v1 done** | — | Not started |
+| **M2** — geenee integration | `geenee` + `spacewalk-mcp` | Spacewalk is the third viewer in geenee — **v1 done** | [m2-geenee-integration.md](m2-geenee-integration.md) | Not started |
 | **M3** — shared Rooms | `spacewalk-mcp` + `spacewalk` | Guests join a Room link and share one live 3D view | — | Not started |
 
 Each milestone is blocked by the one before it. Within a milestone, tickets carry their own
@@ -101,12 +101,12 @@ pins `spacewalk-remote` and is deployed to Cloudflare Pages. See `spacewalk-mcp`
 7. **Tools** — `open_viewer`; `load_ensemble`, `list_example_ensembles` (the Load From List file,
    fetched from R2), `select_ensemble_group`; `set_render_style` (refused on a known point cloud),
    ball radius up/down, stick radius up/down; `reset_camera`, `set_background_color` (crayon name or
-   hex), `adjust_background`; `read_viewer_state` (also geenee's connection probe),
+   hex), `adjust_background`; `read_viewer_state`,
    `get_shareable_url` (a Room-free snapshot of the viewer page, shortened), `load_session` (either
    app's URL or a bare session string; Spacewalk part only, says what it ignored).
 8. **Replies** — as above.
 9. **Join card** — the MCP App card with an Open button for the viewer.
-10. **Deploy** — one wizard: Worker `spacewalk-mcp-dev.3dg.io`, Pages `spacewalk-viewer-dev.3dg.io`
+10. **Deploy** — one wizard: Worker `spacewalk-mcp-dev.3dg.io`, Pages `spacewalk-viewer-dev.pages.dev`
     (built from `../spacewalk`), `SESSION_HMAC_SECRET`, `VIEWER_ORIGINS`.
 11. **Tests** — the viewer state (apply, version, order), relative steps, the changed-since-last-look
     diff, the handshake and version refusal, realized/timeout handling. The page is checked by eye.
@@ -124,20 +124,25 @@ reply; a shareable URL reopens the same view.
 
 **Goal.** Spacewalk is the third viewer in geenee, alongside IGV and Juicebox.
 
-**Where.** `geenee`.
+**Where.** `geenee`, and two small contract changes in `spacewalk-mcp`.
 
 **Tasks.**
 
-1. `SPACEWALK_UPSTREAM_URL` in geenee's configuration, pointing at the dev `spacewalk-mcp`.
-2. Serve Spacewalk's tools with the `spacewalk_` prefix; hide `open_viewer` behind `open_geenee`;
-   withhold `get_shareable_url` (as for igv); pass the Room id as an argument
-   (`roomGoesIn: 'argument'`); probe the connection with `read_viewer_state`.
-3. A third tab in the geenee Workspace, with the viewer page embedded and its connection state shown.
-4. Update geenee's server instructions so the model knows when the 3D viewer is the right one.
-5. Any small changes the viewer page needs for embedding (geenee's `&embedded` convention).
+1. In `spacewalk-mcp`: `open_viewer` accepts a new well-formed Room id, as igv's does, since geenee
+   mints the id; and a new `read_viewer_count` tool, since reading the viewer state clears the news.
+2. `SPACEWALK_UPSTREAM_URL` in geenee's configuration, pointing at the dev `spacewalk-mcp`.
+3. Serve Spacewalk's tools with the `spacewalk_` prefix; hide `open_viewer` behind `open_geenee`,
+   which opens Spacewalk's Room; withhold `get_shareable_url` (as for igv) and `read_viewer_count`;
+   pass the Room id as an argument (`roomGoesIn: 'argument'`); probe the connection with
+   `read_viewer_count`.
+4. A third tab in the geenee Workspace, with the viewer page embedded and its connection state shown.
+5. Update geenee's server instructions so the model knows when the 3D viewer is the right one.
+6. Check the viewer page by eye in the frame. It has nothing for `&embedded` to leave out, so it
+   changes only if the check finds a need.
 
 **Done when.** In a geenee conversation the user can move between IGV, Juicebox and the 3D viewer,
-and the model routes 3D requests to Spacewalk. **This is v1.**
+and the model routes 3D requests to Spacewalk, on Claude desktop and ChatGPT desktop in Codex mode.
+**This is v1.**
 
 **Out of scope.** Cross-viewer linkage — the ports stay unconnected.
 
