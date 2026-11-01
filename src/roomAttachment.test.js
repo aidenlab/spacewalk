@@ -28,7 +28,6 @@ function roomState(overrides = {}) {
         renderStyle: 'ball-and-stick',
         structureAppearance: appearance(),
         viewerSettings: new ViewerSettings().get(),
-        camera: null,
         ...overrides,
     }
 }
@@ -111,10 +110,15 @@ function attached(viewer, options = {}) {
     const room = {
         socket,
         // A state from the Room, settled: drawn and reported.
-        async sends(state, version = 1) {
-            socket.onmessage({ data: JSON.stringify({ type: 'state', version, state }) })
+        async sends(state, version = 1, loaded = null) {
+            socket.onmessage({ data: JSON.stringify({ type: 'state', version, state, loaded }) })
             await vi.advanceTimersByTimeAsync(0)
         },
+        // Any other message from the Room.
+        tells(message) {
+            socket.onmessage({ data: JSON.stringify(message) })
+        },
+        sentOf: type => socket.sent.filter(message => type === message.type),
         realized: () => socket.sent.filter(({ type }) => 'realized' === type),
         proposals: () => socket.sent.filter(({ type }) => 'propose' === type).map(({ proposal }) => proposal),
         remote,
@@ -191,10 +195,11 @@ describe('attachViewerToRoom', () => {
         it('a resync of what is shown redraws nothing', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
-            const state = roomState({ ensemble: ensemble(), camera: { position: { x: 9, y: 9, z: 9 }, target: { x: 0, y: 0, z: 0 } } })
-            await room.sends(state)
+            const state = roomState({ ensemble: ensemble() })
+            const loaded = { version: 1, camera: { position: { x: 9, y: 9, z: 9 }, target: { x: 0, y: 0, z: 0 } } }
+            await room.sends(state, 1, loaded)
             viewer.cameraLightingRig.setPose.mockClear()
-            await room.sends(state)
+            await room.sends(state, 1, loaded)
             expect(viewer.ensembleIngestionController.ingestEnsemblePath).toHaveBeenCalledTimes(1)
             expect(viewer.traceSelector.selectTrace).not.toHaveBeenCalled()
             expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
@@ -257,54 +262,203 @@ describe('attachViewerToRoom', () => {
         })
     })
 
-    describe('the camera a state carries', () => {
+    describe('a load\'s camera pose', () => {
 
         const pose = { position: { x: 9, y: 8, z: 7 }, target: { x: 1, y: 1, z: 1 } }
 
         it('is put on the rig after the ensemble loads', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
-            await room.sends(roomState({ ensemble: ensemble(), camera: pose }))
+            await room.sends(roomState({ ensemble: ensemble() }), 1, { version: 1, camera: pose })
             expect(viewer.cameraLightingRig.object.position.toArray()).toEqual([ 9, 8, 7 ])
             expect(viewer.cameraLightingRig.target.toArray()).toEqual([ 1, 1, 1 ])
         })
 
-        it('going to null frames the structure again', async () => {
+        it('is acted on once: a later state of that load leaves the camera alone', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
-            await room.sends(roomState({ ensemble: ensemble(), camera: pose }))
-            await room.sends(roomState({ ensemble: ensemble() }), 2)
+            await room.sends(roomState({ ensemble: ensemble() }), 1, { version: 1, camera: pose })
+            viewer.cameraLightingRig.setPose.mockClear()
+            await room.sends(roomState({ ensemble: ensemble() }), 2, { version: 1, camera: null })
+            expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
+            expect(viewer.cameraLightingRig.resetCamera).not.toHaveBeenCalled()
+        })
+
+        it('is put on the rig by a load of what is already shown, which does not rebuild', async () => {
+            const viewer = fakeViewer()
+            const room = attached(viewer)
+            await room.sends(roomState({ ensemble: ensemble() }), 1, { version: 1, camera: null })
+            await room.sends(roomState({ ensemble: ensemble() }), 2, { version: 2, camera: pose })
+            expect(viewer.ensembleIngestionController.ingestEnsemblePath).toHaveBeenCalledTimes(1)
+            expect(viewer.cameraLightingRig.object.position.toArray()).toEqual([ 9, 8, 7 ])
+            expect(viewer.cameraLightingRig.resetCamera).not.toHaveBeenCalled()
+        })
+
+        it('that is absent frames a load of what is already shown', async () => {
+            const viewer = fakeViewer()
+            const room = attached(viewer)
+            await room.sends(roomState({ ensemble: ensemble() }), 1, { version: 1, camera: null })
+            expect(viewer.cameraLightingRig.resetCamera).not.toHaveBeenCalled()
+            await room.sends(roomState({ ensemble: ensemble() }), 2, { version: 2, camera: null })
             expect(viewer.cameraLightingRig.resetCamera).toHaveBeenCalledTimes(1)
         })
 
-        it('is drawn when it comes with a new trace, as a session does', async () => {
-            const viewer = fakeViewer()
-            const room = attached(viewer)
-            await room.sends(roomState({ ensemble: ensemble(), camera: pose }))
-            viewer.cameraLightingRig.setPose.mockClear()
-            await room.sends(roomState({ ensemble: ensemble({ traceKey: '2' }), camera: pose }), 2)
-            expect(viewer.cameraLightingRig.setPose).toHaveBeenCalledTimes(1)
-        })
-
-        it('that arrived during a click is drawn when the click is over', async () => {
+        it('does not move the camera while a person is holding it', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
             await room.sends(roomState({ ensemble: ensemble() }))
             viewer.cameraLightingRig.dispatchEvent({ type: 'start' })
-            await room.sends(roomState({ ensemble: ensemble(), camera: pose }), 2)
+            await room.sends(roomState({ ensemble: ensemble() }), 2, { version: 2, camera: pose })
+            expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
+        })
+
+        it('skipped for a person holding the camera is not applied after they let go', async () => {
+            const viewer = fakeViewer()
+            const room = attached(viewer)
+            await room.sends(roomState({ ensemble: ensemble() }))
+            viewer.cameraLightingRig.dispatchEvent({ type: 'start' })
+            await room.sends(roomState({ ensemble: ensemble() }), 2, { version: 2, camera: pose })
             viewer.cameraLightingRig.dispatchEvent({ type: 'end' })
             await vi.advanceTimersByTimeAsync(500)
-            expect(viewer.cameraLightingRig.object.position.toArray()).toEqual([ 9, 8, 7 ])
-            expect(room.proposals()).toEqual([])
+            await room.sends(roomState({ ensemble: ensemble() }), 2, { version: 2, camera: pose })
+            expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
         })
 
-        it('waits while a person is moving the camera', async () => {
+        it('is not acted on by a Viewer that failed to draw the load', async () => {
+            const viewer = fakeViewer()
+            viewer.ensembleIngestionController.ingestEnsemblePath = vi.fn(async () => { throw new Error('no') })
+            const room = attached(viewer)
+            await room.sends(roomState({ ensemble: ensemble() }), 1, { version: 1, camera: pose })
+            expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
+        })
+
+        it('is not acted on by a resync of a load that failed to draw', async () => {
+            const viewer = fakeViewer()
+            viewer.ensembleIngestionController.ingestEnsemblePath = vi.fn(async () => { throw new Error('no') })
+            const room = attached(viewer)
+            await room.sends(roomState({ ensemble: ensemble() }), 1, { version: 1, camera: pose })
+            await room.sends(roomState({ ensemble: ensemble() }), 1, { version: 1, camera: pose })
+            expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
+        })
+
+        it('that is absent does not frame on a resync of a load that failed to draw', async () => {
+            const viewer = fakeViewer()
+            viewer.ensembleIngestionController.ingestEnsemblePath = vi.fn(async () => { throw new Error('no') })
+            const room = attached(viewer)
+            await room.sends(roomState({ ensemble: ensemble() }), 1, { version: 1, camera: null })
+            await room.sends(roomState({ ensemble: ensemble() }), 1, { version: 1, camera: null })
+            expect(viewer.cameraLightingRig.resetCamera).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('the camera, which the rig owns', () => {
+
+        const camera = { position: { x: 9, y: 8, z: 7 }, target: { x: 1, y: 1, z: 1 } }
+        const place = { url: URL_A, groupKey: null, traceKey: '0' }
+
+        async function showing() {
             const viewer = fakeViewer()
             const room = attached(viewer)
             await room.sends(roomState({ ensemble: ensemble() }))
-            viewer.cameraLightingRig.dispatchEvent({ type: 'start' })
-            await room.sends(roomState({ ensemble: ensemble(), camera: pose }), 2)
+            return { viewer, room, rig: viewer.cameraLightingRig }
+        }
+
+        it('answers the Room with a reading of the rig, as it stands now', async () => {
+            const { room, rig } = await showing()
+            rig.object.position.x = 50
+            room.tells({ type: 'ask-camera', requestId: 'a' })
+            expect(room.sentOf('camera-answer')).toEqual([{
+                type: 'camera-answer',
+                requestId: 'a',
+                pose: { place, camera: { position: { x: 50, y: 2, z: 3 }, target: { x: 0, y: 0, z: 0 } } },
+            }])
+        })
+
+        it('answers with no pose when nothing is shown', () => {
+            const room = attached(fakeViewer())
+            room.tells({ type: 'ask-camera', requestId: 'a' })
+            expect(room.sentOf('camera-answer')).toEqual([{ type: 'camera-answer', requestId: 'a', pose: null }])
+        })
+
+        it('shares a reading of the rig when another Viewer wants it', async () => {
+            const { room } = await showing()
+            room.tells({ type: 'share-camera' })
+            expect(room.sentOf('camera-shared')).toEqual([{
+                type: 'camera-shared',
+                place,
+                camera: { position: { x: 1, y: 2, z: 3 }, target: { x: 0, y: 0, z: 0 } },
+            }])
+        })
+
+        it('follows another Viewer\'s pose in the place it shows', async () => {
+            const { room, rig } = await showing()
+            room.tells({ type: 'camera-moved', place: { ...place, traceKey: null }, camera })
+            expect(rig.object.position.toArray()).toEqual([ 9, 8, 7 ])
+        })
+
+        it('drops a pose for any other place', async () => {
+            const { room, rig } = await showing()
+            room.tells({ type: 'camera-moved', place: { ...place, traceKey: '6' }, camera })
+            expect(rig.setPose).not.toHaveBeenCalled()
+        })
+
+        it('drops a pose while a person is holding it', async () => {
+            const { room, rig } = await showing()
+            rig.dispatchEvent({ type: 'start' })
+            room.tells({ type: 'camera-moved', place, camera })
+            expect(rig.setPose).not.toHaveBeenCalled()
+        })
+
+        it('skips a pose the rig already has', async () => {
+            const { room, rig } = await showing()
+            room.tells({ type: 'camera-moved', place, camera: { position: { x: 1, y: 2, z: 3 }, target: { x: 0, y: 0, z: 0 } } })
+            expect(rig.setPose).not.toHaveBeenCalled()
+        })
+
+        it('drops a pose with nothing shown', () => {
+            const viewer = fakeViewer()
+            const room = attached(viewer)
+            room.tells({ type: 'camera-moved', place, camera })
             expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
+        })
+
+        it('does not frame when told to reset while a person is holding it', async () => {
+            const { room, rig } = await showing()
+            rig.dispatchEvent({ type: 'start' })
+            room.tells({ type: 'reset-camera' })
+            expect(rig.resetCamera).not.toHaveBeenCalled()
+        })
+
+        it('frames when told to reset, and confirms if the Room asked', async () => {
+            const { room, rig } = await showing()
+            room.tells({ type: 'reset-camera', requestId: 'r' })
+            expect(rig.resetCamera).toHaveBeenCalledTimes(1)
+            expect(room.sentOf('camera-reset-done')).toEqual([{ type: 'camera-reset-done', requestId: 'r' }])
+        })
+
+        it('wants the holder\'s pose after joining, and after every rebuild', async () => {
+            const { room } = await showing()
+            expect(room.sentOf('want-camera')).toHaveLength(1)
+            await room.sends(roomState({ ensemble: ensemble({ traceKey: '2' }) }), 2)
+            expect(room.sentOf('want-camera')).toHaveLength(2)
+            await room.sends(roomState({ ensemble: ensemble({ traceKey: '2' }), renderStyle: 'ribbon' }), 3)
+            expect(room.sentOf('want-camera')).toHaveLength(2)
+        })
+
+        it('wants the holder\'s pose after a reconnect, keeping its own until told', async () => {
+            const { room, rig } = await showing()
+            room.socket.onopen()
+            await room.sends(roomState({ ensemble: ensemble() }))
+            expect(room.sentOf('want-camera')).toHaveLength(2)
+            expect(rig.setPose).not.toHaveBeenCalled()
+            expect(rig.resetCamera).not.toHaveBeenCalled()
+        })
+
+        it('is proposed to nobody: a state carries no pose, and an orbit makes no proposal', async () => {
+            const { room, rig } = await showing()
+            rig.orbitTo(50)
+            await vi.advanceTimersByTimeAsync(500)
+            expect(room.proposals()).toEqual([])
         })
     })
 
@@ -320,73 +474,29 @@ describe('attachViewerToRoom', () => {
             expect(viewer.traceSelector.selectTrace).not.toHaveBeenCalled()
         })
 
-        describe('of the trace, with a camera the Room holds', () => {
-
-            // Every trace gets its own framing. Nothing of the view carries from one trace
-            // to the next: traces lie many radii apart, and a pose kept from the last one
-            // looks at where that trace was.
-            const camera = { position: { x: 9, y: 8, z: 7 }, target: { x: 1, y: 1, z: 1 } }
-            const framing = [ 101, 1, 101 ]
-
-            async function heldThenStepped() {
-                const viewer = fakeViewer()
-                const room = attached(viewer)
-                await room.sends(roomState({ ensemble: ensemble(), camera }))
-                viewer.cameraLightingRig.frames(new Vector3(101, 1, 1))
-                viewer.cameraLightingRig.setPose.mockClear()
-                viewer.onHandChange({ type: 'trace', index: 7 })
-                return { viewer, room }
-            }
-
-            it('leaves the new trace framed', async () => {
-                const { viewer } = await heldThenStepped()
-                expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
-                expect(viewer.cameraLightingRig.object.position.toArray()).toEqual(framing)
-            })
-
-            it('tells the Room the camera is framed again, so a reload frames too', async () => {
-                const { room } = await heldThenStepped()
-                expect(room.proposals()).toEqual([
-                    { type: 'select-trace', key: '7' },
-                    { type: 'reset-camera' },
-                ])
-            })
-
-            it('is not pulled back by the echo of the step, which carries the old camera', async () => {
-                const { viewer, room } = await heldThenStepped()
-                await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }), camera }), 2)
-                await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }) }), 3)
-                expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
-                expect(viewer.cameraLightingRig.resetCamera).not.toHaveBeenCalled()
-            })
-
-            it('draws the Room\'s camera again once the reset has come back', async () => {
-                const { viewer, room } = await heldThenStepped()
-                await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }) }), 2)
-                await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }), camera }), 3)
-                expect(viewer.cameraLightingRig.object.position.toArray()).toEqual([ 9, 8, 7 ])
-            })
-
-            it('draws the Room\'s camera after a reconnect, whatever was on its way', async () => {
-                const { viewer, room } = await heldThenStepped()
-                room.socket.onopen()
-                await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }), camera }), 2)
-                expect(viewer.cameraLightingRig.object.position.toArray()).toEqual([ 9, 8, 7 ])
-            })
-        })
-
-        it('of the trace with no camera held proposes only the trace', async () => {
+        it('of the trace sends no pose, and leaves the framing the step did', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
             await room.sends(roomState({ ensemble: ensemble() }))
-            viewer.cameraLightingRig.frames(new Vector3(101, 1, 1))
-            viewer.cameraLightingRig.setPose.mockClear()
+            const rig = viewer.cameraLightingRig
+            rig.orbitTo(50)
+            await vi.advanceTimersByTimeAsync(500)
+            rig.frames(new Vector3(101, 1, 1))
+            rig.setPose.mockClear()
+            room.socket.sent.length = 0
+
             viewer.onHandChange({ type: 'trace', index: 7 })
-            expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
+            await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }) }), 2)
+
             expect(room.proposals()).toEqual([{ type: 'select-trace', key: '7' }])
+            expect(room.sentOf('camera-released')).toEqual([])
+            expect(room.sentOf('camera-reset')).toEqual([])
+            expect(rig.setPose).not.toHaveBeenCalled()
+            expect(rig.resetCamera).not.toHaveBeenCalled()
+            expect(rig.object.position.toArray()).toEqual([ 101, 1, 101 ])
         })
 
-        it('of the trace while the camera settles does not commit the orbit, or the framing', async () => {
+        it('of the trace while the camera settles does not release the orbit, or the framing', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
             await room.sends(roomState({ ensemble: ensemble() }))
@@ -399,9 +509,10 @@ describe('attachViewerToRoom', () => {
 
             await vi.advanceTimersByTimeAsync(500)
             expect(room.proposals()).toEqual([{ type: 'select-trace', key: '7' }])
+            expect(room.sentOf('camera-released')).toEqual([])
         })
 
-        it('orbiting after a step commits as usual', async () => {
+        it('orbiting after a step releases the pose, at the new trace', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
             await room.sends(roomState({ ensemble: ensemble() }))
@@ -412,10 +523,11 @@ describe('attachViewerToRoom', () => {
             rig.orbitTo(60)
 
             await vi.advanceTimersByTimeAsync(500)
-            expect(room.proposals()).toEqual([
-                { type: 'select-trace', key: '7' },
-                { type: 'set-camera', camera: { position: { x: 60, y: 2, z: 3 }, target: { x: 0, y: 0, z: 0 } } },
-            ])
+            expect(room.sentOf('camera-released')).toEqual([{
+                type: 'camera-released',
+                place: { url: URL_A, groupKey: null, traceKey: '7' },
+                camera: { position: { x: 60, y: 2, z: 3 }, target: { x: 0, y: 0, z: 0 } },
+            }])
         })
 
         it('that a resync contradicts is put back', async () => {
@@ -479,18 +591,19 @@ describe('attachViewerToRoom', () => {
             expect(room.proposals()).toEqual([])
         })
 
-        it('to the camera is proposed once it has settled, drift included', async () => {
+        it('to the camera says the Viewer took hold at once, and releases once it has settled, drift included', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
             await room.sends(roomState({ ensemble: ensemble() }))
             const rig = viewer.cameraLightingRig
             rig.orbitTo(50)
+            expect(room.sentOf('took-camera')).toHaveLength(1)
             await vi.advanceTimersByTimeAsync(100)
-            expect(room.proposals()).toEqual([])
+            expect(room.sentOf('camera-released')).toEqual([])
             rig.object.position.x = 60
             rig.dispatchEvent({ type: 'change' })
             await vi.advanceTimersByTimeAsync(500)
-            expect(room.proposals()).toEqual([{ type: 'set-camera', camera: { position: { x: 60, y: 2, z: 3 }, target: { x: 0, y: 0, z: 0 } } }])
+            expect(room.sentOf('camera-released')).toMatchObject([{ camera: { position: { x: 60, y: 2, z: 3 }, target: { x: 0, y: 0, z: 0 } } }])
         })
 
         it('to the camera does not wait out drift too small to see', async () => {
@@ -504,47 +617,50 @@ describe('attachViewerToRoom', () => {
                 rig.object.position.x += 1e-6
                 rig.dispatchEvent({ type: 'change' })
             }
-            expect(room.proposals()).toHaveLength(1)
+            expect(room.sentOf('camera-released')).toHaveLength(1)
         })
 
-        it('to the camera, once proposed, is not undone by its echo', async () => {
-            const viewer = fakeViewer()
-            const room = attached(viewer)
-            await room.sends(roomState({ ensemble: ensemble() }))
-            viewer.cameraLightingRig.orbitTo(50)
-            await vi.advanceTimersByTimeAsync(500)
-            const { camera } = room.proposals()[0]
-            await room.sends(roomState({ ensemble: ensemble(), camera }), 2)
-            expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
-        })
-
-        it('a click on the canvas does not move the camera, and proposes nothing', async () => {
+        it('a click on the canvas takes hold and releases, for everyone to end on the last release', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
             await room.sends(roomState({ ensemble: ensemble() }))
             viewer.cameraLightingRig.dispatchEvent({ type: 'start' })
             viewer.cameraLightingRig.dispatchEvent({ type: 'end' })
             await vi.advanceTimersByTimeAsync(500)
+            expect(room.sentOf('took-camera')).toHaveLength(1)
+            expect(room.sentOf('camera-released')).toHaveLength(1)
             expect(room.proposals()).toEqual([])
         })
 
-        it('a change the page makes to the camera itself proposes nothing', async () => {
+        it('a change the page makes to the camera itself tells nobody', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
             await room.sends(roomState({ ensemble: ensemble() }))
             viewer.cameraLightingRig.dispatchEvent({ type: 'change' })
             await vi.advanceTimersByTimeAsync(500)
+            expect(room.sentOf('took-camera')).toEqual([])
+            expect(room.sentOf('camera-released')).toEqual([])
+        })
+
+        it('of the home button tells the Room, which tells the others', async () => {
+            const viewer = fakeViewer()
+            const room = attached(viewer)
+            await room.sends(roomState({ ensemble: ensemble() }))
+            viewer.onHandChange({ type: 'camera-reset' })
+            expect(room.sentOf('camera-reset')).toEqual([{ type: 'camera-reset' }])
             expect(room.proposals()).toEqual([])
         })
 
-        it('of the home button resets the camera', async () => {
+        it('of the home button while the camera settles does not release the framing as a pose', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
-            await room.sends(roomState({ ensemble: ensemble(), camera: { position: { x: 9, y: 8, z: 7 }, target: { x: 1, y: 1, z: 1 } } }))
+            await room.sends(roomState({ ensemble: ensemble() }))
+            viewer.cameraLightingRig.orbitTo(50)
+            await vi.advanceTimersByTimeAsync(100)
             viewer.onHandChange({ type: 'camera-reset' })
-            expect(room.proposals()).toEqual([{ type: 'reset-camera' }])
-            await room.sends(roomState({ ensemble: ensemble() }), 2)
-            expect(viewer.cameraLightingRig.resetCamera).not.toHaveBeenCalled()
+            await vi.advanceTimersByTimeAsync(500)
+            expect(room.sentOf('camera-reset')).toHaveLength(1)
+            expect(room.sentOf('camera-released')).toEqual([])
         })
     })
 
