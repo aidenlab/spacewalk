@@ -59,9 +59,9 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
     // it again for every later version would not help, and it is reported once.
     let failedPlace = null
 
-    // The camera this page proposed and the Room has not yet sent back. The states ahead
-    // of it still carry the camera it replaced, which would pull the view back to it.
-    let cameraOnItsWay = null
+    // A step cleared the camera and the Room has not yet said so. The states ahead of
+    // that still carry the old camera, which would pull the view off the new trace.
+    let isCameraResetOnItsWay = false
 
     const isPointCloud = () => true === ensembleManager.datasource?.isPointCloud
 
@@ -140,9 +140,9 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         // The gesture's own proposal is coming; it decides.
         if (cameraGesture) return
 
-        if (cameraOnItsWay) {
-            if (!isSame(camera, cameraOnItsWay)) return
-            cameraOnItsWay = null
+        if (isCameraResetOnItsWay) {
+            if (null !== camera) return
+            isCameraResetOnItsWay = false
         }
 
         if (camera) {
@@ -178,35 +178,14 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         return undefined === failure ? { kind: kind() } : { kind: kind(), failure }
     }
 
-    function commitCamera() {
-        const camera = poseOf(cameraLightingRig)
-        if (isSame(camera, shown.camera)) return
-        shown.camera = cameraOnItsWay = camera
-        remote.propose({ type: 'set-camera', camera })
-    }
-
-    // Traces lie at their own places in the nucleus, many radii apart, so a pose held
-    // still looks at where the last trace was and the new one is off screen. What holds
-    // is the view of the trace: its direction, distance and pan move with the trace.
-    function carryViewToSteppedTrace() {
-        if (!shown.camera && !cameraGesture) return
-
-        const { position, target, centerBefore, center } = cameraLightingRig.lastFraming
-        const shift = center.clone().sub(centerBefore)
-        cameraLightingRig.setPose(position.clone().add(shift), target.clone().add(shift))
-
-        // A gesture's own commit will send this, once the camera has settled.
-        if (!cameraGesture) commitCamera()
-    }
-
     const remote = attachRemote({
         url: roomSocketURL(server),
         room,
         draw,
         createSocket,
         onStatus: status => {
-            // A proposal may have been lost with the connection; the resync decides.
-            if ('open' === status.type) cameraOnItsWay = null
+            // The reset may have been lost with the connection; the resync decides.
+            if ('open' === status.type) isCameraResetOnItsWay = false
             onStatus?.(status)
         },
     })
@@ -222,7 +201,15 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
             case 'trace':
                 shown.traceKey = String(change.index)
                 remote.propose({ type: 'select-trace', key: shown.traceKey })
-                carryViewToSteppedTrace()
+                // Every trace gets its own framing, which the step has just done. Nothing
+                // of the view carries over: traces lie many radii apart, and a pose kept
+                // from the last one looks at where that trace was.
+                cameraGestures.abandon()
+                if (!isCameraResetOnItsWay && (shown.camera || roomCamera)) {
+                    shown.camera = null
+                    isCameraResetOnItsWay = true
+                    remote.propose({ type: 'reset-camera' })
+                }
                 break
 
             case 'render-style':
@@ -247,12 +234,14 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         }
     }
 
-    followCameraGestures(cameraLightingRig, {
+    const cameraGestures = followCameraGestures(cameraLightingRig, {
         began: () => { cameraGesture = true },
+        abandoned: () => { cameraGesture = false },
         ended: didMove => {
             cameraGesture = false
             if (didMove) {
-                commitCamera()
+                shown.camera = poseOf(cameraLightingRig)
+                remote.propose({ type: 'set-camera', camera: shown.camera })
             } else {
                 drawCamera(roomCamera, false)
             }
@@ -263,8 +252,9 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
 }
 
 // began() when a person takes hold of the camera; ended(didMove) when they have let
-// go and it has stopped. Changes made outside a gesture are the page's own.
-function followCameraGestures(rig, { began, ended }) {
+// go and it has stopped. Changes made outside a gesture are the page's own. abandon()
+// drops a gesture still settling: abandoned() is told, and ended() never is.
+function followCameraGestures(rig, { began, ended, abandoned }) {
 
     let inGesture = false
     let released = false
@@ -301,8 +291,17 @@ function followCameraGestures(rig, { began, ended }) {
     rig.addEventListener('end', () => {
         released = true
         lastPosition.copy(rig.object.position)
-        settleAfterRelease()
+        if (inGesture) settleAfterRelease()
     })
+
+    return {
+        abandon() {
+            if (!inGesture) return
+            clearTimeout(timer)
+            inGesture = released = didMove = false
+            abandoned()
+        },
+    }
 }
 
 function roomSocketURL(server) {

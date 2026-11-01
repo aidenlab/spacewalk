@@ -57,14 +57,6 @@ class CameraLightingRig extends OrbitControls {
 
     configure (fov, aspect, position, centroid, boundingDiameter) {
 
-        // Framing replaces the view; whoever holds a view across traces carries it from here.
-        this.lastFraming = {
-            position: this.object.position.clone(),
-            target: this.target.clone(),
-            centerBefore: this.lastFraming?.center,
-            center: centroid.clone(),
-        }
-
         this.setPose(position, centroid)
 
         const [ near, far ] = [ 1e-2 * boundingDiameter, 1e2 * boundingDiameter ];
