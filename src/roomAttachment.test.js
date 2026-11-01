@@ -58,6 +58,10 @@ class FakeRig extends EventDispatcher {
         this.object.position.copy(position)
         this.target.copy(target)
     })
+    // What a step does before the hand change is reported: frame the new trace.
+    frames(center) {
+        this.setPose(new Vector3(center.x, center.y, center.z + 100), center)
+    }
     orbitTo(x) {
         this.dispatchEvent({ type: 'start' })
         this.object.position.x = x
@@ -273,7 +277,7 @@ describe('attachViewerToRoom', () => {
             expect(viewer.cameraLightingRig.resetCamera).toHaveBeenCalledTimes(1)
         })
 
-        it('survives a trace step, which frames the new trace', async () => {
+        it('is drawn when it comes with a new trace, as a session does', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
             await room.sends(roomState({ ensemble: ensemble(), camera: pose }))
@@ -316,14 +320,102 @@ describe('attachViewerToRoom', () => {
             expect(viewer.traceSelector.selectTrace).not.toHaveBeenCalled()
         })
 
-        it('of the trace keeps the Room\'s camera, which the step framed away', async () => {
+        describe('of the trace, with a camera the Room holds', () => {
+
+            // Every trace gets its own framing. Nothing of the view carries from one trace
+            // to the next: traces lie many radii apart, and a pose kept from the last one
+            // looks at where that trace was.
+            const camera = { position: { x: 9, y: 8, z: 7 }, target: { x: 1, y: 1, z: 1 } }
+            const framing = [ 101, 1, 101 ]
+
+            async function heldThenStepped() {
+                const viewer = fakeViewer()
+                const room = attached(viewer)
+                await room.sends(roomState({ ensemble: ensemble(), camera }))
+                viewer.cameraLightingRig.frames(new Vector3(101, 1, 1))
+                viewer.cameraLightingRig.setPose.mockClear()
+                viewer.onHandChange({ type: 'trace', index: 7 })
+                return { viewer, room }
+            }
+
+            it('leaves the new trace framed', async () => {
+                const { viewer } = await heldThenStepped()
+                expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
+                expect(viewer.cameraLightingRig.object.position.toArray()).toEqual(framing)
+            })
+
+            it('tells the Room the camera is framed again, so a reload frames too', async () => {
+                const { room } = await heldThenStepped()
+                expect(room.proposals()).toEqual([
+                    { type: 'select-trace', key: '7' },
+                    { type: 'reset-camera' },
+                ])
+            })
+
+            it('is not pulled back by the echo of the step, which carries the old camera', async () => {
+                const { viewer, room } = await heldThenStepped()
+                await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }), camera }), 2)
+                await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }) }), 3)
+                expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
+                expect(viewer.cameraLightingRig.resetCamera).not.toHaveBeenCalled()
+            })
+
+            it('draws the Room\'s camera again once the reset has come back', async () => {
+                const { viewer, room } = await heldThenStepped()
+                await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }) }), 2)
+                await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }), camera }), 3)
+                expect(viewer.cameraLightingRig.object.position.toArray()).toEqual([ 9, 8, 7 ])
+            })
+
+            it('draws the Room\'s camera after a reconnect, whatever was on its way', async () => {
+                const { viewer, room } = await heldThenStepped()
+                room.socket.onopen()
+                await room.sends(roomState({ ensemble: ensemble({ traceKey: '7' }), camera }), 2)
+                expect(viewer.cameraLightingRig.object.position.toArray()).toEqual([ 9, 8, 7 ])
+            })
+        })
+
+        it('of the trace with no camera held proposes only the trace', async () => {
             const viewer = fakeViewer()
             const room = attached(viewer)
-            const camera = { position: { x: 9, y: 8, z: 7 }, target: { x: 1, y: 1, z: 1 } }
-            await room.sends(roomState({ ensemble: ensemble(), camera }))
-            viewer.cameraLightingRig.object.position.set(0, 0, 100)
+            await room.sends(roomState({ ensemble: ensemble() }))
+            viewer.cameraLightingRig.frames(new Vector3(101, 1, 1))
+            viewer.cameraLightingRig.setPose.mockClear()
             viewer.onHandChange({ type: 'trace', index: 7 })
-            expect(viewer.cameraLightingRig.object.position.toArray()).toEqual([ 9, 8, 7 ])
+            expect(viewer.cameraLightingRig.setPose).not.toHaveBeenCalled()
+            expect(room.proposals()).toEqual([{ type: 'select-trace', key: '7' }])
+        })
+
+        it('of the trace while the camera settles does not commit the orbit, or the framing', async () => {
+            const viewer = fakeViewer()
+            const room = attached(viewer)
+            await room.sends(roomState({ ensemble: ensemble() }))
+            const rig = viewer.cameraLightingRig
+
+            rig.orbitTo(50)
+            rig.frames(new Vector3(101, 1, 1))
+            viewer.onHandChange({ type: 'trace', index: 7 })
+            rig.dispatchEvent({ type: 'change' })
+
+            await vi.advanceTimersByTimeAsync(500)
+            expect(room.proposals()).toEqual([{ type: 'select-trace', key: '7' }])
+        })
+
+        it('orbiting after a step commits as usual', async () => {
+            const viewer = fakeViewer()
+            const room = attached(viewer)
+            await room.sends(roomState({ ensemble: ensemble() }))
+            const rig = viewer.cameraLightingRig
+
+            rig.orbitTo(50)
+            viewer.onHandChange({ type: 'trace', index: 7 })
+            rig.orbitTo(60)
+
+            await vi.advanceTimersByTimeAsync(500)
+            expect(room.proposals()).toEqual([
+                { type: 'select-trace', key: '7' },
+                { type: 'set-camera', camera: { position: { x: 60, y: 2, z: 3 }, target: { x: 0, y: 0, z: 0 } } },
+            ])
         })
 
         it('that a resync contradicts is put back', async () => {

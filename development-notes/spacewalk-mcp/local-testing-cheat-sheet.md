@@ -117,8 +117,9 @@ Kinds and trace counts other than A549's are read from the file names, not check
 
 **Camera rules**
 
-- [ ] Orbit, then step a trace: the view holds still
-- [ ] Never orbited (or just reset), then step a trace: each trace is framed
+- [ ] Step a trace, orbited or not: each trace gets its own framing, straight on. Nothing of the view carries from trace to trace. After an orbit, the next reply also says "reset the camera"
+- [ ] Orbit, then step before the camera has stopped drifting: the new trace is framed and no camera is committed
+- [ ] Orbit, step, reload: the page comes back showing the trace, framed
 - [ ] Orbit, then `load_ensemble` of another file: the new structure is framed
 
 **Per Room and per window**

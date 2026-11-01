@@ -59,6 +59,10 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
     // it again for every later version would not help, and it is reported once.
     let failedPlace = null
 
+    // A step cleared the camera and the Room has not yet said so. The states ahead of
+    // that still carry the old camera, which would pull the view off the new trace.
+    let isCameraResetOnItsWay = false
+
     const isPointCloud = () => true === ensembleManager.datasource?.isPointCloud
 
     const kind = () => {
@@ -136,6 +140,11 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         // The gesture's own proposal is coming; it decides.
         if (cameraGesture) return
 
+        if (isCameraResetOnItsWay) {
+            if (null !== camera) return
+            isCameraResetOnItsWay = false
+        }
+
         if (camera) {
             if (didRebuild || !isSame(camera, shown.camera)) {
                 applyPose(cameraLightingRig, camera)
@@ -169,7 +178,17 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         return undefined === failure ? { kind: kind() } : { kind: kind(), failure }
     }
 
-    const remote = attachRemote({ url: roomSocketURL(server), room, draw, onStatus, createSocket })
+    const remote = attachRemote({
+        url: roomSocketURL(server),
+        room,
+        draw,
+        createSocket,
+        onStatus: status => {
+            // The reset may have been lost with the connection; the resync decides.
+            if ('open' === status.type) isCameraResetOnItsWay = false
+            onStatus?.(status)
+        },
+    })
 
     viewerSettings.useStore({
         load: () => null,
@@ -182,8 +201,15 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
             case 'trace':
                 shown.traceKey = String(change.index)
                 remote.propose({ type: 'select-trace', key: shown.traceKey })
-                // Stepping framed the new trace, but the Room's camera has not moved.
-                if (shown.camera) applyPose(cameraLightingRig, shown.camera)
+                // Every trace gets its own framing, which the step has just done. Nothing
+                // of the view carries over: traces lie many radii apart, and a pose kept
+                // from the last one looks at where that trace was.
+                cameraGestures.abandon()
+                if (!isCameraResetOnItsWay && (shown.camera || roomCamera)) {
+                    shown.camera = null
+                    isCameraResetOnItsWay = true
+                    remote.propose({ type: 'reset-camera' })
+                }
                 break
 
             case 'render-style':
@@ -208,8 +234,9 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         }
     }
 
-    followCameraGestures(cameraLightingRig, {
+    const cameraGestures = followCameraGestures(cameraLightingRig, {
         began: () => { cameraGesture = true },
+        abandoned: () => { cameraGesture = false },
         ended: didMove => {
             cameraGesture = false
             if (didMove) {
@@ -225,8 +252,9 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
 }
 
 // began() when a person takes hold of the camera; ended(didMove) when they have let
-// go and it has stopped. Changes made outside a gesture are the page's own.
-function followCameraGestures(rig, { began, ended }) {
+// go and it has stopped. Changes made outside a gesture are the page's own. abandon()
+// drops a gesture still settling: abandoned() is told, and ended() never is.
+function followCameraGestures(rig, { began, ended, abandoned }) {
 
     let inGesture = false
     let released = false
@@ -263,8 +291,17 @@ function followCameraGestures(rig, { began, ended }) {
     rig.addEventListener('end', () => {
         released = true
         lastPosition.copy(rig.object.position)
-        settleAfterRelease()
+        if (inGesture) settleAfterRelease()
     })
+
+    return {
+        abandon() {
+            if (!inGesture) return
+            clearTimeout(timer)
+            inGesture = released = didMove = false
+            abandoned()
+        },
+    }
 }
 
 function roomSocketURL(server) {
