@@ -122,6 +122,15 @@ Kinds and trace counts other than A549's are read from the file names, not check
 - [ ] Two windows: orbit in one, and the other jumps to the pose on release. Step or Home in one, and both frame. A window opened later takes the pose
 - [ ] Orbit, then `load_ensemble` of another file: the new structure is framed
 
+**The highlight** (two windows on one Room link, spacewalk-mcp ADR 0006)
+
+- [ ] Hover the navigator strip or the structure in one: the other draws the same highlight, in its own render style
+- [ ] Move the pointer off: the highlight clears in both
+- [ ] Hover in both at once: each window draws its own highlight; the other's comes back when the pointer leaves
+- [ ] Step a trace in one while the other hovers: the stepped window drops the old trace's highlight; the next move brings the new trace's
+- [ ] Windows on different traces: neither draws the other's highlight
+- [ ] Switch the render style while the other window hovers: the highlight shows in the new style on the next move, not at once (see the punch list)
+
 **Per Room and per window**
 
 - [ ] Reload the page: it comes back in the same state

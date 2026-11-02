@@ -31,6 +31,10 @@ const CAMERA_STILL_FRACTION = 1e-4
  * The camera is the exception (ADR 0005): the rig owns the camera pose, and nothing here
  * keeps a copy. Anyone who needs it asks, and is answered with a reading of the rig.
  *
+ * The highlight is relayed, never kept (ADR 0006): every change to the page's own goes
+ * out with the place shown, and another Viewer's is drawn as the controller's remote
+ * selection, which a person's own outranks on their own screen.
+ *
  * Every state is drawn, the same version again on a resync, so drawing changes only
  * what differs from what the page shows; that leaves a hand change's echo with nothing
  * to do, and puts back a hand change the Room did not take.
@@ -46,6 +50,7 @@ const CAMERA_STILL_FRACTION = 1e-4
 function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
 
     const { ensembleManager, sceneManager, ensembleIngestionController, traceSelector, cameraLightingRig, viewerSettings } = viewer
+    const { highlightController } = sceneManager
 
     // The page's place in the ensemble, in the Room's terms. The render style and
     // appearance are read from the scene.
@@ -97,6 +102,8 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         }
 
         Object.assign(shown, { url, groupKey, traceKey: key })
+        // Another Viewer's highlight belonged to the trace that was shown. The pointer's next move brings the new one's.
+        highlightController.clearRemote()
         return true
     }
 
@@ -154,11 +161,16 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         }
     }
 
-    // The rig's pose now and where it is. Never kept: every call reads the rig.
-    function readCamera() {
+    function placeShown() {
         if (undefined === shown.url) return null
         const { url, groupKey, traceKey } = shown
-        return { place: { url, groupKey, traceKey }, camera: poseOf(cameraLightingRig) }
+        return { url, groupKey, traceKey }
+    }
+
+    // The rig's pose now and where it is. Never kept: every call reads the rig.
+    function readCamera() {
+        const place = placeShown()
+        return place && { place, camera: poseOf(cameraLightingRig) }
     }
 
     async function draw({ ensemble, renderStyle, structureAppearance, viewerSettings: settings }, version, loaded) {
@@ -203,11 +215,28 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
                 if (!cameraGesture) cameraLightingRig.resetCamera?.()
             },
         },
+        highlight: {
+            follow({ place, selection }) {
+                // A selection in any other place points at beads this page is not showing.
+                if (undefined === shown.url || !isSamePlace(place, shown)) return
+                if (0 === selection.length) {
+                    highlightController.clearRemote()
+                } else {
+                    highlightController.setRemote(selection)
+                }
+            },
+        },
         createSocket,
         onStatus: status => {
             if ('open' === status.type) isNewConnection = true
             onStatus?.(status)
         },
+    })
+
+    // Only the page's own highlight goes out, so another Viewer's is never sent back.
+    highlightController.onLocalChange(selection => {
+        const place = placeShown()
+        if (place) remote.highlighted(place, selection)
     })
 
     viewerSettings.useStore({
@@ -221,6 +250,7 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
             case 'trace':
                 shown.traceKey = String(change.index)
                 remote.propose({ type: 'select-trace', key: shown.traceKey })
+                highlightController.clearRemote()
                 // Every trace gets its own framing, which the step has just done. A gesture
                 // still settling belongs to the last trace.
                 cameraGestures.abandon()
