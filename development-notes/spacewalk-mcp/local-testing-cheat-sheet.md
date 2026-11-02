@@ -1,13 +1,13 @@
 # Spacewalk MCP — local testing cheat sheet
 
 > **STATUS: Current (2026-10-30, #130).** Run the Worker and the viewer page together on one machine and
-> drive them the way a model would. Needs no npm publish and no deployed host. Vocabulary:
+> drive them the way a model would. Needs no deployed host. Vocabulary:
 > `spacewalk-mcp/GLOSSARY.md`.
 
 ## Before you start
 
 The test runs two things: the Worker from `spacewalk-mcp` and the viewer page from `spacewalk`. The
-`@aidenlab/spacewalk-remote` tarball is only the library the page uses to talk to the Worker, so you still
+`@aidenlab/spacewalk-remote` package from npm is only the library the page uses to talk to the Worker, so you still
 need a checkout of `spacewalk-mcp` to run the Worker.
 
 One-time setup:
@@ -161,5 +161,5 @@ Kinds and trace counts other than A549's are read from the file names, not check
 | Page stays empty, Worker log shows 403 on `/ws` | The page's origin is not in `VIEWER_ORIGINS`; use port 5173 |
 | Page stays empty, no `/ws` request at all | `VITE_SERVER_URL` in `spacewalk/.env` points elsewhere; unset, it is `http://localhost:8787` |
 | `load_ensemble` says "not shown yet — no viewer is open" | The page is not open or not attached; check it is on `viewer.html?room=` with the current `ROOM` |
-| Changes to `remote/` do not show | The page uses the tarball. In `spacewalk`, run `npm install ../spacewalk-mcp/remote --no-save`, then restart `npm run dev` |
+| Changes to `remote/` do not show | The page uses the version pinned from npm. In `spacewalk`, run `npm install ../spacewalk-mcp/remote --no-save`, then restart `npm run dev` |
 | `sw` says `Tool … not found` or an argument is invalid | Check the name and values under [The tools](#the-tools) |
