@@ -87,7 +87,7 @@ class HighlightController {
         }
         const before = this.selection
         this.remote = next
-        this.reconcile(before, 'remote')
+        this.reconcile(before, 'Room')
     }
 
     reconcile(before, source) {

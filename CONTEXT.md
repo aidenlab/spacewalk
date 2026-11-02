@@ -67,12 +67,13 @@ The source of color for the 3D structure: given an interpolant, it yields a colo
 
 **Selection**:
 The single shared highlight state — a list of `{ index, interpolant }` entries. Every input writes it; every surface renders it. One state, many writers, one renderer per surface.
+In a Room it has two parts: the **local** selection, which this page's producers write, and the **remote** selection, another Viewer's highlight relayed through the Room (spacewalk-mcp ADR 0006). The local one is drawn while it isn't empty; otherwise the remote one is. Only the local one is sent out.
 
 **Surface**:
 Something that reflects the selection. There are two: the **navigator strip** (the band on the color ramp) and the **3D structure**.
 
 **Producer**:
-An input that converts a pointer position into selection entries and writes them. There are four: the navigator ramp, the IGV pointer, the Juicebox crosshairs, and the 3D raycast picker. The picker picks balls only, so it produces nothing in ribbon or point cloud. Every producer is a pointer under direct user interaction: highlighting exists to link a gesture in genomic space to the corresponding place in 3D space, and nothing that is not a user's pointer writes the selection.
+An input that converts a pointer position into selection entries and writes them. There are four: the navigator ramp, the IGV pointer, the Juicebox crosshairs, and the 3D raycast picker. The picker picks balls only, so it produces nothing in ribbon or point cloud. Every producer is a pointer under direct user interaction: highlighting exists to link a gesture in genomic space to the corresponding place in 3D space, and nothing that is not a user's pointer writes the selection. A remote highlight is another person's pointer, relayed: it fills the remote selection and is not a producer on this page.
 _Avoid_: source, input (as nouns for this role)
 
 **Driver / receiver**:

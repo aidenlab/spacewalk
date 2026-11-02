@@ -218,12 +218,8 @@ function attachViewerToRoom(viewer, { server, room, onStatus, createSocket }) {
         highlight: {
             follow({ place, selection }) {
                 // A selection in any other place points at beads this page is not showing.
-                if (undefined === shown.url || !isSamePlace(place, shown)) return
-                if (0 === selection.length) {
-                    highlightController.clearRemote()
-                } else {
-                    highlightController.setRemote(selection)
-                }
+                // An empty selection clears it.
+                if (undefined !== shown.url && isSamePlace(place, shown)) highlightController.setRemote(selection)
             },
         },
         createSocket,
