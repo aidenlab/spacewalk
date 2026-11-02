@@ -1,6 +1,6 @@
 # M2 — geenee integration: tickets
 
-> **STATUS: Not started.** Ticket list and implementation order for milestone M2, from the grilling
+> **STATUS: Done (2026-11-02).** All tickets closed; umbrella geenee#43 closed. Ticket list and implementation order for milestone M2, from the grilling
 > session of 2026-10-31 to 2026-11-01. All tickets are labelled `ready-for-agent` except
 > geenee#48 and geenee#49 (`ready-for-human`); all are sub-issues of the umbrella, and carry
 > native GitHub issue dependencies (across both repos). `geenee#N` is aidenlab/geenee;
