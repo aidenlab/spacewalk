@@ -158,8 +158,8 @@ and the model routes 3D requests to Spacewalk, on Claude desktop and ChatGPT des
 
 1. **Guests** — several pages in one Room, all equal (geenee's Driver + Guests); a late joiner is a
    first sync.
-2. **What is shared** — everything in the state document; per person: hover highlighting and
-   whether the overlays are open.
+2. **What is shared** — everything in the state document, and the hover highlight, relayed and
+   kept by nobody (spacewalk-mcp ADR 0006; spacewalk#146); per person: whether the overlays are open.
 3. **Live camera** — during a drag, the camera holder's pose goes out on a throttled (~150 ms)
    relay that is never stored. Today followers jump to the pose at release; nothing is committed to
    the Room, which keeps no pose (spacewalk-mcp ADR 0005).

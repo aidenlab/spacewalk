@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { EventDispatcher, Vector3 } from 'three'
 import ViewerSettings from './viewerSettings.js'
+import HighlightController from './highlightController.js'
 import { attachViewerToRoom } from './roomAttachment.js'
 
 // Invisible bookkeeping between a Viewer and its Room: what a state makes the page
@@ -78,6 +79,7 @@ function fakeViewer() {
             setStructureAppearance: vi.fn(),
             applyStructureAppearance: vi.fn(function (value) { this.structureAppearance = value }),
             configureRenderStyle: vi.fn(function (style) { this.renderStyle = style }),
+            highlightController: new HighlightController(),
         },
         ensembleIngestionController: {
             ingestEnsemblePath: vi.fn(async () => { viewer.ensembleManager.datasource = { isPointCloud: false } }),
@@ -460,6 +462,75 @@ describe('attachViewerToRoom', () => {
             await vi.advanceTimersByTimeAsync(500)
             expect(room.proposals()).toEqual([])
         })
+    })
+
+    describe('the highlight, which the Room relays and nobody keeps', () => {
+
+        const place = { url: URL_A, groupKey: null, traceKey: '0' }
+        const pointed = [ { index: 3, interpolant: 0.3 } ]
+        const theirs = [ { index: 7, interpolant: 0.7 } ]
+
+        async function showing() {
+            const viewer = fakeViewer()
+            const room = attached(viewer)
+            await room.sends(roomState({ ensemble: ensemble() }))
+            return { viewer, room, highlight: viewer.sceneManager.highlightController }
+        }
+
+        it('sends a local highlight, and its clear, with the place shown', async () => {
+            const { room, highlight } = await showing()
+            highlight.set(pointed, 'navigator')
+            highlight.clear('navigator')
+            await vi.advanceTimersByTimeAsync(100)
+            expect(room.sentOf('highlighted')).toEqual([
+                { type: 'highlighted', place, selection: pointed },
+                { type: 'highlighted', place, selection: [] },
+            ])
+        })
+
+        it('sends nothing with nothing shown', async () => {
+            const viewer = fakeViewer()
+            const room = attached(viewer)
+            viewer.sceneManager.highlightController.set(pointed, 'navigator')
+            await vi.advanceTimersByTimeAsync(100)
+            expect(room.sentOf('highlighted')).toEqual([])
+        })
+
+        it('draws another Viewer\'s highlight in the place shown, and does not send it back', async () => {
+            const { room, highlight } = await showing()
+            room.tells({ type: 'highlight-moved', place: { ...place, traceKey: null }, selection: theirs })
+            await vi.advanceTimersByTimeAsync(100)
+            expect(highlight.selection).toEqual(theirs)
+            expect(room.sentOf('highlighted')).toEqual([])
+        })
+
+        it('clears another Viewer\'s highlight on an empty selection', async () => {
+            const { room, highlight } = await showing()
+            room.tells({ type: 'highlight-moved', place, selection: theirs })
+            room.tells({ type: 'highlight-moved', place, selection: [] })
+            expect(highlight.selection).toEqual([])
+        })
+
+        it('drops a highlight for any other place', async () => {
+            const { room, highlight } = await showing()
+            room.tells({ type: 'highlight-moved', place: { ...place, traceKey: '5' }, selection: theirs })
+            expect(highlight.selection).toEqual([])
+        })
+
+        it('clears another Viewer\'s highlight on a step by hand', async () => {
+            const { viewer, room, highlight } = await showing()
+            room.tells({ type: 'highlight-moved', place, selection: theirs })
+            viewer.onHandChange({ type: 'trace', index: 4 })
+            expect(highlight.selection).toEqual([])
+        })
+
+        it('clears another Viewer\'s highlight on a step the Room draws', async () => {
+            const { room, highlight } = await showing()
+            room.tells({ type: 'highlight-moved', place, selection: theirs })
+            await room.sends(roomState({ ensemble: ensemble({ traceKey: '4' }) }), 2)
+            expect(highlight.selection).toEqual([])
+        })
+
     })
 
     describe('a hand change', () => {
