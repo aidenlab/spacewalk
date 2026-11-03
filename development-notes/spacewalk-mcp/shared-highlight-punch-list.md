@@ -8,9 +8,9 @@ The highlight is the link between genomic space and 3D space. Today it holds onl
 
 | # | Ticket | Repo | What it does | Needs | Status |
 |---|---|---|---|---|---|
-| 1 | [#42](https://github.com/aidenlab/spacewalk-mcp/issues/42) Record that the highlight is relayed, never kept | `spacewalk-mcp` | ADR 0006 and the glossary | — | ☐ |
-| 2 | [#43](https://github.com/aidenlab/spacewalk-mcp/issues/43) The Room relays the highlight | `spacewalk-mcp` | The messages, the relay, the clear on close, and the library's throttled sender | 1 | ☐ |
-| 3 | [#44](https://github.com/aidenlab/spacewalk-mcp/issues/44) Release spacewalk-remote 0.3.0 as a tarball | `spacewalk-mcp` | Publishes the package the Viewer needs. Shipped to npm as `@aidenlab/spacewalk-remote@0.3.0` instead | 2 | ☐ |
+| 1 | [#42](https://github.com/aidenlab/spacewalk-mcp/issues/42) Record that the highlight is relayed, never kept | `spacewalk-mcp` | ADR 0006 and the glossary | — | ☑ |
+| 2 | [#43](https://github.com/aidenlab/spacewalk-mcp/issues/43) The Room relays the highlight | `spacewalk-mcp` | The messages, the relay, the clear on close, and the library's throttled sender | 1 | ☑ |
+| 3 | [#44](https://github.com/aidenlab/spacewalk-mcp/issues/44) Release spacewalk-remote 0.3.0 as a tarball | `spacewalk-mcp` | Publishes the package the Viewer needs. Shipped to npm as `@aidenlab/spacewalk-remote@0.3.0` instead | 2 | ☑ |
 | 4 | [#146](https://github.com/aidenlab/spacewalk/issues/146) The Viewer shares the highlight through the Room | `spacewalk` | `HighlightController` keeps local and remote apart; `roomAttachment.js` sends and follows | 3 | ☑ |
 | 5 | [#45](https://github.com/aidenlab/spacewalk-mcp/issues/45) Deploy the highlight and check it in two windows | `spacewalk-mcp` | Dev, then the check by eye | 4 | ☐ |
 | — | [#147](https://github.com/aidenlab/spacewalk/issues/147) Hovering ball 0 never highlights it | `spacewalk` | A falsy-zero bug in `picker.js` | — | ☐ |
