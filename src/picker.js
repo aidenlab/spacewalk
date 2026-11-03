@@ -55,7 +55,7 @@ class Picker {
             if (hitList.length > 0) {
                 const [ hit ] = hitList
 
-                if (hit.instanceId && hit.instanceId !== currentInstanceId) {
+                if (undefined !== hit.instanceId && hit.instanceId !== currentInstanceId) {
                     currentInstanceId = hit.instanceId
                     // The picker is discrete: the bead sits at the picked window's center.
                     const { interpolant } = this.sceneManager.ensembleManager.getCurrentGenomicExtentList()[ hit.instanceId ]
@@ -64,7 +64,7 @@ class Picker {
 
             } else {
 
-                if (currentInstanceId) {
+                if (undefined !== currentInstanceId) {
                     currentInstanceId = undefined
                     this.sceneManager.highlightController.clear('picker')
                     this.genomicNavigator.repaint()
