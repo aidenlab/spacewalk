@@ -129,7 +129,7 @@ Kinds and trace counts other than A549's are read from the file names, not check
 - [ ] Hover in both at once: each window draws its own highlight; the other's comes back when the pointer leaves
 - [ ] Step a trace in one while the other hovers: the stepped window drops the old trace's highlight; the next move brings the new trace's
 - [ ] Windows on different traces: neither draws the other's highlight
-- [ ] Switch the render style while the other window hovers: the highlight shows in the new style on the next move, not at once (see the punch list)
+- [ ] Switch the render style while the other window hovers: the highlight shows in the new style on the next move, not at once
 
 **Per Room and per window**
 

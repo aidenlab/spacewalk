@@ -127,7 +127,7 @@ class PointCloud {
     /**
      * Render the shared highlight selection (region indices -> meshList[index]).
      * Indices with no mesh (gaps in the genomic extent) are skipped; empty
-     * selection clears. See development-notes/refactor-highlighting-redesign.md.
+     * selection clears. See development-notes/highlighting-participant-map.md.
      */
     renderHighlight(selection) {
         if (selection.length > 0) {

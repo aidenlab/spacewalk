@@ -43,7 +43,7 @@ class SceneManager {
 
         // Phase 1 (shadow mode) single source of truth for the highlight
         // selection. Producers report here; nothing renders from it yet.
-        // See development-notes/refactor-highlighting-redesign.md.
+        // See development-notes/highlighting-participant-map.md.
         this.highlightController = new HighlightController()
 
         this.stickMaterial = new THREE.MeshPhongMaterial({ color: appleCrayonColorThreeJS('aluminum') })

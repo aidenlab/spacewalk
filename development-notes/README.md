@@ -8,9 +8,14 @@ Status tags:
 
 - **Current** — describes how the code works today; safe to rely on
 - **Reference** — background knowledge that doesn't go stale (concepts, theory, setup)
-- **Historical** — describes work that has shipped or been abandoned; kept for context
+- **Proposal** — an RFC that has not shipped yet
+- **Historical** — shipped or abandoned work; doesn't describe current behavior
 
-Last groomed: 2026-06 (post Phase 3 DI completion).
+Once an RFC's work ships and a Current note or the code describes the result, the RFC
+is deleted. Git history keeps it.
+
+Last groomed: 2026-11-03. All shipped RFCs, finished milestone ticket lists and punch
+lists, the archive, and generic git guides were removed.
 
 ---
 
@@ -18,58 +23,42 @@ Last groomed: 2026-06 (post Phase 3 DI completion).
 
 | Document | Status | When to read |
 |---|---|---|
-| [architecture/wiring-diagram.md](architecture/wiring-diagram.md) | Current | First read for new contributors — shows how `App` assembles every module and where each dep comes from (post-Phase-3 DI) |
-| [architecture/runtime-sequence-drag-drop.md](architecture/runtime-sequence-drag-drop.md) | Current | Companion to the wiring diagram — end-to-end "user drops a `.sw` file" trace through the wired graph |
-| [architecture-track-material-provider-checkbox.md](architecture-track-material-provider-checkbox.md) | Current | Before touching the IGV per-track checkbox that drives 3D coloring |
-| [refactor-igvpanel-material-provider-registry.md](refactor-igvpanel-material-provider-registry.md) | Proposal | RFC to extract the track→material-provider state machine out of `IGVPanel` into a testable registry (tech-debt item #5, candidate 1) |
-| [interaction-diagram-spacewalk-igv.md](interaction-diagram-spacewalk-igv.md) | Current | Before editing `IGVPanel.js` or anything in `js/widgets/trackWidgets.js` |
-| [interaction-diagram-spacewalk-juicebox.md](interaction-diagram-spacewalk-juicebox.md) | Current | Before editing `js/juicebox/` — live contact/distance maps, hic-straw integration |
-| [refactor-juiceboxpanel-live-map-view.md](refactor-juiceboxpanel-live-map-view.md) | Proposal | RFC to extract the live-map render surface out of `JuiceboxPanel` into a `LiveMapView` and break the panel↔service cycle (tech-debt item #5, candidate 2) |
-| [refactor-event-bus-usage.md](refactor-event-bus-usage.md) | Historical | RFC (complete) — cleaned up global event-bus usage: deleted the dead second bus + unused machinery, gave `DidLoadEnsembleFile` a single source, demoted point-to-point "events" to calls (Phases 0–2, #62–#64), and dissolved `DidEnter/LeaveGenomicNavigator` (Phase 3, via the highlighting redesign) |
-| [highlighting-participant-map.md](highlighting-participant-map.md) | Current | **Read first for anything highlighting.** The map of the shipped design — two surfaces (navigator strip + 3D structure), four producers (navigator / IGV / Juicebox / 3D picker), the unified spine (one state → one reconciler → one renderer per surface), per-input walkthroughs, and the clear paths |
-| [refactor-highlighting-redesign.md](refactor-highlighting-redesign.md) | Historical | RFC (complete, PRs #65/#66/#68 + final) — rebuilt highlighting as "one state, many writers, one renderer," fixing the point-cloud-from-navigator bug class and subsuming event-bus Phase 3. The plan/rationale; for current behavior see the participant map above |
-| [refactor-continuous-genomic-locator.md](refactor-continuous-genomic-locator.md) | Historical | RFC (complete, PR #70) — made the ribbon bead a *continuous* locator (glides along the curve) while the highlight stays quantized to the discrete window. The conceit: navigation is continuous, the data is discrete, the index is a projection of the continuous coordinate. For current behavior see the participant map above |
-| [refactor-reference-ruler.md](refactor-reference-ruler.md) | Done | RFC that extracted the Reference Ruler out of `ScaleBarService` into its own widget, moved it to bottom-right, and made it draggable with a persisted corner anchor; its follow-on deleted the Scale Bars (#108). Read before touching `referenceRuler.js` — it explains the anchor model and why the ruler and the Scale Bars were unrelated widgets |
-| [instanced-stick-geometry.md](instanced-stick-geometry.md) | Current | Before touching stick geometry or either radius control in `ballAndStick.js` — why sticks are an `InstancedMesh` of unit cylinders rather than baked merged geometry, why y is load-bearing in the stick scale, why the instance count isn't `trace.length`, and the `InstancedMesh.dispose()` leak |
-| [threejs/spacewalk-color-management-audit.md](threejs/spacewalk-color-management-audit.md) | Current | When working on color rendering across the Three.js pipeline |
-| [threejs/threejs-transparency-notes.md](threejs/threejs-transparency-notes.md) | Reference | When debugging transparency / depth-sort issues in Three.js |
+| [architecture/wiring-diagram.md](architecture/wiring-diagram.md) | Current | First read for new contributors. Shows how `assembleViewer()` and `App` assemble every module and where each dependency comes from. |
+| [architecture/runtime-sequence-drag-drop.md](architecture/runtime-sequence-drag-drop.md) | Current | Companion to the wiring diagram: the end-to-end trace of a user dropping a `.sw` file, through the wired graph. |
+| [architecture-track-material-provider-checkbox.md](architecture-track-material-provider-checkbox.md) | Current | Before touching the IGV per-track checkbox that drives 3D coloring. Covers the shim, `MaterialProviderController` and the signal port. |
+| [interaction-diagram-spacewalk-igv.md](interaction-diagram-spacewalk-igv.md) | Current | Before editing `src/IGVPanel.js` or the IGV side of anything. |
+| [interaction-diagram-spacewalk-juicebox.md](interaction-diagram-spacewalk-juicebox.md) | Current | Before editing `src/juicebox/`: live contact and distance maps, hic-straw integration. |
+| [highlighting-participant-map.md](highlighting-participant-map.md) | Current | **Read first for anything highlighting.** Two surfaces, four producers, one state → one reconciler → one renderer per surface, and the continuous genomic locator. |
+| [instanced-stick-geometry.md](instanced-stick-geometry.md) | Current | Before touching stick geometry or either radius control in `ballAndStick.js`. |
+| [threejs/spacewalk-color-management-audit.md](threejs/spacewalk-color-management-audit.md) | Current | Before adding any path by which a color enters the Three.js scene. Covers sRGB vs linear and the one conversion helper. |
+| [threejs/threejs-transparency-notes.md](threejs/threejs-transparency-notes.md) | Reference | When debugging transparency or depth-sort issues in Three.js. |
 
 ## Spacewalk MCP (geenee)
 
 | Document | Status | When to read |
 |---|---|---|
-| [spacewalk-mcp-viewer-carve-out.md](spacewalk-mcp-viewer-carve-out.md) | M0 and M1 done, M2 next | Before moving material-provider ownership off `IGVPanel`, building a viewer-only entry point, or designing anything in `spacewalk-mcp` — the 3D-only viewer for geenee, the three unconnected ports, the model's tool surface, Room-authoritative state, and milestones M0–M3 |
-| [spacewalk-mcp/milestones.md](spacewalk-mcp/milestones.md) | Current | **Start here for Spacewalk MCP work.** The overarching plan — milestones M0–M3, the tasks in each, what "done" means, and which milestone is in progress |
-| [spacewalk-mcp/m0-viewer-carve-out.md](spacewalk-mcp/m0-viewer-carve-out.md) | Done | Record of M0 — the GitHub tickets (#104 umbrella, #105–#113), their blocking edges, implementation order, and per-step verification |
-| [spacewalk-mcp/m1-server-single-user.md](spacewalk-mcp/m1-server-single-user.md) | Done | Record of M1 — the GitHub tickets across both repos (umbrella spacewalk-mcp#2), their blocking edges, implementation order, and per-step verification |
-| [spacewalk-mcp/m2-geenee-integration.md](spacewalk-mcp/m2-geenee-integration.md) | Not started | The GitHub tickets for M2 across both repos (umbrella geenee#43, spacewalk-mcp#27–#28, geenee#44–#49), their blocking edges and order, and the decisions from the grilling of 2026-10-31. Read before starting an M2 ticket. |
-| [spacewalk-mcp/shared-highlight-punch-list.md](spacewalk-mcp/shared-highlight-punch-list.md) | In progress | The tickets that share the highlight through the Room (umbrella spacewalk-mcp#41), their order, and what to watch for when deploying. Read before deploying either the Worker or the Viewer. |
-| [spacewalk-mcp/one-camera-owner-punch-list.md](spacewalk-mcp/one-camera-owner-punch-list.md) | In progress | The tickets that make the rig the camera's one owner (umbrella spacewalk-mcp#29), their order, and what to watch for when deploying. Read before deploying either the Worker or the Viewer. |
-| [spacewalk-mcp/local-testing-cheat-sheet.md](spacewalk-mcp/local-testing-cheat-sheet.md) | Current | Before testing the viewer page against a Room on your own machine — starting the Worker and page, a `sw` helper for calling tools, test ensembles, and a checklist |
-| [spacewalk-mcp/session-format.md](spacewalk-mcp/session-format.md) | Current | Before writing or reading a Spacewalk session string anywhere — the `spacewalk` block's fields, and `structureAppearance` with its defaults and the radius ladder. The `spacewalk-mcp` Worker reads and writes the same block |
+| [spacewalk-mcp/milestones.md](spacewalk-mcp/milestones.md) | Current | **Start here for Spacewalk MCP work.** Milestones M0–M3 (done, with umbrella issues), the viewer's bundle boundary, and M4: the three ports and their open questions. Design decisions live in `spacewalk-mcp`'s `GLOSSARY.md` and `docs/adr/`. |
+| [spacewalk-mcp/local-testing-cheat-sheet.md](spacewalk-mcp/local-testing-cheat-sheet.md) | Current | Before testing the viewer page against a Room on your own machine. |
+| [spacewalk-mcp/session-format.md](spacewalk-mcp/session-format.md) | Current | Before writing or reading a Spacewalk session string anywhere. The `spacewalk-mcp` Worker reads and writes the same block. |
 
 ## Color & visualization
 
 | Document | Status | When to read |
 |---|---|---|
-| [linear-color-space-for-data-visualization.md](linear-color-space-for-data-visualization.md) | Reference | Before any data → color mapping work (interpolation, blending, ImageData) |
-| [heat-map-color-scaling-guide.md](heat-map-color-scaling-guide.md) | Reference | Designing or tuning heat-map color scaling (normalization, transforms) |
-| [color-picker-notes/](color-picker-notes/) | Reference | Shared color picker design — diagrams and the apple-crayon palette |
+| [linear-color-space-for-data-visualization.md](linear-color-space-for-data-visualization.md) | Reference | Before any data → color mapping work (interpolation, blending, ImageData). |
+| [heat-map-color-scaling-guide.md](heat-map-color-scaling-guide.md) | Reference | When designing or tuning heat-map color scaling (normalization, transforms). |
+| [color-picker-notes/](color-picker-notes/) | Reference | Shared color picker design: diagrams and the Apple Crayon palette. |
+| [color-ramps/](color-ramps/) | Reference | Static HTML swatches of sequential color ramps, for eyeballing candidate ramps. |
 
-## Build, deploy, dev workflow
+## Loading data, hosting, deploy, dev workflow
 
 | Document | Status | When to read |
 |---|---|---|
-| [local-hic-straw-dev.md](local-hic-straw-dev.md) | Current | When iterating on hic-straw locally and testing in Spacewalk |
-| [testing-npm-dependencies.md](testing-npm-dependencies.md) | Reference | Testing an npm dep locally inside a consuming project — and, before **any** `github:#vX.Y.Z` pin bump, the trap where `npm install` reports success and leaves the old version on disk |
-| [url-shortener-setup.md](url-shortener-setup.md) | Reference | The Share modal's `t.3dg.io` shortener: the `sw-shortlink` worker, its allow-list, deploy and cutover |
-| [remote-sw-hosting.md](remote-sw-hosting.md) | Current | Before adding any remote `.sw` URL (Load From List, session JSONs, demos) — why the host matters for HDF5 range reads, the jsDelivr-compression trap, and the raw.githubusercontent / S3 / R2 decisions |
-| [encode-waf-dev-proxy.md](encode-waf-dev-proxy.md) | Current | When an ENCODE-hosted map fails in local development, or before touching the dev proxy in `vite.config.mjs` / `src/main.js` — why a bot challenge arrives as a bare `405`, and why the DEV check can't live in juicebox.js |
-| [git-foo/](git-foo/) | Reference | Git worktree cheatsheets and release-branch publishing workflow |
-
-## Archive
-
-Shipped or abandoned work, kept for historical context:
-
-- [archive/postmessage-plan.md](archive/postmessage-plan.md) — plan for cross-origin .sw ingestion via postMessage. **Shipped** in spacewalk#11 + swtool#5 (merged 2026-03-15).
-- [archive/test.json](archive/test.json) — sample HPRC genome+track config used during postmessage testing.
+| [external-file-loading.md](external-file-loading.md) | Current | The `?file=` URL parameter and the `postMessage` protocol external tools (e.g. swtool) use to hand Spacewalk a file. The root README links here. |
+| [remote-sw-hosting.md](remote-sw-hosting.md) | Current | Before adding any remote `.sw` URL (Load From List, session JSONs, demos). Why the host matters for HDF5 range reads, and the jsDelivr compression trap. |
+| [cloudflare-storage/](cloudflare-storage/) | Current | The how-to for uploading `.sw` files to the R2 bucket, plus the Load From List JSON. |
+| [encode-waf-dev-proxy.md](encode-waf-dev-proxy.md) | Current | When an ENCODE-hosted map fails in local development, or before touching the dev proxy in `vite.config.mjs` / `src/main.js`. |
+| [url-shortener-setup.md](url-shortener-setup.md) | Reference | The Share modal's shortener: the `sw-shortlink` worker, its allow-list, deploy and cutover. |
+| [local-hic-straw-dev.md](local-hic-straw-dev.md) | Current | When iterating on hic-straw locally and testing it in Spacewalk. |
+| [testing-npm-dependencies.md](testing-npm-dependencies.md) | Reference | When testing an npm dependency locally inside a consuming project. Read it before **any** `github:#vX.Y.Z` pin bump: `npm install` can report success and leave the old version on disk. |
+| [release-branch-publishing.md](release-branch-publishing.md) | Reference | When cutting a release: tag on `main`, merge to `release`, push to publish. |

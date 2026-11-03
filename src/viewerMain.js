@@ -8,7 +8,7 @@
  *
  * The bundle for this page contains no igv and no juicebox.js; the build fails
  * if it does (build/viewerBoundary.mjs). See
- * development-notes/spacewalk-mcp-viewer-carve-out.md.
+ * development-notes/spacewalk-mcp/milestones.md (M0).
  */
 import 'bootstrap'
 import 'bootstrap/dist/css/bootstrap.min.css'

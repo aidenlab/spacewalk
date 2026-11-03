@@ -37,7 +37,7 @@ Single-context repo:
 | **Proposal** | An RFC that has *not* shipped. Describes intent, not behavior. |
 | **Historical** | Shipped or abandoned. **Does not describe current behavior** — the README says where to look instead. |
 
-The trap: several completed RFCs are still in the tree as **Historical** and read like design docs for the current system. `refactor-highlighting-redesign.md` and `refactor-continuous-genomic-locator.md` are both shipped; for how highlighting behaves *now*, the index points at `highlighting-participant-map.md`. Never infer current behavior from a Historical note — follow the redirect, or read the code.
+Completed RFCs are deleted once their work ships and a **Current** note or the code describes the result. Git history keeps them. If a **Historical** note is still in the tree, don't infer current behavior from it. Follow the README's redirect, or read the code.
 
 If you add a note to `development-notes/`, **add its row to that README table** (document, status, when to read). An unindexed note is invisible.
 

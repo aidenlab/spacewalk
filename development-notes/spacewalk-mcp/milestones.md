@@ -2,20 +2,22 @@
 
 > **STATUS: Current plan.** The overarching plan for building the Spacewalk MCP server and
 > integrating it into geenee. One section per milestone: goal, where the work lives, the tasks,
-> and what "done" means. When a milestone starts, it gets its own document listing the GitHub
-> tickets and their order — see the table below.
+> and what "done" means. Each milestone's tickets and their order live in its umbrella issue
+> (see the table below).
 >
-> **Design:** [`../spacewalk-mcp-viewer-carve-out.md`](../spacewalk-mcp-viewer-carve-out.md) (RFC).
+> **Design:** decisions live in `spacewalk-mcp`'s `GLOSSARY.md` and `docs/adr/`. The original
+> carve-out RFC and the per-milestone ticket docs were retired on 2026-11-03, once M0–M3 were done.
+> They're in git history if you need them. The RFC's only open material, the ports, is in M4 below.
 > **Vocabulary:** `CONTEXT.md` — especially **port**, **render style**, **producer**.
 
 ## At a glance
 
-| Milestone | Where | Delivers | Ticket doc | Status |
+| Milestone | Where | Delivers | Tickets | Status |
 |---|---|---|---|---|
-| **M0** — carve out the 3D viewer | `spacewalk` (this repo) | a viewer-only page with no IGV or Juicebox inside it | [m0-viewer-carve-out.md](m0-viewer-carve-out.md) | **Done** (2026-10-28) |
-| **M1** — the MCP server, single user | `spacewalk-mcp` (Worker + `spacewalk-remote`) + the viewer page here | the model drives the viewer page through a Room | [m1-server-single-user.md](m1-server-single-user.md) | **Done** (2026-10-30) |
-| **M2** — geenee integration | `geenee` + `spacewalk-mcp` | Spacewalk is the third viewer in geenee — **v1 done** | [m2-geenee-integration.md](m2-geenee-integration.md) | **Done** (2026-11-02) |
-| **M3** — shared Rooms | `spacewalk-mcp` + `spacewalk` | Guests join a Room link and share one live 3D view | [m3-shared-rooms.md](m3-shared-rooms.md) | **Done** (2026-11-03) |
+| **M0** — carve out the 3D viewer | `spacewalk` (this repo) | a viewer-only page with no IGV or Juicebox inside it | [#104](https://github.com/aidenlab/spacewalk/issues/104) | **Done** (2026-10-28) |
+| **M1** — the MCP server, single user | `spacewalk-mcp` (Worker + `spacewalk-remote`) + the viewer page here | the model drives the viewer page through a Room | [spacewalk-mcp#2](https://github.com/aidenlab/spacewalk-mcp/issues/2) | **Done** (2026-10-30) |
+| **M2** — geenee integration | `geenee` + `spacewalk-mcp` | Spacewalk is the third viewer in geenee — **v1 done** | [geenee#43](https://github.com/aidenlab/geenee/issues/43) | **Done** (2026-11-02) |
+| **M3** — shared Rooms | `spacewalk-mcp` + `spacewalk` | Guests join a Room link and share one live 3D view | [spacewalk-mcp#51](https://github.com/aidenlab/spacewalk-mcp/issues/51) | **Done** (2026-11-03) |
 | **M4** — the ports | TBD | signal in, matrix out, selection in and out | — | Not started |
 
 Each milestone is blocked by the one before it. Within a milestone, tickets carry their own
@@ -55,6 +57,16 @@ working trace select, widget overlay and settings overlay; the build shows no `i
 its bundle; the full app behaves exactly as before.
 
 **Out of scope.** Any server, Room, or WebSocket. Hand-loading UI. Deploying the page.
+
+**The boundary, as it stands.** The viewer page's bundle contains no `igv` and no `juicebox.js`.
+Small utilities (`igv-utils`, `hic-straw`) are decided case by case. Two checks enforce it:
+- `src/viewer.test.js` walks the static import graph from `viewer.js` and catches a leak at the
+  import that introduces it.
+- `build/viewerBoundary.mjs` fails `vite build` if the bundle reaches either package by any route,
+  including a dependency of a dependency or a dynamic import.
+
+The threads that tied 3D to IGV and Juicebox weren't deleted. They became **ports** (see M4) and
+were left unconnected. The viewer is whole without them.
 
 ---
 
@@ -154,7 +166,7 @@ and the model routes 3D requests to Spacewalk, on Claude desktop and ChatGPT des
 **Goal.** A Room link handed to other people puts them in one live, shared 3D view.
 
 **Where.** `spacewalk-mcp` and `spacewalk-remote`. M3 needed no new code: work that came out of M1
-and M2 had already delivered it. See [m3-shared-rooms.md](m3-shared-rooms.md).
+and M2 had already delivered it. See [spacewalk-mcp#51](https://github.com/aidenlab/spacewalk-mcp/issues/51).
 
 **Tasks.**
 
@@ -184,5 +196,26 @@ geenee's Hand-off already assumes; live camera tracking during a drag.
 ## M4 — The ports
 
 No ticket doc yet: its first step is the design conversation. The three ports — signal in, matrix
-out, selection in and out — stayed unconnected through M3. Their open questions are in the RFC's
-"Ports" section.
+out, selection in and out — stayed unconnected through M3.
+
+Each port is defined by the shape of what crosses it, not by who is on the other side.
+
+| Port | Direction | Wiring in the full app | Viewer today |
+|---|---|---|---|
+| Signal | in: a 1D signal over genomic positions | checked IGV tracks → track material provider → `sceneManager.setMaterialProvider()` | unconnected |
+| Matrix | out: a contact matrix | ensemble → live contact map in Juicebox | unconnected |
+| Selection | in and out: a genomic selection in bp | IGV pointer / Juicebox crosshairs ↔ navigator | unconnected |
+
+**No placeholder tools.** A tool that answers "not yet implemented" invites the model to call it
+and then apologise.
+
+**Open questions, deliberately left open:**
+
+- Who wires a port when it's wired: the LLM (data in tool calls), geenee, or a direct
+  server-to-server channel? geenee has no cross-viewer linkage yet, so Spacewalk's would be its first.
+- Real-time coupling (scrubbing the navigator and having IGV follow at frame rate) can't survive an
+  LLM round-trip. The selection port probably needs a direct channel; the signal and matrix ports
+  probably don't.
+- Signal port: does the viewer fetch track data itself (igv's data layer without its UI), or
+  receive values per genomic extent?
+- Matrix port: is the payload a computed matrix, or a `.hic`-like artifact that Juicebox loads?

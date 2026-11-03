@@ -5,7 +5,7 @@
  * picker — report their selection here via set()/clear(); the controller
  * reconciles by handing the selection to every registered renderer. The
  * render-style switch lives inside each renderer, not in the producers.
- * See development-notes/refactor-highlighting-redesign.md.
+ * See development-notes/highlighting-participant-map.md.
  *
  * The selection is render-style-agnostic. Each entry is { index, interpolant }:
  *   - index: the discrete region into the current genomic-extent list. Drives
@@ -18,7 +18,7 @@
  * projection of the continuous interpolant, not the source of truth. Producers
  * that move continuously (navigator, IGV, juicebox) report their real
  * interpolant; the 3D picker, which is discrete, reports the picked window's
- * center. See development-notes/refactor-continuous-genomic-locator.md.
+ * center. See development-notes/highlighting-participant-map.md.
  *
  * In a Room, another Viewer's highlight arrives as the remote selection
  * (setRemote/clearRemote; spacewalk-mcp ADR 0006). Every producer on this page

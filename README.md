@@ -58,7 +58,7 @@ https://aidenlab.org/spacewalk/?file=https://example.com/data.sw&traceKey=0
 
 ### postMessage API
 
-Web applications that generate Spacewalk files in memory can send them directly without uploading or downloading. The sending app opens Spacewalk in a new tab, waits for a readiness signal, then transfers the file bytes via `postMessage`. See [notes/external-file-loading.md](development-notes/color-ramps/external-file-loading.md) for the full protocol specification.
+Web applications that generate Spacewalk files in memory can send them directly without uploading or downloading. The sending app opens Spacewalk in a new tab, waits for a readiness signal, then transfers the file bytes via `postMessage`. See [development-notes/external-file-loading.md](development-notes/external-file-loading.md) for the full protocol specification.
 
 [swtool](https://github.com/aidenlab/swtool) is the first application to use this capability — after converting a `.swt` file, users can click "Open in Spacewalk" to visualize the result immediately.
 
@@ -68,7 +68,7 @@ Spacewalk can also run as just the 3D viewer: no navbar, no IGV, no Juicebox, fi
 and resizing with it. It loads the `.sw` file named by `?file=` (same parameters as above) and
 nothing else. Its bundle contains no `igv` and no `juicebox.js`, and `npm run build` fails if
 that ever changes. This is the first step toward a Spacewalk MCP server — see
-[development-notes/spacewalk-mcp-viewer-carve-out.md](development-notes/spacewalk-mcp-viewer-carve-out.md).
+[development-notes/spacewalk-mcp/milestones.md](development-notes/spacewalk-mcp/milestones.md).
 
 With the dev server running (`npm run dev`):
 

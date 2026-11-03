@@ -1,7 +1,6 @@
 # Highlighting — participants, surfaces, and flows
 
-> **STATUS: Current.** The highlighting redesign ([refactor-highlighting-redesign.md](refactor-highlighting-redesign.md))
-> is complete and this map reflects the shipped code. The arc: Phases 1–3 (PR #65) built the unified
+> **STATUS: Current.** The highlighting redesign is complete and this map reflects the shipped code. The arc: Phases 1–3 (PR #65) built the unified
 > selection for the strip; PR #66 unified Surface B (3D vizzes became `renderHighlight(selection)`
 > renderers, `delegateGenomicInterpolant` deleted) and rebuilt the IGV producer as a spacewalk-owned
 > cursor guide ([`igvCursorGuide.js`](../src/igvCursorGuide.js), since igv v3.8.0's internal guide is
@@ -15,8 +14,11 @@
 > `{ index, interpolant }`: the discrete `index` drives the quantized surfaces, and a **continuous**
 > `interpolant` ∈ [0,1] drives the ribbon bead so it glides along the curve instead of hopping
 > window-to-window. The conceit: *navigation* is continuous, the *data* is discrete, the index is a
-> projection of the continuous coordinate. See
-> [refactor-continuous-genomic-locator.md](refactor-continuous-genomic-locator.md) and §3/§4b/§7 below.
+> projection of the continuous coordinate. See §3/§4b/§7 below.
+>
+> The two RFCs behind this arc (`refactor-highlighting-redesign.md` and
+> `refactor-continuous-genomic-locator.md`) were retired on 2026-11-03. This map is now the only
+> account of highlighting. The RFCs are in git history, and the PRs above link to them.
 
 Highlighting is the most multifaceted interaction in Spacewalk. The complexity is combinatorial:
 **two different things get highlighted, four different inputs can drive a highlight, and the 3D
@@ -420,8 +422,6 @@ The contract:
   `instanceId` and skip what they have no handle for (`.filter(Boolean)`, or filtering `undefined`
   indices in `ballAndStick`). The ribbon renders the bead from `interpolant` regardless of `index`.
 
-See the RFC's gap section and [refactor-continuous-genomic-locator.md](refactor-continuous-genomic-locator.md)
-for the deeper rationale.
 
 ---
 
@@ -442,14 +442,12 @@ wrong by render style.
 
 **Follow-on done (PR #70).** The same one path now carries a continuous `interpolant` alongside the
 discrete `index`, so the ribbon bead glides as a continuous locator while the highlight stays
-quantized. It did not add a second pipeline — it raised the fidelity of the one state. See
-[refactor-continuous-genomic-locator.md](refactor-continuous-genomic-locator.md).
+quantized. It did not add a second pipeline — it raised the fidelity of the one state.
 
 ---
 
 ## See also
 
-- [refactor-highlighting-redesign.md](refactor-highlighting-redesign.md) — the RFC / plan this map documents the result of (PR #65).
 - [architecture/wiring-diagram.md](architecture/wiring-diagram.md) — how these participants are assembled and injected.
 - [interaction-diagram-spacewalk-igv.md](interaction-diagram-spacewalk-igv.md) — the IGV cursor-guide edge in more detail.
 - [interaction-diagram-spacewalk-juicebox.md](interaction-diagram-spacewalk-juicebox.md) — the Juicebox crosshairs edge in more detail.

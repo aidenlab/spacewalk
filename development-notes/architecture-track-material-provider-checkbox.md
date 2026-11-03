@@ -1,241 +1,98 @@
-# Architecture: Track Material Provider Checkbox Interaction
+# Architecture: the track material-provider checkbox
 
-This document describes how Spacewalk and the IGV.js spacewalk branch interact via the **track material provider checkbox**—a per-track checkbox in the IGV axis column that enables genomic track data to drive 3D chromatin coloring.
+How a per-track checkbox in IGV's axis column lets genomic track data color the 3D
+structure.
 
-> **Updated 2026-06 for Phase 3 DI.** The old `utils.setMaterialProvider(...)` helper was deleted (PR #42); its two-line body is now inlined directly in `IGVPanel`. `IGVPanel` receives `sceneManager` and `genomicNavigator` via constructor injection.
+> **Refreshed 2026-11.** Spacewalk owns all of this now. The checkbox is injected by a
+> Spacewalk shim (igv.js is unmodified), and the checked-track state machine lives in
+> `MaterialProviderController` (PR #53), not in `IGVPanel`. The viewer, not IGV, owns the
+> current material provider; IGV plugs one in through `sceneManager.setMaterialProvider()`.
 
 ---
 
-## Mermaid Diagram (Component + Sequence)
+## The pieces
 
-```mermaid
-flowchart TB
-    subgraph Spacewalk["Spacewalk"]
-        PI[PanelInitializer]
-        IGV[IGVPanel]
-        TMP[TrackMaterialProvider]
-        SM[SceneManager]
-        GN[GenomicNavigator]
-        VIZ[Ribbon / BallAndStick / PointCloud]
+| Piece | File | Owns |
+|---|---|---|
+| Checkbox shim | `src/igvTrackMaterialProviderShim.js` | Injects one `<input type=checkbox>` into each track's axis div (skips `ruler`, `sequence`, `ideogram`). Re-injects on `trackorderchanged`. On `change` it calls `igvPanel.setTrackChecked(track, checked)`. Stores the input on `trackView.materialProviderInput`. |
+| `IGVPanel` | `src/IGVPanel.js` | Builds the controller and wires its `onActiveProviderChanged` callback. Installs the shim and the `trackremoved` listener in `configureMouseHandlers()`. Delegates `setTrackChecked`, `getSessionState`, `restoreSessionState`. |
+| `MaterialProviderController` | `src/materialProviderController.js` | The checked-track set (`Map` of `name\|index` ids), the binary active-provider switch, the zoom gate, and session serialize/restore. Testable: it only talks to IGV through the TrackEnvironment port. |
+| TrackEnvironment port | `src/igvTrackEnvironment.js` | The production adapter: `tracks()`, `idFor()`, `isColorEligible()` (zoom gate), `isLoading()`, `reflectCheckbox()`, `isCheckedInUI()`. |
+| Track id | `src/trackId.js` | `name\|index` ids, so two tracks with the same name stay distinct. |
+| `TrackMaterialProvider` | `src/trackMaterialProvider.js` | `configure(track)` samples features over the ensemble's genomic extents and builds a per-track color list; multiple tracks blend in LAB space. `colorForInterpolant(t)` is what the renderers read. Constructed by `viewer.js`. |
+| Signal port | `src/sceneManager.js` `setMaterialProvider()` | Makes the provider current and fans out to ribbon / ball-and-stick / point cloud. The navigator strip reads `sceneManager.materialProvider` on its own `repaint()`. |
 
-        PI -->|injects colorRamp + trackMaterialProvider<br/>+ sceneManager + genomicNavigator| IGV
-        IGV -->|browser.on dataValueMaterialCheckbox| EVT[Event Handler]
-        EVT -->|checked: activateTrackMaterialProvider| TMP
-        EVT -->|unchecked: deactivateTrackMaterialProvider| TMP
-        TMP -->|configure / removeTrackInstance| TMP
-        IGV -->|sceneManager.updateMaterialProvider| SM
-        IGV -->|genomicNavigator.repaint| GN
-        SM -->|fan out updateMaterialProvider| VIZ
-        VIZ -->|colorForInterpolant| TMP
-    end
-    
-    subgraph IGVJS["IGV.js (spacewalk branch)"]
-        TV[trackView.createAxis]
-        AXIS[.igv-axis-column]
-        CB["<input type=checkbox>"]
-        BROWSER[browser.fireEvent]
-        
-        TV -->|append axis div| AXIS
-        TV -->|create checkbox for non-ruler/sequence/ideogram| CB
-        CB -->|change event| BROWSER
-        BROWSER -->|"dataValueMaterialCheckbox [track]"| IGV
-    end
-    
-    USER[User clicks checkbox] --> CB
-```
+The active provider is a fixed binary switch, not a registry: **any checked track → the
+track provider; none → the color ramp.**
+
+---
+
+## Checking a track
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant Checkbox as IGV Checkbox
-    participant Browser as IGV Browser
-    participant IGVPanel as IGVPanel
+    participant CB as Checkbox (shim)
+    participant Panel as IGVPanel
+    participant MPC as MaterialProviderController
+    participant Env as IGV TrackEnvironment
     participant TMP as TrackMaterialProvider
     participant SM as SceneManager
     participant GN as GenomicNavigator
-    participant Viz as 3D Viz (Ribbon/Ball/PointCloud)
 
-    User->>Checkbox: click
-    Checkbox->>Browser: fireEvent('dataValueMaterialCheckbox', [track])
-    Browser->>IGVPanel: invoke listener
-    IGVPanel->>TMP: configure(track)
-    Note over TMP: getFeatures, createColorList, updateAggregatedColorList
-    TMP-->>IGVPanel: done
-    IGVPanel->>SM: sceneManager.updateMaterialProvider(trackMaterialProvider)
-    SM->>Viz: updateMaterialProvider(provider)
-    Viz->>TMP: colorForInterpolant(interpolant)
-    TMP-->>Viz: THREE.Color
-    Viz->>Viz: repaint 3D chromatin
-    IGVPanel->>GN: genomicNavigator.repaint()
+    User->>CB: click
+    CB->>Panel: setTrackChecked(track, checked)
+    Panel->>MPC: setTrackChecked(track, checked)
+    alt checked
+        MPC->>Env: isColorEligible(track)?
+        alt zoomed out too far
+            MPC->>Env: reflectCheckbox(track, false)
+            Note over MPC: warn and stop
+        else eligible
+            MPC->>TMP: await configure(track)
+            MPC->>Env: reflectCheckbox(track, true)
+        end
+    else unchecked
+        MPC->>TMP: removeTrackInstance(track)
+        MPC->>Env: reflectCheckbox(track, false)
+    end
+    MPC->>Panel: onActiveProviderChanged(activeProvider)
+    Panel->>SM: setMaterialProvider(provider)
+    SM->>SM: ribbon / ballAndStick / pointCloud .updateMaterialProvider()
+    Panel->>GN: repaint()
 ```
 
 ---
 
-## Overview
+## Other paths into the same state
 
-When a user checks the checkbox next to an IGV track, that track's genomic features (values or colors) are used to color the 3D chromatin structure. Multiple tracks can be active; their colors are blended. The checkbox lives in IGV.js; the logic that responds to it lives in Spacewalk.
-
----
-
-## Architectural Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    SPACEWALK                                              │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                          │
-│  ┌──────────────────────┐         ┌─────────────────────────────────────────────────┐   │
-│  │   PanelInitializer   │         │              IGVPanel                             │   │
-│  │                      │         │                                                  │   │
-│  │  Creates IGVPanel     │────────▶│  • colorRampMaterialProvider (default)            │   │
-│  │  with:                │         │  • trackMaterialProvider                         │   │
-│  │  • colorRampMaterial   │         │  • materialProvider (active: ramp or track)      │   │
-│  │  • trackMaterial      │         │                                                  │   │
-│  └──────────────────────┘         │  configureMouseHandlers():                        │   │
-│                                    │    browser.on('dataValueMaterialCheckbox', ...)   │   │
-│                                    │    browser.on('trackremoved', ...)                 │   │
-│                                    └────────────────────┬────────────────────────────┘   │
-│                                                           │                              │
-│                                                           │ subscribes to events          │
-│                                                           ▼                              │
-│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                         IGV.js (spacewalk branch)                                  │   │
-│  │                                                                                    │   │
-│  │  ┌─────────────────────────────────────────────────────────────────────────────┐   │   │
-│  │  │  trackView.js  →  createAxis(browser, track)                                │   │   │
-│  │  │                                                                             │   │   │
-│  │  │  For each track (except ruler, sequence, ideogram):                          │   │   │
-│  │  │    • Create <input type="checkbox"> in axis div                              │   │   │
-│  │  │    • Append axis to .igv-axis-column                                         │   │   │
-│  │  │    • input.addEventListener('change', () =>                                  │   │   │
-│  │  │        browser.fireEvent('dataValueMaterialCheckbox', [this.track])          │   │   │
-│  │  │    • trackView.materialProviderInput = input                                 │   │   │
-│  │  └─────────────────────────────────────────────────────────────────────────────┘   │   │
-│  │                                                                                    │   │
-│  │  Layout:  .igv-axis-column  (50px)  contains one axis div per track                │   │
-│  │           Each axis: [checkbox] [optional axis canvas]                              │   │
-│  └──────────────────────────────────────────────────────────────────────────────────┘   │   │
-│                                                           │                              │
-│                                                           │ event: dataValueMaterialCheckbox │
-│                                                           │ payload: track                │
-│                                                           ▼                              │
-│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  IGVPanel (continued)                                                              │   │
-│  │                                                                                    │   │
-│  │  On 'dataValueMaterialCheckbox' (track):                                           │   │
-│  │    if (track.trackView.materialProviderInput.checked)                               │   │
-│  │      → activateTrackMaterialProvider(track)                                        │   │
-│  │    else                                                                            │   │
-│  │      → deactivateTrackMaterialProvider(track)                                       │   │
-│  │                                                                                    │   │
-│  │  On 'trackremoved' (track):                                                         │   │
-│  │    if (track.trackView.materialProviderInput?.checked)                              │   │
-│  │      → removeTrackFromMaterialProvider(track)                                       │   │
-│  └──────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                           │                              │
-│                                                           ▼                              │
-│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  TrackMaterialProvider (Spacewalk)                                                 │   │
-│  │                                                                                    │   │
-│  │  configure(track):                                                                 │   │
-│  │    • viewport.getFeatures(track, chr, startBP, endBP, bpPerPixel)                  │   │
-│  │    • createColorList(allFeaturesPerExtent, track)  // value-based or color-only     │   │
-│  │    • trackColorLists.set(trackId, colorList)                                        │   │
-│  │    • updateAggregatedColorList()  // blend multiple tracks (LAB space)              │   │
-│  │                                                                                    │   │
-│  │  removeTrackInstance(track):                                                       │   │
-│  │    • Delete from trackColorLists, trackDataRanges                                   │   │
-│  │    • updateAggregatedColorList()                                                   │   │
-│  │                                                                                    │   │
-│  │  colorForInterpolant(t) → THREE.Color  // used by 3D visualization                  │   │
-│  └──────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                           │                              │
-│                                                           │ sceneManager.updateMaterialProvider(p) │
-│                                                           │ genomicNavigator.repaint()           │
-│                                                           ▼                              │
-│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  SceneManager.updateMaterialProvider(materialProvider)                             │   │
-│  │                                                                                    │   │
-│  │    ribbon?.updateMaterialProvider(materialProvider)                                 │   │
-│  │    ballAndStick?.updateMaterialProvider(materialProvider)                           │   │
-│  │    pointCloud?.updateMaterialProvider(materialProvider)                             │   │
-│  │                                                                                    │   │
-│  │  (sceneManager and genomicNavigator are injected into IGVPanel at construction.    │   │
-│  │   The two-line helper that used to live in utils.js was deleted in PR #42.)        │   │
-│  └──────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                           │                              │
-│                                                           ▼                              │
-│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
-│  │  3D Visualization (Ribbon, BallAndStick, PointCloud)                              │   │
-│  │                                                                                    │   │
-│  │  Each calls materialProvider.colorForInterpolant(interpolant) for each vertex/     │   │
-│  │  instance and updates geometry color attributes → 3D chromatin coloring            │   │
-│  └──────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                          │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
-```
+- **Track removed from IGV** (`trackremoved`): `MaterialProviderController.removeTrack(track)`.
+  By then the track is gone from `browser.trackViews`, so its `name|index` id can't be
+  recomputed. It removes by name prefix instead, calls `trackMaterialProvider.removeTrack(name)`,
+  and re-evaluates the active provider.
+- **New ensemble loaded:**
+  - `EnsembleIngestionController` calls `trackMaterialProvider.clearAllTracks()`. The cached color
+    lists are keyed to the old genomic extent, and a length mismatch crashes the blend.
+  - It then sets the color ramp as the viewer's provider and repaints, before it announces
+    `DidLoadEnsembleFile`.
+  - `IGVPanel` hears that event and calls `unsetDataMaterialProviderCheckbox()` (`src/utils/utils.js`)
+    synchronously. This unticks every box and clears the controller before `loadGenome` removes
+    tracks, so `trackremoved` can't re-select an empty track provider.
+- **Session save/restore:**
+  - `getSessionState()` returns the reconciled checked ids, or `'none'`.
+  - On restore, `sessionServices` first clears the controller and the track provider, then
+    calls `restoreSessionState()`. That re-checks each track through `setTrackChecked()` and
+    skips tracks that are still loading.
+  - The legacy session format (bare track names) restores the first track with each name.
+- **Color map change:** `SceneManager` re-applies the color ramp on `DidChangeColorMap`, but
+  only while the ramp is the active provider.
 
 ---
 
-## Sequence Diagram: User Checks a Track Checkbox
+## Things to watch
 
-```
-  User          IGV trackView      IGV browser       IGVPanel         TrackMaterialProvider   setMaterialProvider   3D viz
-   │                  │                  │                │                      │                    │               │
-   │  click checkbox   │                  │                │                      │                    │               │
-   │─────────────────▶│                  │                │                      │                    │               │
-   │                  │ change event      │                │                      │                    │               │
-   │                  │ fireEvent('dataValueMaterialCheckbox', [track])            │                    │               │
-   │                  │─────────────────▶│                │                      │                    │               │
-   │                  │                  │  invoke listeners                       │                    │               │
-   │                  │                  │────────────────▶│                      │                    │               │
-   │                  │                  │                │  activateTrackMaterialProvider(track)        │               │
-   │                  │                  │                │  configure(track)      │                    │               │
-   │                  │                  │                │──────────────────────▶│                    │               │
-   │                  │                  │                │  (viewport.getFeatures, createColorList,    │               │
-   │                  │                  │                │   updateAggregatedColorList)                │               │
-   │                  │                  │                │◀──────────────────────│                    │               │
-   │                  │                  │                │  sceneManager.updateMaterialProvider(trackMaterialProvider)               │
-   │                  │                  │                │───────────────────────────────────────────▶│               │
-   │                  │                  │                │                      │  ribbon/ball/point   │               │
-   │                  │                  │                │                      │  .updateMaterialProvider()          │
-   │                  │                  │                │                      │────────────────────────────────────▶│
-   │                  │                  │                │                      │                    │  colorForInterpolant()
-   │                  │                  │                │                      │                    │  → repaint 3D
-   │                  │                  │                │                      │                    │◀───────────────│
-   │                  │                  │                │  genomicNavigator.repaint()                                  │
-   │                  │                  │                │──────────────────────────────────────────────────────────────┐
-   │  ◀──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-   │  3D chromatin now colored by track data
-```
-
----
-
-## Key Files and Responsibilities
-
-| Component | File | Responsibility |
-|-----------|------|----------------|
-| **Checkbox creation** | `igv.js/js/trackView.js` | Creates checkbox in `createAxis()`, excludes ruler/sequence/ideogram; fires `dataValueMaterialCheckbox` on change; stores `trackView.materialProviderInput` |
-| **Event subscription** | `spacewalk/js/IGVPanel.js` | `browser.on('dataValueMaterialCheckbox', ...)` and `browser.on('trackremoved', ...)` |
-| **Track material logic** | `spacewalk/js/trackMaterialProvider.js` | `configure(track)`, `removeTrackInstance(track)`, `colorForInterpolant(t)`, `updateAggregatedColorList()`. Cleared via `clearAllTracks()` on each ensemble load (called from `EnsembleIngestionController`) |
-| **Material provider dispatch** | `spacewalk/js/sceneManager.js` | `updateMaterialProvider()` fans out to ribbon, ballAndStick, pointCloud. Invoked directly by `IGVPanel` (no `utils.setMaterialProvider` indirection — deleted in PR #42) |
-| **Checkbox clearing** | `spacewalk/js/utils/utils.js` | `unsetDataMaterialProviderCheckbox(igvPanel)` — called by `EnsembleIngestionController` on each ensemble load |
-| **Session persistence** | `spacewalk/js/IGVPanel.js` | `getSessionState()` / `restoreSessionState()` for checked track names |
-
----
-
-## Data Flow Summary
-
-1. **User → IGV**: User toggles checkbox in axis column. IGV fires `dataValueMaterialCheckbox` with the track.
-2. **IGV → Spacewalk**: IGVPanel listens and calls `activateTrackMaterialProvider` or `deactivateTrackMaterialProvider`.
-3. **TrackMaterialProvider**: Fetches features via `viewport.getFeatures()`, builds color lists, blends them.
-4. **Spacewalk 3D**: `IGVPanel` calls `sceneManager.updateMaterialProvider(provider)` (fans out to Ribbon, BallAndStick, PointCloud) and `genomicNavigator.repaint()` directly — both deps were injected into `IGVPanel` at construction. Each viz calls `colorForInterpolant(interpolant)` to color vertices.
-5. **Reverse control**: Spacewalk can programmatically set `trackView.materialProviderInput.checked` (e.g. session restore, render-style change) and uses `unsetDataMaterialProviderCheckbox()` to clear all checkboxes when switching visualization modes.
-6. **Ensemble swap**: When a new `.sw` loads, `EnsembleIngestionController` calls `trackMaterialProvider.clearAllTracks()` (cached color lists are keyed to the prior ensemble's genomic extent), flips `igvPanel.materialProvider` back to the color-ramp provider, and repaints. See PR #45 commits `75cd6d5` + `99a295d`.
-
----
-
-## Exclusion Notes
-
-- `materialProviderExclusionTrackTypes`: `['ruler', 'sequence', 'ideogram']` — these tracks do not get a checkbox.
-- `canUseTrackForMaterial(track)`: Checks zoom level; if too zoomed out, checkbox is unchecked and track is not added.
+- The zoom gate is real. A checkbox ticked while IGV is zoomed out reverts itself.
+- `serialize()` recovers ticked boxes whose recorded id went stale after a track reorder.
+  Keep that in mind before simplifying it.
+- The viewer-only page (`viewer.html`) has no IGV, so it has none of this. Only the color
+  ramp drives it.

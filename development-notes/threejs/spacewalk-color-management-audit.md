@@ -1,79 +1,49 @@
-# Spacewalk Color Management Audit
+# Spacewalk color management (Three.js sRGB / linear)
 
-**Date:** 2026-03-12
-**Audited by:** Claude Opus 4.6
-**Context:** Reviewed Spacewalk's Three.js color handling against the same sRGB/linear issues we fixed in PGB (commit `3cb2636`).
+**Status:** Current. First audited 2026-03-12, refreshed 2026-11 against `src/` (three ^0.184).
+**Origin:** We checked Spacewalk for the sRGB/linear mix-ups we fixed in PGB (commit `3cb2636`).
+For the theory, see [../linear-color-space-for-data-visualization.md](../linear-color-space-for-data-visualization.md).
+
+**Verdict:** sound. Three.js works in linear space and converts to sRGB on output. Every way a
+color enters the scene says which space it's in.
 
 ---
 
-## Renderer Setup: Correct
+## Renderer
 
-`js/initializers/threeJSInitializer.js:54-58`
+`src/initializers/threeJSInitializer.js`:
 
 ```js
 THREE.ColorManagement.enabled = true;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 ```
 
-Both settings are in place. Three.js works internally in linear space and converts to sRGB on output.
+## How colors enter, all in `src/utils/colorUtils.js`
 
----
+| Source | Path | Why it's right |
+|---|---|---|
+| Apple Crayon palette | `appleCrayonColorThreeJS(name)` → `new THREE.Color(hex)` | Three.js treats hex input as sRGB and converts it. |
+| Data RGB 0–255 (color ramps, color-map PNGs, color picker, track colors) | `rgb255ToThreeJSColor(r, g, b)` → `setRGB(..., THREE.SRGBColorSpace)` | This is the one central conversion. Its callers are `colorMapManager.js`, `sharedColorPicker.js` and `trackMaterialProvider.js`. |
+| HSV | `hsvToThreeJSColor` → `setRGB(..., THREE.SRGBColorSpace)` | Same as above. |
+| Back out to 0–255 for the UI | `threeJSColorToRGB255(color)` → `linearToSrgb` | The inverse of the above. |
 
-## What's Handled Correctly
+The deprecated `.convertSRGBToLinear()` call, which was the old audit's one action item, is
+gone. `rgb255ToThreeJSColor` uses `setRGB` with an explicit color space.
 
-### Hex strings (Apple Crayon palette)
-The dominant color pattern throughout. Three.js auto-converts hex from sRGB to linear. No action needed.
+## Exceptions that are fine
 
-### `rgb255ToThreeJSColor(r, g, b)` — central conversion function
-`js/utils/colorUtils.js:180`
+- **Fallback red** in `src/colorRampMaterialProvider.js`: `new THREE.Color(1, 0, 0)`. Pure red is
+  the same in both spaces.
+- **Session round-trip:** `groundPlane.js`, `gnomon.js`, `referenceRuler.js`, `sceneFixtures.js`
+  and the scene background in `threeJSInitializer.js` rebuild colors with
+  `new THREE.Color(r, g, b)` from serialized `THREE.Color` components. Those components are
+  already linear, so it's linear out and linear back in.
+- **Ball-and-stick shader** (`src/ballAndStick.js`, `onBeforeCompile`) only replaces
+  `#include <common>` and the `diffuseColor` line. `#include <colorspace_fragment>` survives.
 
-```js
-function rgb255ToThreeJSColor(r, g, b) {
-    return new THREE.Color(r/255, g/255, b/255).convertSRGBToLinear()
-}
-```
+## The rule for new code
 
-All data-sourced RGB (color ramps, color picker, color map PNGs) routes through this function. The sRGB→linear conversion is correct.
-
-### Color ramps
-`js/utils/colorMapManager.js` — both JSON arrays and PNG image pixel data are processed through `rgb255ToThreeJSColor()`. Correct.
-
-### Color picker
-User input RGB values route through `rgb255ToThreeJSColor()`. Correct.
-
-### Custom shader (ballAndStick.js)
-`js/ballAndStick.js:365-399` — uses `onBeforeCompile` on a MeshPhongMaterial. Only replaces `#include <common>` and the `diffuseColor` line. The `#include <colorspace_fragment>` chunk from MeshPhongMaterial survives untouched. Safe.
-
-### Hardcoded fallback reds
-`js/colorRampMaterialProvider.js:15,19,25` — `new THREE.Color(1, 0, 0)`. Since `(1, 0, 0)` is identical in both linear and sRGB, these are fine.
-
-### Session state round-trip
-`scaleBarService.js:159`, `groundPlane.js:60`, `gnomon.js:84`, `sessionServices.js:128` — all reconstruct colors via `new THREE.Color(r, g, b)` where `r, g, b` come from serialized `THREE.Color` properties (already linear). The round-trip is consistent: linear out, linear back in. No bug.
-
----
-
-## Action Item: Deprecated API
-
-`js/utils/colorUtils.js:180`
-
-`.convertSRGBToLinear()` is deprecated in newer Three.js versions. Update to the modern equivalent:
-
-```js
-// Before (deprecated)
-function rgb255ToThreeJSColor(r, g, b) {
-    return new THREE.Color(r/255, g/255, b/255).convertSRGBToLinear()
-}
-
-// After (modern)
-function rgb255ToThreeJSColor(r, g, b) {
-    return new THREE.Color().setRGB(r/255, g/255, b/255, THREE.SRGBColorSpace)
-}
-```
-
-This is a one-line change with no visual difference. `setRGB` with `SRGBColorSpace` tells Three.js the input is sRGB and it converts to linear internally — the same result, using the current API.
-
----
-
-## Conclusion
-
-Spacewalk's color management is sound. The `rgb255ToThreeJSColor()` centralizer and consistent use of hex strings means there are no sRGB/linear mix-ups of the kind we fixed in PGB. The only actionable item is modernizing the one deprecated `.convertSRGBToLinear()` call.
+Don't write `new THREE.Color(r, g, b)` with 0–1 values that came from sRGB data (a CSS color,
+a PNG pixel, a user pick). Route them through `rgb255ToThreeJSColor`, or use
+`setRGB(..., THREE.SRGBColorSpace)`. Bare `new THREE.Color(r, g, b)` is only correct for
+components that are already linear, such as ones read back from a `THREE.Color`.

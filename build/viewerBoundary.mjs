@@ -2,7 +2,7 @@
 // contains no igv and no juicebox.js. src/viewer.test.js catches a leak at the
 // import that introduces it; this catches anything that slips past a static
 // walk of our own source (a dependency of a dependency, a dynamic import).
-// See development-notes/spacewalk-mcp-viewer-carve-out.md.
+// See development-notes/spacewalk-mcp/milestones.md (M0).
 
 /**
  * Walk the chunks an entry reaches (static and dynamic imports) and report

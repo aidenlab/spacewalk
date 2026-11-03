@@ -2,7 +2,7 @@
 
 How the running system is assembled and how dependencies reach each module. Assembly is in two halves (#109): `assembleViewer()` in `src/viewer.js` builds the 3D viewer, whole on its own and with no `igv` or `juicebox.js` import; `App` calls it, then builds the app chrome and attaches the companion panels (IGV, Juicebox) to the viewer through the ports. Every dependency is explicit; nothing reaches into `app.js` to grab a singleton.
 
-> 📐 **Standalone SVG addendum:** [`wiring-diagram.svg`](./wiring-diagram.svg) — open in a browser or image viewer to pan/zoom at full resolution. The inline render below is the same diagram but constrained to the document's column width. Regenerate via `npx -y @mermaid-js/mermaid-cli -i development-notes/architecture/wiring-diagram.mmd -o development-notes/architecture/wiring-diagram.svg -b transparent` after editing [`wiring-diagram.mmd`](./wiring-diagram.mmd).
+> 📐 **Full-resolution SVG:** the inline render below is constrained to the document's column width. To pan and zoom at full resolution, render [`wiring-diagram.mmd`](./wiring-diagram.mmd) on demand with `npx -y @mermaid-js/mermaid-cli -i development-notes/architecture/wiring-diagram.mmd -o /tmp/wiring-diagram.svg -b transparent`. A checked-in SVG went stale, so we don't commit one.
 
 **Conventions:**
 - **Solid arrow (`-->`)** — constructor injection (dep passed via `new X({...})`)

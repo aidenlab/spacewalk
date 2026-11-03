@@ -49,7 +49,7 @@ class BallAndStick {
 
     /**
      * Render the shared highlight selection (region indices == ball instanceIds).
-     * Empty selection clears. See development-notes/refactor-highlighting-redesign.md.
+     * Empty selection clears. See development-notes/highlighting-participant-map.md.
      */
     renderHighlight(selection) {
         // Skip entries with no index (a gap-dwelling locator carries only an

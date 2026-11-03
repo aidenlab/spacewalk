@@ -65,7 +65,7 @@ class Ribbon {
      * along the ribbon rather than hopping window-to-window. Empty selection (or
      * an entry with no interpolant) hides the bead. The discrete index is for the
      * quantized surfaces; the bead is a continuous locator. See
-     * development-notes/refactor-continuous-genomic-locator.md.
+     * development-notes/highlighting-participant-map.md.
      */
     renderHighlight(selection) {
         if (!this.highlightBeads) {

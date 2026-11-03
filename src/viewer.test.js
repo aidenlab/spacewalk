@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 // The carve-out boundary: the 3D viewer assembles with no IGV and no Juicebox.
 // Walk the static import graph from viewer.js and collect every bare (package)
 // specifier it reaches. The build is the final proof; this catches the leak
-// at the import that introduces it. See development-notes/spacewalk-mcp-viewer-carve-out.md.
+// at the import that introduces it. See development-notes/spacewalk-mcp/milestones.md (M0).
 
 const here = dirname(fileURLToPath(import.meta.url))
 

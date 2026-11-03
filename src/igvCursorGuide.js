@@ -22,8 +22,7 @@
  * line shows the exact pointer position, the highlight shows which region that
  * position lands in.
  *
- * See development-notes/refactor-highlighting-redesign.md and
- * development-notes/highlighting-participant-map.md.
+ * See development-notes/highlighting-participant-map.md.
  */
 import { locatorForBP } from './genomicLocator.js'
 
