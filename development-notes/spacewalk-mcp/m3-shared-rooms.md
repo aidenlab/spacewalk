@@ -1,6 +1,6 @@
 # M3 — Shared Rooms: tickets
 
-> **STATUS: Not started.** Ticket list and implementation order for milestone M3, from the grilling
+> **STATUS: Done (2026-11-03).** All tickets closed; milestone issue spacewalk-mcp#51 checked. Ticket list and implementation order for milestone M3, from the grilling
 > session of 2026-11-03. The rename tickets are labelled `ready-for-agent`; the check,
 > spacewalk-mcp#51, is `ready-for-human` and stands for the milestone. Tickets carry native GitHub
 > issue dependencies across the three repos. `geenee#N` is aidenlab/geenee; `spacewalk-mcp#N` is
