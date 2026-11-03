@@ -157,7 +157,7 @@ the viewer page shares an origin with the full app, so it silently inherited the
   about the scene: one change repaints every page in the Room, and `read_viewer_state` has one true
   answer. Per-person preferences layered over the Room are deferred until someone asks.
 - **The ruler's anchor is per-page**, like overlay open/closed. It is a corner plus a pixel offset —
-  a fact about one window — so a Driver's wide Workspace and a Guest's narrow side panel must not
+  a fact about one window — so an Organizer's wide Workspace and a Guest's narrow side panel must not
   fight over it. It never enters the Room.
 - **The full app keeps `localStorage`** — single user, unchanged. Settings stay out of session files.
 - **The M0 viewer page persists nothing**: defaults on every load, changes last the page. It behaves
@@ -167,10 +167,11 @@ the viewer page shares an origin with the full app, so it silently inherited the
   Stores: `localStorage` (app), none (viewer), the Room (M1) — which is why the owner must accept
   changes *in*, not only persist them *out*.
 
-**Shared rooms (M3).** geenee's model: one Driver conversation, Guests joining by Room link as
-equals; no roles. Everything is shared except hover highlighting and overlay open/closed. The
-camera is shared and live — a throttled (~150 ms) unversioned channel during a drag, one committed
-change at gesture end.
+**Shared rooms (M3).** geenee's model: one Organizer conversation, Guests joining by Room link as
+equals; no roles. Everything is shared except overlay open/closed; the hover highlight is relayed
+and kept by nobody (spacewalk-mcp ADR 0006). The camera is shared at gesture end: followers jump to
+the final pose at release. Live tracking during a drag was considered for M3 and declined
+(spacewalk-mcp ADR 0005).
 
 This design deliberately departs from juicebox-mcp's peer-relayed events, whose documented costs
 were async completions escaping the echo guard, position-based identity, drift on reconnect,
@@ -184,7 +185,7 @@ panel-identity problem outright: there is one viewer.
 | **M0** | this repo | material-provider ownership moved off IGVPanel; IGV out of the 3D code; viewer-only entry point with toolbar and overlays |
 | **M1** | `spacewalk-mcp` | Worker, Room state document, protocol, tools, state-in-every-reply, Join card — single user |
 | **M2** | geenee | `SPACEWALK_UPSTREAM_URL`, `spacewalk_` prefix, third Workspace tab, instructions — **v1 done** |
-| **M3** | both | shared rooms: Guests, live camera channel |
+| **M3** | both | shared rooms: Guests, shared highlight, camera at release |
 
 ## Testing
 

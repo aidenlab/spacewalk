@@ -15,13 +15,14 @@
 | **M0** — carve out the 3D viewer | `spacewalk` (this repo) | a viewer-only page with no IGV or Juicebox inside it | [m0-viewer-carve-out.md](m0-viewer-carve-out.md) | **Done** (2026-10-28) |
 | **M1** — the MCP server, single user | `spacewalk-mcp` (Worker + `spacewalk-remote`) + the viewer page here | the model drives the viewer page through a Room | [m1-server-single-user.md](m1-server-single-user.md) | **Done** (2026-10-30) |
 | **M2** — geenee integration | `geenee` + `spacewalk-mcp` | Spacewalk is the third viewer in geenee — **v1 done** | [m2-geenee-integration.md](m2-geenee-integration.md) | **Done** (2026-11-02) |
-| **M3** — shared Rooms | `spacewalk-mcp` + `spacewalk` | Guests join a Room link and share one live 3D view | — | Not started |
+| **M3** — shared Rooms | `spacewalk-mcp` + `spacewalk` | Guests join a Room link and share one live 3D view | [m3-shared-rooms.md](m3-shared-rooms.md) | **Done** (2026-11-03) |
+| **M4** — the ports | TBD | signal in, matrix out, selection in and out | — | Not started |
 
 Each milestone is blocked by the one before it. Within a milestone, tickets carry their own
 blocking edges on GitHub.
 
 ```
-M0 viewer page ──▶ M1 server + Room ──▶ M2 geenee (v1) ──▶ M3 shared Rooms
+M0 viewer page ──▶ M1 server + Room ──▶ M2 geenee (v1) ──▶ M3 shared Rooms ──▶ M4 ports
 ```
 
 ---
@@ -148,34 +149,40 @@ and the model routes 3D requests to Spacewalk, on Claude desktop and ChatGPT des
 
 ---
 
-## M3 — Shared Rooms
+## M3 — Shared Rooms (done)
 
 **Goal.** A Room link handed to other people puts them in one live, shared 3D view.
 
-**Where.** `spacewalk-mcp` and `spacewalk-remote`.
+**Where.** `spacewalk-mcp` and `spacewalk-remote`. M3 needed no new code: work that came out of M1
+and M2 had already delivered it. See [m3-shared-rooms.md](m3-shared-rooms.md).
 
 **Tasks.**
 
-1. **Guests** — several pages in one Room, all equal (geenee's Driver + Guests); a late joiner is a
-   first sync.
-2. **What is shared** — everything in the state document, and the hover highlight, relayed and
-   kept by nobody (spacewalk-mcp ADR 0006; spacewalk#146); per person: whether the overlays are open.
-3. **Live camera** — during a drag, the camera holder's pose goes out on a throttled (~150 ms)
-   relay that is never stored. Today followers jump to the pose at release; nothing is committed to
-   the Room, which keeps no pose (spacewalk-mcp ADR 0005).
-4. **Multi-page realized reporting** — a failure on any page reaches the model's next reply.
-5. **geenee** — confirm the Room link, QR code and hand-off page work with the 3D viewer.
+1. **Guests** — done. Several pages in one Room, all equal (geenee's Organizer + Guests). One owner
+   for the camera (spacewalk-mcp#29, ADR 0005) gives the Room a camera holder, and a late joiner
+   asks the holder for its pose (`want-camera`).
+2. **What is shared** — done. Everything in the state document, and the highlight, relayed and kept
+   by nobody (spacewalk-mcp#41, ADR 0006; spacewalk#146). Overlays are per person, because the
+   protocol does not carry them.
+3. **Live camera** — declined. Followers jump to the final pose at release, and that is the chosen
+   behavior (spacewalk-mcp ADR 0005).
+4. **Multi-page realized reporting** — done. A failure reported by any Viewer goes into the model's
+   news (`server/src/room.ts`, `realize`).
+5. **geenee** — the Room link, QR code and Hand-off checked by eye with two Participants
+   (spacewalk-mcp#51).
 
-**Done when.** Two browsers on one Room link see the same ensemble, render style and camera; one
-orbits and the other follows live; the Driver's model sees Guests' changes as "changed in the
-viewer".
+**Done when.** Two Participants on one geenee Room link, on computers, see the same ensemble, render
+style and highlight. When one orbits and lets go, the other lands on the same camera. A Guest's hand
+change shows up in the Organizer's model's next reply as "changed in the viewer". A Participant who
+joins late sees the current view, from the current camera holder.
 
-**Out of scope.** Presence (who is here, cursors), roles, permissions, attribution.
+**Out of scope.** Presence (who is here, cursors), roles, permissions, attribution; phones, as
+geenee's Hand-off already assumes; live camera tracking during a drag.
 
 ---
 
-## After v1: the ports
+## M4 — The ports
 
-Not a milestone yet. The three ports — signal in, matrix out, selection in and out — stay
-unconnected through M3. Their open questions are in the RFC's "Ports" section; wiring them is the
-next design conversation once the viewer is up and running in geenee.
+No ticket doc yet: its first step is the design conversation. The three ports — signal in, matrix
+out, selection in and out — stayed unconnected through M3. Their open questions are in the RFC's
+"Ports" section.
