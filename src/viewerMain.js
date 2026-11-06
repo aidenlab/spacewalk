@@ -18,6 +18,8 @@ import assembleViewer from "./viewer.js"
 import { parseLaunchIntent } from "./launchIntent.js"
 import { readSnapshot } from "./snapshot.js"
 import { attachViewerToRoom } from "./roomAttachment.js"
+import { followRoom, NOT_IN_A_ROOM } from "./roomStatus.js"
+import { roomIndicator } from "./widgets/roomIndicator.js"
 import { restoreSpacewalkSession } from "./spacewalkSessionRestore.js"
 import { withSpinner } from "./utils/utils.js"
 import AlertSingleton from "./widgets/alertSingleton.js"
@@ -45,16 +47,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     dismissOverlaysOnEscape(viewer.guiManager, settingsOverlay)
 
+    const showRoomStatus = roomIndicator(document.getElementById('spacewalk-room-indicator'))
+
     const intent = parseLaunchIntent(window.location.href)
     if ('room' === intent.kind) {
+        const roomStatusOf = followRoom(intent.room)
         attachViewerToRoom(viewer, {
             server: SERVER_URL,
             room: intent.room,
             onStatus: status => {
+                showRoomStatus(roomStatusOf(status))
+                // The alert says it once; the red dot and text stay after it is dismissed.
                 if ('ended' === status.type) AlertSingleton.present(status.message)
             }
         })
     } else {
+        showRoomStatus(NOT_IN_A_ROOM)
         await openLaunchIntent(viewer, intent)
     }
 
