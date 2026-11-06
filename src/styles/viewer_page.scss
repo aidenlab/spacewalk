@@ -7,6 +7,12 @@
 $spacewalk-viewer-page-bar-height: 32px;
 $spacewalk-viewer-page-ramp-width: 48px;
 
+// The Room indicator's colours, the Juicebox and IGV viewers' own.
+$room-indicator-off-colour: #8c959f;
+$room-indicator-amber-colour: #d4a72c;
+$room-indicator-green-colour: #2da44e;
+$room-indicator-red-colour: #cf222e;
+
 body.spacewalk-viewer-page {
 
   overflow: hidden;
@@ -33,6 +39,9 @@ body.spacewalk-viewer-page {
     box-sizing: border-box;
     min-width: 0;
 
+    // Lighter than the full app's bar (app.scss), which is unchanged.
+    background-color: rgba(0, 0, 0, 0.08);
+
     // In the full app the home button floats at the bar's right edge; here it
     // takes its place in the row.
     #spacewalk-threejs-home-button {
@@ -40,6 +49,51 @@ body.spacewalk-viewer-page {
       transform: none;
       grid-column: 3;
       justify-self: end;
+    }
+  }
+
+  // The Room indicator takes the bar's left column, opposite ⌂. The text gives way
+  // to an ellipsis before it can reach the trace select; the dot always stays.
+  .room-indicator {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-left: 4px;
+
+    &__dot {
+      flex: none;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: $room-indicator-off-colour;
+    }
+
+    // Written out: nested under body.spacewalk-viewer-page, `&--joined &__dot` would repeat the body.
+    &.room-indicator--connecting .room-indicator__dot {
+      background: $room-indicator-amber-colour;
+    }
+
+    &.room-indicator--joined .room-indicator__dot {
+      background: $room-indicator-green-colour;
+    }
+
+    &.room-indicator--ended .room-indicator__dot {
+      background: $room-indicator-red-colour;
+    }
+
+    &__text {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      font-size: 12px;
+      color: color.$spacewalk_tungsten;
     }
   }
 

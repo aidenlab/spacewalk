@@ -24,8 +24,14 @@
         <!-- three-js container: fills the window -->
         <div id="spacewalk-threejs-container">
 
-            <!-- toolbar: the trace select centered, [ ⌂ ] at the right; the ☰ and ⚙ float over the canvas -->
+            <!-- toolbar: the Room indicator at the left, the trace select centered, [ ⌂ ] at the right; the ☰ and ⚙ float over the canvas -->
             <div id="spacewalk-threejs-drag-container" class="spacewalk-viewer-toolbar" role="toolbar" aria-label="Viewer">
+
+                <!-- Room indicator: where the page stands with its Room (widgets/roomIndicator.js) -->
+                <div id="spacewalk-room-indicator" class="room-indicator">
+                    <span class="room-indicator__dot" aria-hidden="true"></span>
+                    <span class="room-indicator__text" role="status"></span>
+                </div>
 
                 <!-- trace select -->
                 <div class="spacewalk-viewer-toolbar-trace-select">
