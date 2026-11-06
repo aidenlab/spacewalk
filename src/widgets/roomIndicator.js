@@ -9,13 +9,13 @@ const MODIFIERS = [ 'connecting', 'joined', 'ended' ].map(state => `room-indicat
  */
 export function roomIndicator(element) {
 
-    const text = element.querySelector('.room-indicator__text')
+    const textElement = element.querySelector('.room-indicator__text')
 
-    return ({ indicator, text: words }) => {
+    return ({ indicator, text }) => {
         element.classList.remove(...MODIFIERS)
         // The grey dot is the block's own colour: no Room has no modifier.
         if ('off' !== indicator) element.classList.add(`room-indicator--${ indicator }`)
-        text.textContent = words
-        element.title = words
+        textElement.textContent = text
+        element.title = text
     }
 }
